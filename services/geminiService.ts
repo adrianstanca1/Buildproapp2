@@ -59,7 +59,7 @@ export const streamChatResponse = async (
 
         return {
           role: msg.role,
-          parts: parts
+          parts: parts as Part[]
         };
       });
 
@@ -83,7 +83,7 @@ export const streamChatResponse = async (
     const chat = ai.chats.create({
       model: model,
       config: chatConfig,
-      history: apiHistory
+      history: apiHistory as any
     });
 
     // Construct the new message
@@ -95,7 +95,7 @@ export const streamChatResponse = async (
         parts.push({ inlineData: { mimeType: mimeType, data: imageData } });
     }
 
-    const finalMessageParts: Part[] = parts.length > 0 ? parts : [{ text: "Analyze this." }];
+    const finalMessageParts: any = parts.length > 0 ? parts : [{ text: "Analyze this." }];
 
     const result = await (chat as any).sendMessageStream(finalMessageParts);
 
@@ -120,6 +120,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
       contents: {
+        role: 'user',
         parts: [{ text: prompt }],
       },
       config: {
@@ -183,6 +184,7 @@ export const transcribeAudio = async (audioBase64: string, mimeType: string): Pr
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: {
+        role: 'user',
         parts: [
           { inlineData: { mimeType: mimeType, data: audioBase64 } },
           { text: "Transcribe this audio exactly." }
@@ -201,7 +203,7 @@ export const generateSpeech = async (text: string): Promise<AudioBuffer> => {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text }] }],
+      contents: [{ role: 'user', parts: [{ text }] }],
       config: {
         responseModalities: [Modality.AUDIO],
         speechConfig: {
