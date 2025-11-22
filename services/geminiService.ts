@@ -23,21 +23,21 @@ export const streamChatResponse = async (
   onChunk?: (text: string) => void,
   configOverride?: ChatConfig
 ): Promise<GenerateContentResponse> => {
-  
+
   // Default to 3-Pro for chat unless specified
   const model = configOverride?.model || "gemini-3-pro-preview";
-  
+
   try {
     // Convert internal Message history to API Content format
     const apiHistory: Content[] = history
       .filter(msg => !msg.isThinking && msg.id !== 'intro')
       .map(msg => {
         const parts: any[] = [];
-        
+
         if (msg.text) {
           parts.push({ text: msg.text });
         }
-        
+
         if (msg.image && msg.role === 'user') {
           try {
             // Check if it's a data URL
@@ -45,11 +45,11 @@ export const streamChatResponse = async (
             if (matches) {
                 const mime = matches[1];
                 const data = matches[2];
-                parts.push({ 
-                  inlineData: { 
-                    mimeType: mime, 
-                    data: data 
-                  } 
+                parts.push({
+                  inlineData: {
+                    mimeType: mime,
+                    data: data
+                  }
                 });
             }
           } catch (e) {
@@ -94,18 +94,18 @@ export const streamChatResponse = async (
     if (imageData) {
         parts.push({ inlineData: { mimeType: mimeType, data: imageData } });
     }
-    
+
     const messageContent = { parts: parts.length > 0 ? parts : [{ text: "Analyze this." }] };
 
-    const result = await chat.sendMessageStream({ message: messageContent });
-    
+    const result = await chat.sendMessageStream(messageContent.parts as any);
+
     let finalResponse: GenerateContentResponse | undefined;
     for await (const chunk of result) {
       finalResponse = chunk; // Keep the last chunk for full metadata (grounding etc)
       const text = chunk.text || "";
       if (onChunk) onChunk(text);
     }
-    
+
     return finalResponse!; // Return last chunk which contains grounding metadata
 
   } catch (error) {
@@ -129,7 +129,7 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
         }
       },
     });
-    
+
     // Extract image
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
@@ -168,7 +168,7 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
     // Fetch the actual video bytes using the API key
     const videoResponse = await fetch(`${videoUri}&key=${process.env.API_KEY}`);
     if (!videoResponse.ok) throw new Error("Failed to download video");
-    
+
     const blob = await videoResponse.blob();
     return URL.createObjectURL(blob);
   } catch (e) {
@@ -216,7 +216,7 @@ export const generateSpeech = async (text: string): Promise<AudioBuffer> => {
     if (!base64Audio) throw new Error("No audio data returned");
 
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({sampleRate: 24000});
-    
+
     // Manual Decode Helper
     const binaryString = atob(base64Audio);
     const len = binaryString.length;
@@ -227,13 +227,13 @@ export const generateSpeech = async (text: string): Promise<AudioBuffer> => {
 
     // Simple Int16 PCM decode to Float32 AudioBuffer
     const dataInt16 = new Int16Array(bytes.buffer);
-    const frameCount = dataInt16.length; 
+    const frameCount = dataInt16.length;
     const buffer = audioContext.createBuffer(1, frameCount, 24000);
     const channelData = buffer.getChannelData(0);
     for (let i = 0; i < frameCount; i++) {
       channelData[i] = dataInt16[i] / 32768.0;
     }
-    
+
     return buffer;
   } catch (e) {
     console.error("TTS failed", e);
@@ -254,14 +254,14 @@ export interface GenConfig {
 
 // General prompt runner with model selection and dynamic media support
 export const runRawPrompt = async (
-  prompt: string, 
+  prompt: string,
   config?: GenConfig,
   mediaData?: string, // Expects raw base64 string
   mimeType: string = 'image/jpeg'
 ): Promise<string> => {
   try {
     const modelName = config?.model || 'gemini-2.5-flash';
-    
+
     const contents: any = {
         role: 'user',
         parts: [{ text: prompt }]
@@ -307,7 +307,7 @@ export const parseAIJSON = <T = any>(text: string): T => {
              return JSON.parse(cleaned);
         }
     } catch (e2) {}
-    
+
     throw new Error("Invalid JSON format from AI");
   }
 };
