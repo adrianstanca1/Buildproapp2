@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, LiveServerMessage, Modality, Content, GenerateContentResponse, Type } from "@google/genai";
+import { GoogleGenAI, LiveServerMessage, Modality, Content, GenerateContentResponse, Type, Part } from "@google/genai";
 import { Message } from "../types";
 
 // Initialize the client with the environment key
@@ -95,9 +95,9 @@ export const streamChatResponse = async (
         parts.push({ inlineData: { mimeType: mimeType, data: imageData } });
     }
 
-    const messageContent = { parts: parts.length > 0 ? parts : [{ text: "Analyze this." }] };
+    const payloadParts: Part[] = parts.length > 0 ? parts : [{ text: "Analyze this." }];
 
-    const result = await chat.sendMessageStream(messageContent.parts as any);
+    const result = await (chat as any).sendMessageStream(payloadParts);
 
     let finalResponse: GenerateContentResponse | undefined;
     for await (const chunk of result) {
