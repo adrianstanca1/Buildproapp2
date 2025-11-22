@@ -95,9 +95,9 @@ export const streamChatResponse = async (
         parts.push({ inlineData: { mimeType: mimeType, data: imageData } });
     }
 
-    const payloadParts: Part[] = parts.length > 0 ? parts : [{ text: "Analyze this." }];
+    const finalMessageParts: Part[] = parts.length > 0 ? parts : [{ text: "Analyze this." }];
 
-    const result = await (chat as any).sendMessageStream(payloadParts);
+    const result = await (chat as any).sendMessageStream(finalMessageParts);
 
     let finalResponse: GenerateContentResponse | undefined;
     for await (const chunk of result) {
