@@ -158,7 +158,8 @@ export async function seedDatabase() {
   ];
   for (const m of team) {
     await db.run(
-      `INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects) 
+      `INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects)
+
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [m.id, m.companyId, m.name, m.initials, m.role, m.status, m.projectId, m.projectName, m.phone, m.email, m.color, m.bio, m.location, m.skills, m.certifications, m.performanceRating, m.completedProjects]
     );
@@ -170,7 +171,8 @@ export async function seedDatabase() {
   ];
   for (const c of clients) {
     await db.run(
-      `INSERT INTO clients (id, companyId, name, contactPerson, role, email, phone, status, tier, activeProjects, totalValue) 
+      `INSERT INTO clients (id, companyId, name, contactPerson, role, email, phone, status, tier, activeProjects, totalValue)
+
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [c.id, c.companyId, c.name, c.contactPerson, c.role, c.email, c.phone, c.status, c.tier, c.activeProjects, c.totalValue]
     );
@@ -182,7 +184,8 @@ export async function seedDatabase() {
   ];
   for (const i of inventory) {
     await db.run(
-      `INSERT INTO inventory (id, companyId, name, category, stock, unit, threshold, status, location, lastOrderDate, costPerUnit) 
+      `INSERT INTO inventory (id, companyId, name, category, stock, unit, threshold, status, location, lastOrderDate, costPerUnit)
+
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [i.id, i.companyId, i.name, i.category, i.stock, i.unit, i.threshold, i.status, i.location, i.lastOrderDate, i.costPerUnit]
     );
@@ -194,7 +197,8 @@ export async function seedDatabase() {
   ];
   for (const s of incidents) {
     await db.run(
-      `INSERT INTO safety_incidents (id, title, project, projectId, severity, status, date, type) 
+      `INSERT INTO safety_incidents (id, title, project, projectId, severity, status, date, type)
+
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [s.id, s.title, s.project, s.projectId, s.severity, s.status, s.date, s.type]
     );
@@ -206,7 +210,8 @@ export async function seedDatabase() {
   ];
   for (const e of equipment) {
     await db.run(
-      `INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId) 
+      `INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId)
+
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [e.id, e.name, e.type, e.status, e.projectId, e.projectName, e.lastService, e.nextService, e.companyId]
     );
@@ -218,7 +223,8 @@ export async function seedDatabase() {
   ];
   for (const t of timesheets) {
     await db.run(
-      `INSERT INTO timesheets (id, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId) 
+      `INSERT INTO timesheets (id, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId)
+
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [t.id, t.employeeName, t.projectId, t.projectName, t.date, t.hours, t.startTime, t.endTime, t.status, t.companyId]
     );
