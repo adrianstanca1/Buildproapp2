@@ -1,4 +1,4 @@
-import { initializeDatabase } from '../database.js';
+import { initializeDatabase } from './database.js';
 
 console.log('Starting database initialization...');
 
