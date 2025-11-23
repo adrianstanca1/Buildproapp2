@@ -7,9 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase URL or Anon Key is missing. Supabase features will not work.');
 }
 
+// Use placeholders to prevent crash if env vars are missing
+const validUrl = supabaseUrl || 'https://placeholder.supabase.co';
+const validKey = supabaseAnonKey || 'placeholder';
+
 export const supabase = createClient(
-  supabaseUrl || '',
-  supabaseAnonKey || ''
+  validUrl,
+  validKey
 );
 
 export const uploadFile = async (file: File, bucket: string = 'documents', path?: string) => {
