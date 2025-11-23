@@ -157,7 +157,11 @@ export async function seedDatabase() {
     { id: 'u2', companyId: 'c1', name: 'Sarah Mitchell', initials: 'SM', role: 'Site Supervisor', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0102', email: 'sarah@buildcorp.com', color: 'bg-green-500', bio: 'Expert in structural steel.', location: 'Sector 4', skills: '["Steel", "Logistics"]', certifications: '[]', performanceRating: 92, completedProjects: 8 }
   ];
   for (const m of team) {
-    await db.run(`INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(m));
+    await db.run(
+      `INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [m.id, m.companyId, m.name, m.initials, m.role, m.status, m.projectId, m.projectName, m.phone, m.email, m.color, m.bio, m.location, m.skills, m.certifications, m.performanceRating, m.completedProjects]
+    );
   }
 
   // --- Clients ---
@@ -165,7 +169,11 @@ export async function seedDatabase() {
     { id: 'cl1', companyId: 'c1', name: 'Metro Developers', contactPerson: 'Alice Wright', role: 'Director', email: 'alice@metro.com', phone: '+1 555-0201', status: 'Active', tier: 'Platinum', activeProjects: 1, totalValue: '$25M' }
   ];
   for (const c of clients) {
-    await db.run(`INSERT INTO clients (id, companyId, name, contactPerson, role, email, phone, status, tier, activeProjects, totalValue) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(c));
+    await db.run(
+      `INSERT INTO clients (id, companyId, name, contactPerson, role, email, phone, status, tier, activeProjects, totalValue) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [c.id, c.companyId, c.name, c.contactPerson, c.role, c.email, c.phone, c.status, c.tier, c.activeProjects, c.totalValue]
+    );
   }
 
   // --- Inventory ---
@@ -173,7 +181,11 @@ export async function seedDatabase() {
     { id: 'inv1', companyId: 'c1', name: 'Cement Bags', category: 'Materials', stock: 150, unit: 'bags', threshold: 50, status: 'In Stock', location: 'Warehouse A', lastOrderDate: '2025-10-01', costPerUnit: 12.50 }
   ];
   for (const i of inventory) {
-    await db.run(`INSERT INTO inventory (id, companyId, name, category, stock, unit, threshold, status, location, lastOrderDate, costPerUnit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(i));
+    await db.run(
+      `INSERT INTO inventory (id, companyId, name, category, stock, unit, threshold, status, location, lastOrderDate, costPerUnit) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [i.id, i.companyId, i.name, i.category, i.stock, i.unit, i.threshold, i.status, i.location, i.lastOrderDate, i.costPerUnit]
+    );
   }
 
   // --- Safety Incidents ---
@@ -181,7 +193,11 @@ export async function seedDatabase() {
     { id: 'si1', title: 'Near miss with forklift', project: 'City Centre Plaza', projectId: 'p1', severity: 'Medium', status: 'Investigating', date: '2025-11-01', type: 'Machinery' }
   ];
   for (const s of incidents) {
-    await db.run(`INSERT INTO safety_incidents (id, title, project, projectId, severity, status, date, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(s));
+    await db.run(
+      `INSERT INTO safety_incidents (id, title, project, projectId, severity, status, date, type) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [s.id, s.title, s.project, s.projectId, s.severity, s.status, s.date, s.type]
+    );
   }
 
   // --- Equipment ---
@@ -189,7 +205,11 @@ export async function seedDatabase() {
     { id: 'eq1', name: 'Excavator CAT-320', type: 'Heavy Machinery', status: 'In Use', projectId: 'p1', projectName: 'City Centre Plaza', lastService: '2025-09-15', nextService: '2025-12-15', companyId: 'c1' }
   ];
   for (const e of equipment) {
-    await db.run(`INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(e));
+    await db.run(
+      `INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [e.id, e.name, e.type, e.status, e.projectId, e.projectName, e.lastService, e.nextService, e.companyId]
+    );
   }
 
   // --- Timesheets ---
@@ -197,6 +217,10 @@ export async function seedDatabase() {
     { id: 'ts1', employeeName: 'Mike Thompson', projectId: 'p1', projectName: 'City Centre Plaza', date: '2025-11-10', hours: 8, startTime: '07:00', endTime: '15:00', status: 'Approved', companyId: 'c1' }
   ];
   for (const t of timesheets) {
-    await db.run(`INSERT INTO timesheets (id, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(t));
+    await db.run(
+      `INSERT INTO timesheets (id, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.employeeName, t.projectId, t.projectName, t.date, t.hours, t.startTime, t.endTime, t.status, t.companyId]
+    );
   }
 }

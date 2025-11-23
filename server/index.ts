@@ -15,6 +15,7 @@ app.use(express.json());
 app.use(async (req, res, next) => {
   try {
     await ensureDbInitialized();
+    await seedDatabase();
     next();
   } catch (err) {
     console.error('Database initialization failed:', err);
