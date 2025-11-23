@@ -60,22 +60,22 @@ export async function seedDatabase() {
 
   for (const p of projects) {
     await db.run(
-      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, p.weatherLocation, p.aiAnalysis, '[]', '[]']
+      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, p.weatherLocation, p.aiAnalysis, '[]', '[]', '[]']
     );
   }
 
   const tasks = [
-    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeName: 'Mike Thompson', assigneeType: 'user', dueDate: '2025-11-12', latitude: 40.7128, longitude: -74.0060, dependencies: '[]' },
-    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', latitude: 40.7135, longitude: -74.0055, dependencies: '["t1"]' }
+    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeId: 'u1', assigneeName: 'Mike Thompson', assigneeType: 'user', dueDate: '2025-11-12', latitude: 40.7128, longitude: -74.0060, dependencies: '[]' },
+    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeId: 'role-operative', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', latitude: 40.7135, longitude: -74.0055, dependencies: '["t1"]' }
   ];
 
   for (const t of tasks) {
     await db.run(
-      `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [t.id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, t.dependencies]
+      `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeId, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, t.dependencies]
     );
   }
 
@@ -153,15 +153,15 @@ export async function seedDatabase() {
 
   // --- Team ---
   const team = [
-    { id: 'u1', companyId: 'c1', name: 'John Anderson', initials: 'JA', role: 'Project Manager', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0101', email: 'john@buildcorp.com', color: 'bg-blue-500', bio: 'Senior PM with 15 years experience.', location: 'Site Office', skills: '["Management", "Safety"]', certifications: '[]', performanceRating: 95, completedProjects: 12 },
-    { id: 'u2', companyId: 'c1', name: 'Sarah Mitchell', initials: 'SM', role: 'Site Supervisor', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0102', email: 'sarah@buildcorp.com', color: 'bg-green-500', bio: 'Expert in structural steel.', location: 'Sector 4', skills: '["Steel", "Logistics"]', certifications: '[]', performanceRating: 92, completedProjects: 8 }
+    { id: 'u1', companyId: 'c1', name: 'John Anderson', initials: 'JA', role: 'Project Manager', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0101', email: 'john@buildcorp.com', color: 'bg-blue-500', bio: 'Senior PM with 15 years experience.', location: 'Site Office', skills: '["Management", "Safety"]', certifications: '[]', performanceRating: 95, completedProjects: 12, joinDate: '2020-01-15', hourlyRate: 85.00 },
+    { id: 'u2', companyId: 'c1', name: 'Sarah Mitchell', initials: 'SM', role: 'Site Supervisor', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0102', email: 'sarah@buildcorp.com', color: 'bg-green-500', bio: 'Expert in structural steel.', location: 'Sector 4', skills: '["Steel", "Logistics"]', certifications: '[]', performanceRating: 92, completedProjects: 8, joinDate: '2021-03-10', hourlyRate: 65.00 }
   ];
   for (const m of team) {
     await db.run(
-      `INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects)
+      `INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects, joinDate, hourlyRate)
 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [m.id, m.companyId, m.name, m.initials, m.role, m.status, m.projectId, m.projectName, m.phone, m.email, m.color, m.bio, m.location, m.skills, m.certifications, m.performanceRating, m.completedProjects]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [m.id, m.companyId, m.name, m.initials, m.role, m.status, m.projectId, m.projectName, m.phone, m.email, m.color, m.bio, m.location, m.skills, m.certifications, m.performanceRating, m.completedProjects, m.joinDate, m.hourlyRate]
     );
   }
 
@@ -206,27 +206,27 @@ export async function seedDatabase() {
 
   // --- Equipment ---
   const equipment = [
-    { id: 'eq1', name: 'Excavator CAT-320', type: 'Heavy Machinery', status: 'In Use', projectId: 'p1', projectName: 'City Centre Plaza', lastService: '2025-09-15', nextService: '2025-12-15', companyId: 'c1' }
+    { id: 'eq1', name: 'Excavator CAT-320', type: 'Heavy Machinery', status: 'In Use', projectId: 'p1', projectName: 'City Centre Plaza', lastService: '2025-09-15', nextService: '2025-12-15', companyId: 'c1', image: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80' }
   ];
   for (const e of equipment) {
     await db.run(
-      `INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId)
+      `INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId, image)
 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [e.id, e.name, e.type, e.status, e.projectId, e.projectName, e.lastService, e.nextService, e.companyId]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [e.id, e.name, e.type, e.status, e.projectId, e.projectName, e.lastService, e.nextService, e.companyId, e.image]
     );
   }
 
   // --- Timesheets ---
   const timesheets = [
-    { id: 'ts1', employeeName: 'Mike Thompson', projectId: 'p1', projectName: 'City Centre Plaza', date: '2025-11-10', hours: 8, startTime: '07:00', endTime: '15:00', status: 'Approved', companyId: 'c1' }
+    { id: 'ts1', employeeId: 'u1', employeeName: 'Mike Thompson', projectId: 'p1', projectName: 'City Centre Plaza', date: '2025-11-10', hours: 8, startTime: '07:00', endTime: '15:00', status: 'Approved', companyId: 'c1' }
   ];
   for (const t of timesheets) {
     await db.run(
-      `INSERT INTO timesheets (id, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId)
+      `INSERT INTO timesheets (id, employeeId, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId)
 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [t.id, t.employeeName, t.projectId, t.projectName, t.date, t.hours, t.startTime, t.endTime, t.status, t.companyId]
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.employeeId, t.employeeName, t.projectId, t.projectName, t.date, t.hours, t.startTime, t.endTime, t.status, t.companyId]
     );
   }
 }
