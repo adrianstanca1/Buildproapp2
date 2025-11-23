@@ -1,6 +1,8 @@
-import 'dotenv/config';
-import express from 'express';
-import cors from 'cors';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
 import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';

@@ -1,5 +1,7 @@
-import pg from 'pg';
-import dotenv from 'dotenv';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { Pool } = require('pg');
+const dotenv = require('dotenv');
 
 dotenv.config();
 
@@ -22,9 +24,9 @@ class SqliteAdapter implements IDatabase {
 }
 
 class PostgresAdapter implements IDatabase {
-  private pool: pg.Pool;
+  private pool: any;
   constructor(connectionString: string) {
-    this.pool = new pg.Pool({
+    this.pool = new Pool({
       connectionString,
       ssl: { rejectUnauthorized: false } // Required for Neon/Supabase
     });
@@ -63,11 +65,9 @@ export async function initializeDatabase() {
     } else {
       console.log('Initializing SQLite connection...');
       try {
-        // Dynamic import to avoid loading sqlite3 in serverless environments (Vercel)
-        // @ts-ignore
-        const sqlite3 = (await import('sqlite3')).default;
-        // @ts-ignore
-        const { open } = await import('sqlite');
+        // Use require for sqlite3 to ensure compatibility
+        const sqlite3 = require('sqlite3');
+        const { open } = require('sqlite');
 
         // Use /tmp on Vercel (ephemeral) or local file otherwise
         const dbPath = process.env.VERCEL ? '/tmp/buildpro_db.sqlite' : './buildpro_db.sqlite';
