@@ -61,16 +61,23 @@ export async function initializeDatabase() {
       dbInstance = new PostgresAdapter(process.env.DATABASE_URL);
     } else {
       console.log('Initializing SQLite connection...');
-      // Dynamic import to avoid loading sqlite3 in serverless environments (Vercel)
-      const sqlite3 = (await import('sqlite3')).default;
-      const { open } = await import('sqlite');
+      try {
+        // Dynamic import to avoid loading sqlite3 in serverless environments (Vercel)
+        // @ts-ignore
+        const sqlite3 = (await import('sqlite3')).default;
+        // @ts-ignore
+        const { open } = await import('sqlite');
 
-      const db = await open({
-        filename: './buildpro_db.sqlite',
-        driver: sqlite3.Database
-      });
-      await db.exec('PRAGMA foreign_keys = ON;');
-      dbInstance = new SqliteAdapter(db);
+        const db = await open({
+          filename: './buildpro_db.sqlite',
+          driver: sqlite3.Database
+        });
+        await db.exec('PRAGMA foreign_keys = ON;');
+        dbInstance = new SqliteAdapter(db);
+      } catch (error) {
+        console.error('Failed to load SQLite:', error);
+        throw new Error('SQLite initialization failed. Ensure sqlite3 is installed or use DATABASE_URL.');
+      }
     }
 
     await initSchema(dbInstance);
