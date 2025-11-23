@@ -149,9 +149,9 @@ app.post('/api/tasks', async (req, res) => {
     const dependencies = t.dependencies ? JSON.stringify(t.dependencies) : '[]';
 
     await db.run(
-      `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, dependencies]
+      `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeId, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, dependencies]
     );
     res.json({ ...t, id });
   } catch (e) {

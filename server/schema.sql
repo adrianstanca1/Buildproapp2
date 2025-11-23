@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   projectId TEXT,
   status TEXT,
   priority TEXT,
+  assigneeId TEXT,
   assigneeName TEXT,
   assigneeType TEXT,
   dueDate TEXT,
