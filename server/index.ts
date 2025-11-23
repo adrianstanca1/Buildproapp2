@@ -4,7 +4,6 @@ import cors from 'cors';
 import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
-import { pathToFileURL } from 'url';
 
 const app = express();
 const port = 3002;
@@ -307,9 +306,7 @@ const startServer = async () => {
   }
 };
 
-// Only start server if run directly
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startServer();
-}
+// Start server
+startServer();
 
 export default app;
