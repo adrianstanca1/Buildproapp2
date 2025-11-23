@@ -140,6 +140,7 @@ async function initSchema(db: IDatabase) {
       projectId TEXT,
       status TEXT,
       priority TEXT,
+      assigneeId TEXT,
       assigneeName TEXT,
       assigneeType TEXT,
       dueDate TEXT,
@@ -166,7 +167,9 @@ async function initSchema(db: IDatabase) {
       skills TEXT, -- JSON array
       certifications TEXT, -- JSON array
       performanceRating INTEGER,
-      completedProjects INTEGER
+      completedProjects INTEGER,
+      joinDate TEXT,
+      hourlyRate REAL
     );
 
     CREATE TABLE IF NOT EXISTS documents (
@@ -282,11 +285,13 @@ async function initSchema(db: IDatabase) {
       projectName TEXT,
       lastService TEXT,
       nextService TEXT,
-      companyId TEXT
+      companyId TEXT,
+      image TEXT
     );
 
     CREATE TABLE IF NOT EXISTS timesheets (
       id TEXT PRIMARY KEY,
+      employeeId TEXT,
       employeeName TEXT,
       projectId TEXT,
       projectName TEXT,
@@ -302,6 +307,39 @@ async function initSchema(db: IDatabase) {
   // Migration: Add timelineOptimizations if not exists
   try {
     await db.exec('ALTER TABLE projects ADD COLUMN timelineOptimizations TEXT');
+  } catch (e) {
+    // Column likely exists
+  }
+
+  // Migration: Add image to equipment
+  try {
+    await db.exec('ALTER TABLE equipment ADD COLUMN image TEXT');
+  } catch (e) {
+    // Column likely exists
+  }
+
+  // Migration: Add joinDate and hourlyRate to team
+  try {
+    await db.exec('ALTER TABLE team ADD COLUMN joinDate TEXT');
+  } catch (e) {
+    // Column likely exists
+  }
+  try {
+    await db.exec('ALTER TABLE team ADD COLUMN hourlyRate REAL');
+  } catch (e) {
+    // Column likely exists
+  }
+
+  // Migration: Add employeeId to timesheets
+  try {
+    await db.exec('ALTER TABLE timesheets ADD COLUMN employeeId TEXT');
+  } catch (e) {
+    // Column likely exists
+  }
+
+  // Migration: Add assigneeId to tasks
+  try {
+    await db.exec('ALTER TABLE tasks ADD COLUMN assigneeId TEXT');
   } catch (e) {
     // Column likely exists
   }

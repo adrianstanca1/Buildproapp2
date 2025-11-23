@@ -59,7 +59,9 @@ CREATE TABLE IF NOT EXISTS team (
   skills TEXT, -- JSON array
   certifications TEXT, -- JSON array
   performanceRating INTEGER,
-  completedProjects INTEGER
+  completedProjects INTEGER,
+  joinDate TEXT,
+  hourlyRate REAL
 );
 
 -- Documents Table
@@ -184,12 +186,14 @@ CREATE TABLE IF NOT EXISTS equipment (
   projectName TEXT,
   lastService TEXT,
   nextService TEXT,
-  companyId TEXT
+  companyId TEXT,
+  image TEXT
 );
 
 -- Timesheets Table
 CREATE TABLE IF NOT EXISTS timesheets (
   id TEXT PRIMARY KEY,
+  employeeId TEXT,
   employeeName TEXT,
   projectId TEXT,
   projectName TEXT,
