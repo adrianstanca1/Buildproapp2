@@ -132,9 +132,7 @@ class DatabaseService {
       await this.post('documents', d);
   }
   async updateDocument(id: string, d: Partial<ProjectDocument>) {
-      // Mock DB doesn't have updateDocument explicitly in interface above but we can add it or ignore
-      if (this.useMock) return;
-      await this.put('documents', id, d);
+      if (this.useMock) return mockDb.updateDocument(id, d);
   }
 
   // --- Clients ---
@@ -242,4 +240,4 @@ class DatabaseService {
       if (this.useMock) return;
       await this.put('timesheets', id, u);
   }
-export const db = new DatabaseService();
+}

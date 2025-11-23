@@ -79,5 +79,75 @@ export async function seedDatabase() {
     );
   }
 
+  // --- Additional Seeds ---
+
+  const rfis = [
+    { id: 'rfi-1', projectId: 'p1', number: 'RFI-001', subject: 'Clarification on Curtain Wall Anchors', question: 'The specs for anchors on level 4 seem to conflict with structural drawings.', assignedTo: 'Sarah Mitchell', status: 'Open', dueDate: '2025-11-15', createdAt: '2025-11-08' },
+    { id: 'rfi-2', projectId: 'p1', number: 'RFI-002', subject: 'Lobby Flooring Material', question: 'Is the marble finish confirmed for the main entrance?', answer: 'Yes, specs confirmed in Rev 3.', assignedTo: 'John Anderson', status: 'Closed', dueDate: '2025-10-30', createdAt: '2025-10-25' },
+  ];
+
+  for (const r of rfis) {
+    await db.run(
+      `INSERT INTO rfis (id, projectId, number, subject, question, answer, assignedTo, status, dueDate, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [r.id, r.projectId, r.number, r.subject, r.question, r.answer, r.assignedTo, r.status, r.dueDate, r.createdAt]
+    );
+  }
+
+  const punchItems = [
+    { id: 'pi-1', projectId: 'p1', title: 'Paint scratch in hallway', location: 'Level 3, Corridor B', description: 'Minor scuff marks on north wall.', status: 'Open', priority: 'Low', assignedTo: 'David Chen', createdAt: '2025-11-09' },
+    { id: 'pi-2', projectId: 'p1', title: 'Loose electrical socket', location: 'Unit 402', description: 'Socket not flush with wall.', status: 'Resolved', priority: 'Medium', assignedTo: 'Robert Garcia', createdAt: '2025-11-05' },
+  ];
+
+  for (const p of punchItems) {
+    await db.run(
+      `INSERT INTO punch_items (id, projectId, title, location, description, status, priority, assignedTo, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.id, p.projectId, p.title, p.location, p.description, p.status, p.priority, p.assignedTo, p.createdAt]
+    );
+  }
+
+  const dailyLogs = [
+    { id: 'dl-1', projectId: 'p1', date: '2025-11-10', weather: 'Sunny, 72°F', notes: 'Site visit by inspectors went well.', workPerformed: 'Concrete pouring on sector 4 completed.', crewCount: 18, author: 'Mike Thompson', createdAt: '2025-11-10' },
+    { id: 'dl-2', projectId: 'p1', date: '2025-11-09', weather: 'Cloudy, 68°F', notes: 'Delay in steel delivery caused 2h downtime.', workPerformed: 'Formwork setup for Level 5.', crewCount: 22, author: 'Mike Thompson', createdAt: '2025-11-09' },
+  ];
+
+  for (const d of dailyLogs) {
+    await db.run(
+      `INSERT INTO daily_logs (id, projectId, date, weather, notes, workPerformed, crewCount, author, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [d.id, d.projectId, d.date, d.weather, d.notes, d.workPerformed, d.crewCount, d.author, d.createdAt]
+    );
+  }
+
+  const dayworks = [
+    {
+        id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
+        labor: JSON.stringify([{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }]),
+        materials: JSON.stringify([{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }]),
+        attachments: '[]',
+        totalLaborCost: 360,
+        totalMaterialCost: 275,
+        grandTotal: 635
+    },
+    {
+        id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
+        labor: JSON.stringify([{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }]),
+        materials: JSON.stringify([{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }]),
+        attachments: '[]',
+        totalLaborCost: 360,
+        totalMaterialCost: 160,
+        grandTotal: 520
+    },
+  ];
+
+  for (const dw of dayworks) {
+    await db.run(
+      `INSERT INTO dayworks (id, projectId, date, description, status, createdAt, labor, materials, attachments, totalLaborCost, totalMaterialCost, grandTotal)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [dw.id, dw.projectId, dw.date, dw.description, dw.status, dw.createdAt, dw.labor, dw.materials, dw.attachments, dw.totalLaborCost, dw.totalMaterialCost, dw.grandTotal]
+    );
+  }
+
   console.log('Seeding complete');
 }
