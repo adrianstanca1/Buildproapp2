@@ -150,4 +150,53 @@ export async function seedDatabase() {
   }
 
   console.log('Seeding complete');
+
+  // --- Team ---
+  const team = [
+    { id: 'u1', companyId: 'c1', name: 'John Anderson', initials: 'JA', role: 'Project Manager', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0101', email: 'john@buildcorp.com', color: 'bg-blue-500', bio: 'Senior PM with 15 years experience.', location: 'Site Office', skills: '["Management", "Safety"]', certifications: '[]', performanceRating: 95, completedProjects: 12 },
+    { id: 'u2', companyId: 'c1', name: 'Sarah Mitchell', initials: 'SM', role: 'Site Supervisor', status: 'On Site', projectId: 'p1', projectName: 'City Centre Plaza', phone: '+1 555-0102', email: 'sarah@buildcorp.com', color: 'bg-green-500', bio: 'Expert in structural steel.', location: 'Sector 4', skills: '["Steel", "Logistics"]', certifications: '[]', performanceRating: 92, completedProjects: 8 }
+  ];
+  for (const m of team) {
+    await db.run(`INSERT INTO team (id, companyId, name, initials, role, status, projectId, projectName, phone, email, color, bio, location, skills, certifications, performanceRating, completedProjects) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(m));
+  }
+
+  // --- Clients ---
+  const clients = [
+    { id: 'cl1', companyId: 'c1', name: 'Metro Developers', contactPerson: 'Alice Wright', role: 'Director', email: 'alice@metro.com', phone: '+1 555-0201', status: 'Active', tier: 'Platinum', activeProjects: 1, totalValue: '$25M' }
+  ];
+  for (const c of clients) {
+    await db.run(`INSERT INTO clients (id, companyId, name, contactPerson, role, email, phone, status, tier, activeProjects, totalValue) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(c));
+  }
+
+  // --- Inventory ---
+  const inventory = [
+    { id: 'inv1', companyId: 'c1', name: 'Cement Bags', category: 'Materials', stock: 150, unit: 'bags', threshold: 50, status: 'In Stock', location: 'Warehouse A', lastOrderDate: '2025-10-01', costPerUnit: 12.50 }
+  ];
+  for (const i of inventory) {
+    await db.run(`INSERT INTO inventory (id, companyId, name, category, stock, unit, threshold, status, location, lastOrderDate, costPerUnit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(i));
+  }
+
+  // --- Safety Incidents ---
+  const incidents = [
+    { id: 'si1', title: 'Near miss with forklift', project: 'City Centre Plaza', projectId: 'p1', severity: 'Medium', status: 'Investigating', date: '2025-11-01', type: 'Machinery' }
+  ];
+  for (const s of incidents) {
+    await db.run(`INSERT INTO safety_incidents (id, title, project, projectId, severity, status, date, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(s));
+  }
+
+  // --- Equipment ---
+  const equipment = [
+    { id: 'eq1', name: 'Excavator CAT-320', type: 'Heavy Machinery', status: 'In Use', projectId: 'p1', projectName: 'City Centre Plaza', lastService: '2025-09-15', nextService: '2025-12-15', companyId: 'c1' }
+  ];
+  for (const e of equipment) {
+    await db.run(`INSERT INTO equipment (id, name, type, status, projectId, projectName, lastService, nextService, companyId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(e));
+  }
+
+  // --- Timesheets ---
+  const timesheets = [
+    { id: 'ts1', employeeName: 'Mike Thompson', projectId: 'p1', projectName: 'City Centre Plaza', date: '2025-11-10', hours: 8, startTime: '07:00', endTime: '15:00', status: 'Approved', companyId: 'c1' }
+  ];
+  for (const t of timesheets) {
+    await db.run(`INSERT INTO timesheets (id, employeeName, projectId, projectName, date, hours, startTime, endTime, status, companyId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, Object.values(t));
+  }
 }

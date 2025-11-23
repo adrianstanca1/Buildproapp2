@@ -68,8 +68,11 @@ export async function initializeDatabase() {
         // @ts-ignore
         const { open } = await import('sqlite');
 
+        // Use /tmp on Vercel (ephemeral) or local file otherwise
+        const dbPath = process.env.VERCEL ? '/tmp/buildpro_db.sqlite' : './buildpro_db.sqlite';
+        
         const db = await open({
-          filename: './buildpro_db.sqlite',
+          filename: dbPath,
           driver: sqlite3.Database
         });
         await db.exec('PRAGMA foreign_keys = ON;');
