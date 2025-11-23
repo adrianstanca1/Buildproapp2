@@ -120,7 +120,7 @@ const initialDailyLogs: DailyLog[] = [
 ];
 
 const initialDayworks: Daywork[] = [
-    { 
+    {
         id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
         labor: [{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }],
         materials: [{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }],
@@ -129,7 +129,7 @@ const initialDayworks: Daywork[] = [
         totalMaterialCost: 275,
         grandTotal: 635
     },
-    { 
+    {
         id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
         labor: [{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }],
         materials: [{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }],
@@ -167,7 +167,7 @@ class MockDatabase {
     if (!localStorage.getItem(DB_KEYS.PUNCH_LIST)) localStorage.setItem(DB_KEYS.PUNCH_LIST, JSON.stringify(initialPunchList));
     if (!localStorage.getItem(DB_KEYS.DAILY_LOGS)) localStorage.setItem(DB_KEYS.DAILY_LOGS, JSON.stringify(initialDailyLogs));
     if (!localStorage.getItem(DB_KEYS.DAYWORKS)) localStorage.setItem(DB_KEYS.DAYWORKS, JSON.stringify(initialDayworks));
-    
+
     // Ensure basics exist (simplified check)
     if (!localStorage.getItem(DB_KEYS.PROJECTS)) localStorage.setItem(DB_KEYS.PROJECTS, JSON.stringify(initialProjects));
     if (!localStorage.getItem(DB_KEYS.TASKS)) localStorage.setItem(DB_KEYS.TASKS, JSON.stringify(initialTasks));
@@ -254,6 +254,12 @@ class MockDatabase {
     this.setItems(DB_KEYS.DOCS, [doc, ...items]);
   }
 
+  async updateDocument(id: string, updates: Partial<ProjectDocument>): Promise<void> {
+    await delay(200);
+    const items = this.getItems<ProjectDocument>(DB_KEYS.DOCS);
+    this.setItems(DB_KEYS.DOCS, items.map(d => d.id === id ? { ...d, ...updates } : d));
+  }
+
   // --- Clients ---
   async getClients(): Promise<Client[]> {
     await delay(200);
@@ -285,7 +291,7 @@ class MockDatabase {
     const items = this.getItems<InventoryItem>(DB_KEYS.INVENTORY);
     this.setItems(DB_KEYS.INVENTORY, items.map(i => i.id === id ? { ...i, ...updates } : i));
   }
-  
+
   // --- New Entities ---
   async getRFIs(): Promise<RFI[]> {
       await delay(200);

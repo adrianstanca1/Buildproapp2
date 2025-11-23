@@ -27,14 +27,34 @@ app.get('/api/projects', async (req, res) => {
   try {
     const db = getDb();
     const projects = await db.all('SELECT * FROM projects');
-    const parsed = projects.map(p => ({
-      ...p,
-      weatherLocation: p.weatherLocation ? JSON.parse(p.weatherLocation) : null,
-      zones: p.zones ? JSON.parse(p.zones) : [],
-      phases: p.phases ? JSON.parse(p.phases) : [],
-      // Mock tasks count for now, or do a JOIN query
-      tasks: { total: 0, completed: 0, overdue: 0 }
-    }));
+
+    // Get task statistics for each project
+    const taskStats = await db.all(`
+      SELECT
+        projectId,
+        COUNT(*) as total,
+        SUM(CASE WHEN status = 'Done' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN dueDate < date('now') AND status != 'Done' THEN 1 ELSE 0 END) as overdue
+      FROM tasks
+      GROUP BY projectId
+    `);
+
+    const statsMap = new Map(taskStats.map(s => [s.projectId, s]));
+
+    const parsed = projects.map(p => {
+      const stats = statsMap.get(p.id) || { total: 0, completed: 0, overdue: 0 };
+      return {
+        ...p,
+        weatherLocation: p.weatherLocation ? JSON.parse(p.weatherLocation) : null,
+        zones: p.zones ? JSON.parse(p.zones) : [],
+        phases: p.phases ? JSON.parse(p.phases) : [],
+        tasks: {
+          total: Number(stats.total),
+          completed: Number(stats.completed),
+          overdue: Number(stats.overdue)
+        }
+      };
+    });
     res.json(parsed);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
