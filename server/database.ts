@@ -1,17 +1,99 @@
 import sqlite3 from 'sqlite3';
-import { open, Database } from 'sqlite';
+import { open, Database as SqliteDatabase } from 'sqlite';
+import pg from 'pg';
+import dotenv from 'dotenv';
 
-let db: Database;
+dotenv.config();
+
+// Interface for our DB adapter to support both SQLite and Postgres
+export interface IDatabase {
+  all<T = any>(sql: string, params?: any[]): Promise<T[]>;
+  run(sql: string, params?: any[]): Promise<any>;
+  exec(sql: string): Promise<void>;
+}
+
+let dbInstance: IDatabase;
+let initPromise: Promise<IDatabase> | null = null;
+
+class SqliteAdapter implements IDatabase {
+  private db: SqliteDatabase;
+  constructor(db: SqliteDatabase) { this.db = db; }
+  async all<T = any>(sql: string, params?: any[]) { return this.db.all<T[]>(sql, params); }
+  async run(sql: string, params?: any[]) { return this.db.run(sql, params); }
+  async exec(sql: string) { return this.db.exec(sql); }
+}
+
+class PostgresAdapter implements IDatabase {
+  private pool: pg.Pool;
+  constructor(connectionString: string) {
+    this.pool = new pg.Pool({
+      connectionString,
+      ssl: { rejectUnauthorized: false } // Required for Neon/Supabase
+    });
+  }
+
+  // Convert ? to $1, $2, etc. for Postgres compatibility
+  private normalizeSql(sql: string): string {
+    let i = 1;
+    return sql.replace(/\?/g, () => `$${i++}`);
+  }
+
+  async all<T = any>(sql: string, params?: any[]) {
+    const res = await this.pool.query(this.normalizeSql(sql), params);
+    return res.rows;
+  }
+
+  async run(sql: string, params?: any[]) {
+    const res = await this.pool.query(this.normalizeSql(sql), params);
+    return { changes: res.rowCount };
+  }
+
+  async exec(sql: string) {
+    await this.pool.query(sql);
+  }
+}
 
 export async function initializeDatabase() {
-  db = await open({
-    filename: './buildpro_db.sqlite',
-    driver: sqlite3.Database
-  });
+  if (dbInstance) return dbInstance;
+  if (initPromise) return initPromise;
 
-  // Enable foreign keys
-  await db.exec('PRAGMA foreign_keys = ON;');
+  initPromise = (async () => {
+    if (process.env.DATABASE_URL) {
+      console.log('Initializing PostgreSQL connection...');
+      dbInstance = new PostgresAdapter(process.env.DATABASE_URL);
+    } else {
+      console.log('Initializing SQLite connection...');
+      const db = await open({
+        filename: './buildpro_db.sqlite',
+        driver: sqlite3.Database
+      });
+      await db.exec('PRAGMA foreign_keys = ON;');
+      dbInstance = new SqliteAdapter(db);
+    }
 
+    await initSchema(dbInstance);
+    console.log('Database initialized');
+    return dbInstance;
+  })();
+
+  return initPromise;
+}
+
+export async function ensureDbInitialized() {
+  if (!dbInstance) {
+    await initializeDatabase();
+  }
+  return dbInstance;
+}
+
+export function getDb() {
+  if (!dbInstance) {
+    throw new Error('Database not initialized. Call ensureDbInitialized() first.');
+  }
+  return dbInstance;
+}
+
+async function initSchema(db: IDatabase) {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
@@ -202,14 +284,4 @@ export async function initializeDatabase() {
       companyId TEXT
     );
   `);
-
-  console.log('Database initialized');
-  return db;
-}
-
-export function getDb() {
-  if (!db) {
-    throw new Error('Database not initialized');
-  }
-  return db;
 }

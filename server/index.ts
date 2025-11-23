@@ -1,14 +1,26 @@
 import express from 'express';
 import cors from 'cors';
-import { initializeDatabase, getDb } from './database.js';
+import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
+import { pathToFileURL } from 'url';
 
 const app = express();
 const port = 3002;
 
 app.use(cors());
 app.use(express.json());
+
+// Middleware to ensure DB is initialized before handling requests
+app.use(async (req, res, next) => {
+  try {
+    await ensureDbInitialized();
+    next();
+  } catch (err) {
+    console.error('Database initialization failed:', err);
+    res.status(500).json({ error: 'Database initialization failed' });
+  }
+});
 
 // --- Projects Routes ---
 app.get('/api/projects', async (req, res) => {
@@ -254,11 +266,22 @@ createCrudRoutes('timesheets');
 
 
 // Initialize and Start
-initializeDatabase().then(async () => {
-  await seedDatabase();
-  app.listen(port, () => {
-    console.log(`Backend server running at http://localhost:${port}`);
-  });
-}).catch(err => {
-  console.error('Failed to start server:', err);
-});
+const startServer = async () => {
+  try {
+    await initializeDatabase();
+    await seedDatabase();
+
+    app.listen(port, () => {
+      console.log(`Backend server running at http://localhost:${port}`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+  }
+};
+
+// Only start server if run directly
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  startServer();
+}
+
+export default app;

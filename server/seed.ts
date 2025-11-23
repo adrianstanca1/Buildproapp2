@@ -4,8 +4,10 @@ import { v4 as uuidv4 } from 'uuid';
 export async function seedDatabase() {
   const db = getDb();
 
-  const projectCount = await db.get('SELECT count(*) as count FROM projects');
-  if (projectCount.count > 0) {
+  const result = await db.all('SELECT count(*) as count FROM projects');
+  const projectCount = result[0];
+
+  if (projectCount && (projectCount.count > 0 || projectCount.count === '1')) { // Postgres count might be string
     console.log('Database already seeded');
     return;
   }
