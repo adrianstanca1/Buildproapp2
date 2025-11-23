@@ -1,3 +1,8 @@
+# Database
+*.sqlite
+*.db
+server/buildpro_db.sqlite
+
 # Logs
 logs
 *.log
