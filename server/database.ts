@@ -56,9 +56,10 @@ export async function initializeDatabase() {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    if (process.env.DATABASE_URL) {
+    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    if (connectionString) {
       console.log('Initializing PostgreSQL connection...');
-      dbInstance = new PostgresAdapter(process.env.DATABASE_URL);
+      dbInstance = new PostgresAdapter(connectionString);
     } else {
       console.log('Initializing SQLite connection...');
       try {
@@ -70,7 +71,7 @@ export async function initializeDatabase() {
 
         // Use /tmp on Vercel (ephemeral) or local file otherwise
         const dbPath = process.env.VERCEL ? '/tmp/buildpro_db.sqlite' : './buildpro_db.sqlite';
-        
+
         const db = await open({
           filename: dbPath,
           driver: sqlite3.Database
