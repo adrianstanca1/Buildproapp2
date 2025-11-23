@@ -36,102 +36,109 @@ import MarketplaceView from './views/MarketplaceView';
 import ImagineView from './views/ImagineView';
 import MyDesktopView from './views/MyDesktopView';
 import LiveProjectMapView from './views/LiveProjectMapView';
-import { Page } from './types';
+import { Page } from './types.js';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
-const AuthenticatedApp: React.FC = () => {
-  const [page, setPage] = useState<Page>(Page.LOGIN);
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+const AuthenticatedApp: React.FC = () =>
+{
+  const [ page, setPage ] = useState<Page>( Page.LOGIN );
+  const [ selectedProjectId, setSelectedProjectId ] = useState<string | null>( null );
   const { user } = useAuth();
-  
-  // Shared State for Marketplace Apps
-  const [installedApps, setInstalledApps] = useState<string[]>(['Procore', 'Slack', 'QuickBooks']);
 
-  const toggleAppInstall = (appName: string) => {
-    if (installedApps.includes(appName)) {
-        setInstalledApps(prev => prev.filter(n => n !== appName));
-    } else {
-        setInstalledApps(prev => [...prev, appName]);
+  // Shared State for Marketplace Apps
+  const [ installedApps, setInstalledApps ] = useState<string[]>( [ 'Procore', 'Slack', 'QuickBooks' ] );
+
+  const toggleAppInstall = ( appName: string ) =>
+  {
+    if ( installedApps.includes( appName ) )
+    {
+      setInstalledApps( prev => prev.filter( n => n !== appName ) );
+    } else
+    {
+      setInstalledApps( prev => [ ...prev, appName ] );
     }
   };
 
-  const handleProjectSelect = (projectId: string) => {
-    setSelectedProjectId(projectId);
-    setPage(Page.PROJECT_DETAILS);
+  const handleProjectSelect = ( projectId: string ) =>
+  {
+    setSelectedProjectId( projectId );
+    setPage( Page.PROJECT_DETAILS );
   };
 
   // If not authenticated, show Login
-  if (!user) {
-    return <LoginView setPage={setPage} />;
+  if ( !user )
+  {
+    return <LoginView setPage={ setPage } />;
   }
 
   return (
-      <div className="flex h-screen bg-zinc-50 text-zinc-900 overflow-hidden">
-        {/* Sidebar Navigation */}
-        <Sidebar currentPage={page} setPage={setPage} />
+    <div className="flex h-screen bg-zinc-50 text-zinc-900 overflow-hidden">
+      {/* Sidebar Navigation */ }
+      <Sidebar currentPage={ page } setPage={ setPage } />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-          <TopBar setPage={setPage} />
-          
-          <main className="flex-1 overflow-y-auto bg-zinc-50/50 relative">
-              {page === Page.DASHBOARD && <DashboardView setPage={setPage} />}
-              {page === Page.EXECUTIVE && <ExecutiveView />}
-              {page === Page.LIVE_PROJECT_MAP && <LiveProjectMapView />}
-              {page === Page.PROJECT_LAUNCHPAD && <ProjectsView onProjectSelect={handleProjectSelect} setPage={setPage} autoLaunch={true} />}
-              {page === Page.PROJECTS && <ProjectsView onProjectSelect={handleProjectSelect} setPage={setPage} />}
-              {page === Page.PROJECT_DETAILS && (
-                <ProjectDetailsView 
-                  projectId={selectedProjectId} 
-                  onBack={() => setPage(Page.PROJECTS)} 
-                />
-              )}
-              {page === Page.TASKS && <TasksView />}
-              {page === Page.TEAM && <TeamView />}
-              {page === Page.TIMESHEETS && <TimesheetsView />}
-              {page === Page.DOCUMENTS && <DocumentsView />}
-              {page === Page.SAFETY && <SafetyView />}
-              {page === Page.EQUIPMENT && <EquipmentView />}
-              {page === Page.FINANCIALS && <FinancialsView />}
-              {page === Page.TEAM_CHAT && <TeamChatView />}
-              {page === Page.AI_TOOLS && <AIToolsView setPage={setPage} />}
-              {page === Page.ML_INSIGHTS && <MLInsightsView />}
-              {page === Page.COMPLIANCE && <ComplianceView />}
-              {page === Page.PROCUREMENT && <ProcurementView />}
-              {page === Page.SCHEDULE && <ScheduleView />}
-              {page === Page.CUSTOM_DASH && <CustomDashView />}
-              {page === Page.REPORTS && <ReportsView />}
-              {page === Page.WORKFORCE && <WorkforceView />}
-              {page === Page.INTEGRATIONS && <IntegrationsView />}
-              {page === Page.SECURITY && <SecurityView />}
-              {page === Page.PROFILE && <ProfileView />}
-              {page === Page.MAP_VIEW && <MapView />}
-              {page === Page.CLIENTS && <ClientsView />}
-              {page === Page.INVENTORY && <InventoryView />}
-              {page === Page.CHAT && <ChatView setPage={setPage} />}
-              {page === Page.LIVE && <LiveView setPage={setPage} />}
-              {page === Page.DEV_SANDBOX && <DevSandboxView />}
-              {page === Page.MARKETPLACE && (
-                  <MarketplaceView 
-                      installedApps={installedApps} 
-                      toggleInstall={toggleAppInstall} 
-                  />
-              )}
-              {page === Page.IMAGINE && <ImagineView />}
-              {page === Page.MY_DESKTOP && (
-                  <MyDesktopView 
-                      installedApps={installedApps}
-                      setPage={setPage}
-                  />
-              )}
-          </main>
-        </div>
+      {/* Main Content Area */ }
+      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+        <TopBar setPage={ setPage } />
+
+        <main className="flex-1 overflow-y-auto bg-zinc-50/50 relative">
+          { page === Page.DASHBOARD && <DashboardView setPage={ setPage } /> }
+          { page === Page.EXECUTIVE && <ExecutiveView /> }
+          { page === Page.LIVE_PROJECT_MAP && <LiveProjectMapView /> }
+          { page === Page.PROJECT_LAUNCHPAD && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } autoLaunch={ true } /> }
+          { page === Page.PROJECTS && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } /> }
+          { page === Page.PROJECT_DETAILS && (
+            <ProjectDetailsView
+              projectId={ selectedProjectId }
+              onBack={ () => setPage( Page.PROJECTS ) }
+            />
+          ) }
+          { page === Page.TASKS && <TasksView /> }
+          { page === Page.TEAM && <TeamView /> }
+          { page === Page.TIMESHEETS && <TimesheetsView /> }
+          { page === Page.DOCUMENTS && <DocumentsView /> }
+          { page === Page.SAFETY && <SafetyView /> }
+          { page === Page.EQUIPMENT && <EquipmentView /> }
+          { page === Page.FINANCIALS && <FinancialsView /> }
+          { page === Page.TEAM_CHAT && <TeamChatView /> }
+          { page === Page.AI_TOOLS && <AIToolsView setPage={ setPage } /> }
+          { page === Page.ML_INSIGHTS && <MLInsightsView /> }
+          { page === Page.COMPLIANCE && <ComplianceView /> }
+          { page === Page.PROCUREMENT && <ProcurementView /> }
+          { page === Page.SCHEDULE && <ScheduleView /> }
+          { page === Page.CUSTOM_DASH && <CustomDashView /> }
+          { page === Page.REPORTS && <ReportsView /> }
+          { page === Page.WORKFORCE && <WorkforceView /> }
+          { page === Page.INTEGRATIONS && <IntegrationsView /> }
+          { page === Page.SECURITY && <SecurityView /> }
+          { page === Page.PROFILE && <ProfileView /> }
+          { page === Page.MAP_VIEW && <MapView /> }
+          { page === Page.CLIENTS && <ClientsView /> }
+          { page === Page.INVENTORY && <InventoryView /> }
+          { page === Page.CHAT && <ChatView setPage={ setPage } /> }
+          { page === Page.LIVE && <LiveView setPage={ setPage } /> }
+          { page === Page.DEV_SANDBOX && <DevSandboxView /> }
+          { page === Page.MARKETPLACE && (
+            <MarketplaceView
+              installedApps={ installedApps }
+              toggleInstall={ toggleAppInstall }
+            />
+          ) }
+          { page === Page.IMAGINE && <ImagineView /> }
+          { page === Page.MY_DESKTOP && (
+            <MyDesktopView
+              installedApps={ installedApps }
+              setPage={ setPage }
+            />
+          ) }
+        </main>
       </div>
+    </div>
   );
 };
 
-const App: React.FC = () => {
+const App: React.FC = () =>
+{
   return (
     <AuthProvider>
       <ProjectProvider>

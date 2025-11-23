@@ -6,7 +6,7 @@ import
 } from 'lucide-react';
 import { useProjects } from '../contexts/ProjectContext';
 import { runRawPrompt, parseAIJSON } from '../services/geminiService';
-import { Project, ProjectDocument, Task } from '../types';
+import { Project, ProjectDocument, Task } from '../types.js';
 import { uploadFile } from '../services/supabaseClient';
 
 interface ProjectLaunchpadProps
