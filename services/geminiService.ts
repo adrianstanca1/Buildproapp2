@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, LiveServerMessage, Modality, Content, GenerateContentResponse, Type, Part } from "@google/genai";
-import { Message } from "../types";
+import { Message } from "@/types";
 
 // Initialize the client with the environment key
 const apiKey = process.env.API_KEY || 'placeholder_key';

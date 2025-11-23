@@ -37,7 +37,7 @@ import MarketplaceView from './views/MarketplaceView';
 import ImagineView from './views/ImagineView';
 import MyDesktopView from './views/MyDesktopView';
 import LiveProjectMapView from './views/LiveProjectMapView';
-import { Page } from './types.js';
+import { Page } from '@/types';
 import { ProjectProvider } from './contexts/ProjectContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 

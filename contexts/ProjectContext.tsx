@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
-import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Channel, TeamMessage } from '../types';
+import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Channel, TeamMessage } from '@/types';
 import { useAuth } from './AuthContext';
-import { db } from '../services/db';
+import { db } from '@/services/db';
 import { supabase } from '../services/supabaseClient';
 
 interface ProjectContextType

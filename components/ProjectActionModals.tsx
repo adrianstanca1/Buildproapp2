@@ -6,7 +6,7 @@ import
     Loader2, ScanLine, Trash2, Paperclip, PoundSterling
 } from 'lucide-react';
 import { useProjects } from '../contexts/ProjectContext';
-import { RFI, PunchItem, DailyLog, Daywork, ProjectDocument, DayworkLabor, DayworkMaterial, DayworkAttachment } from '../types.js';
+import { RFI, PunchItem, DailyLog, Daywork, ProjectDocument, DayworkLabor, DayworkMaterial, DayworkAttachment } from '@/types';
 import { runRawPrompt } from '../services/geminiService';
 import { uploadFile } from '../services/supabaseClient';
 

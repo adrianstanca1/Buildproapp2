@@ -1,9 +1,9 @@
 
 import React, { useState } from 'react';
 import { HardHat, Check, ArrowRight, Shield, User, Briefcase, Mail, Lock, Loader2 } from 'lucide-react';
-import { Page, UserRole } from '../types';
-import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../services/supabaseClient';
+import { Page, UserRole } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/services/supabaseClient';
 
 interface LoginViewProps
 {

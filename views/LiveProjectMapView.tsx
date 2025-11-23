@@ -9,9 +9,9 @@ import
     PlusSquare, PenTool, Sparkles, ChevronDown, CheckSquare, MapPin
 } from 'lucide-react';
 import * as L from 'leaflet';
-import { useProjects } from '../contexts/ProjectContext';
-import { runRawPrompt } from '../services/geminiService';
-import { Zone, Task } from '../types';
+import { useProjects } from '@/contexts/ProjectContext';
+import { runRawPrompt } from '@/services/geminiService';
+import { Zone, Task } from '@/types';
 
 // --- Types ---
 type MapMode = 'REAL_WORLD' | 'VIRTUAL_SITE';

@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork } from '../types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 

@@ -1,10 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, Hash, Lock, Users, Sparkles, MoreVertical, Phone, Video, Search, Smile, Mic, Check, CheckCheck, Loader2 } from 'lucide-react';
-import { transcribeAudio } from '../services/geminiService';
-import { useProjects } from '../contexts/ProjectContext';
-import { useAuth } from '../contexts/AuthContext';
-import { TeamMessage } from '../types';
+import { transcribeAudio } from '@/services/geminiService';
+import { useProjects } from '@/contexts/ProjectContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { TeamMessage } from '@/types';
 
 const TeamChatView: React.FC = () =>
 {
@@ -168,8 +168,8 @@ const TeamChatView: React.FC = () =>
                                         key={ c.id }
                                         onClick={ () => setActiveChannel( c.id ) }
                                         className={ `w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${ activeChannel === c.id
-                                                ? 'bg-white text-[#0f5c82] shadow-sm font-medium'
-                                                : 'text-zinc-600 hover:bg-zinc-200/50'
+                                            ? 'bg-white text-[#0f5c82] shadow-sm font-medium'
+                                            : 'text-zinc-600 hover:bg-zinc-200/50'
                                             }` }
                                     >
                                         <div className="flex items-center gap-2">
@@ -192,8 +192,8 @@ const TeamChatView: React.FC = () =>
                                         key={ c.id }
                                         onClick={ () => setActiveChannel( c.id ) }
                                         className={ `w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${ activeChannel === c.id
-                                                ? 'bg-white text-[#0f5c82] shadow-sm font-medium'
-                                                : 'text-zinc-600 hover:bg-zinc-200/50'
+                                            ? 'bg-white text-[#0f5c82] shadow-sm font-medium'
+                                            : 'text-zinc-600 hover:bg-zinc-200/50'
                                             }` }
                                     >
                                         <div className="flex items-center gap-2">
@@ -259,8 +259,8 @@ const TeamChatView: React.FC = () =>
                                             <span className="text-[10px] text-zinc-400">{ time }</span>
                                         </div>
                                         <div className={ `px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${ isMe
-                                                ? 'bg-[#0f5c82] text-white rounded-tr-sm'
-                                                : 'bg-white border border-zinc-200 text-zinc-700 rounded-tl-sm'
+                                            ? 'bg-[#0f5c82] text-white rounded-tr-sm'
+                                            : 'bg-white border border-zinc-200 text-zinc-700 rounded-tl-sm'
                                             }` }>
                                             { msg.content }
                                         </div>
@@ -335,8 +335,8 @@ const TeamChatView: React.FC = () =>
                                 type="submit"
                                 disabled={ !inputText.trim() || !activeChannel }
                                 className={ `p-3 rounded-xl transition-all duration-200 ${ !inputText.trim() || !activeChannel
-                                        ? 'bg-zinc-200 text-zinc-400'
-                                        : 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e] shadow-md'
+                                    ? 'bg-zinc-200 text-zinc-400'
+                                    : 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e] shadow-md'
                                     }` }
                             >
                                 <Send size={ 18 } />

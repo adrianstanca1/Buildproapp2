@@ -4,10 +4,10 @@ import
     Rocket, Sparkles, ArrowRight, Building, PoundSterling,
     Calendar, MapPin, Loader2, CheckCircle2, AlertCircle, Edit2, Wand2, ChevronRight, Building2, Briefcase, Home, Factory, Stethoscope, X, Upload, FileText, Image as ImageIcon, Trash2, ScanLine, BrainCircuit, Layers, Info, Zap, Activity, Check, Play, Cpu, Send, User, Bot, Paperclip, MessageSquare, Clock, ShieldAlert
 } from 'lucide-react';
-import { useProjects } from '../contexts/ProjectContext';
-import { runRawPrompt, parseAIJSON } from '../services/geminiService';
-import { Project, ProjectDocument, Task } from '../types.js';
-import { uploadFile } from '../services/supabaseClient';
+import { useProjects } from '@/contexts/ProjectContext';
+import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
+import { Project, ProjectDocument, Task } from '@/types';
+import { uploadFile } from '@/services/supabaseClient';
 
 interface ProjectLaunchpadProps
 {
