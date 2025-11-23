@@ -312,12 +312,12 @@ export interface Daywork {
   description: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   createdAt: string;
-  
+
   // Extended Details
   labor?: DayworkLabor[];
   materials?: DayworkMaterial[];
   attachments?: DayworkAttachment[];
-  
+
   // Financials
   totalLaborCost?: number;
   totalMaterialCost?: number;
@@ -372,4 +372,23 @@ export interface Timesheet {
   endTime: string;
   status: 'Pending' | 'Approved' | 'Rejected';
   companyId?: string;
+}
+
+export interface Channel {
+  id: string;
+  companyId: string;
+  name: string;
+  type: 'public' | 'private';
+  unreadCount: number;
+}
+
+export interface TeamMessage {
+  id: string;
+  channelId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: string;
+  senderAvatar: string;
+  content: string;
+  createdAt: string;
 }

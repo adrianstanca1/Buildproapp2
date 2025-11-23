@@ -239,6 +239,26 @@ class DatabaseService {
       if (this.useMock) return;
       await this.put('timesheets', id, u);
   }
+
+  // --- Channels ---
+  async getChannels(): Promise<any[]> {
+      if (this.useMock) return [];
+      return this.fetch('channels');
+  }
+  async addChannel(item: any) {
+      if (this.useMock) return;
+      await this.post('channels', item);
+  }
+
+  // --- Team Messages ---
+  async getTeamMessages(): Promise<any[]> {
+      if (this.useMock) return [];
+      return this.fetch('team_messages');
+  }
+  async addTeamMessage(item: any) {
+      if (this.useMock) return;
+      await this.post('team_messages', item);
+  }
 }
 
 export const db = new DatabaseService();

@@ -287,6 +287,8 @@ createCrudRoutes('dayworks', ['labor', 'materials', 'attachments']);
 createCrudRoutes('safety_incidents');
 createCrudRoutes('equipment');
 createCrudRoutes('timesheets');
+createCrudRoutes('channels');
+createCrudRoutes('team_messages');
 
 
 // Initialize and Start

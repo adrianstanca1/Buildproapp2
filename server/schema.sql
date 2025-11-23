@@ -205,3 +205,25 @@ CREATE TABLE IF NOT EXISTS timesheets (
   status TEXT,
   companyId TEXT
 );
+
+-- Channels Table
+CREATE TABLE IF NOT EXISTS channels (
+  id TEXT PRIMARY KEY,
+  companyId TEXT,
+  name TEXT,
+  type TEXT,
+  unreadCount INTEGER DEFAULT 0
+);
+
+-- Team Messages Table
+CREATE TABLE IF NOT EXISTS team_messages (
+  id TEXT PRIMARY KEY,
+  channelId TEXT,
+  senderId TEXT,
+  senderName TEXT,
+  senderRole TEXT,
+  senderAvatar TEXT,
+  content TEXT,
+  createdAt TEXT,
+  FOREIGN KEY(channelId) REFERENCES channels(id)
+);

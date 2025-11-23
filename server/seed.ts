@@ -229,4 +229,33 @@ export async function seedDatabase() {
       [t.id, t.employeeId, t.employeeName, t.projectId, t.projectName, t.date, t.hours, t.startTime, t.endTime, t.status, t.companyId]
     );
   }
+
+  // --- Channels ---
+  const channels = [
+    { id: 'c1', companyId: 'c1', name: 'city-centre-plaza', type: 'public', unreadCount: 0 },
+    { id: 'c2', companyId: 'c1', name: 'residential-complex', type: 'public', unreadCount: 3 },
+    { id: 'c3', companyId: 'c1', name: 'safety-alerts', type: 'public', unreadCount: 0 },
+    { id: 'c4', companyId: 'c1', name: 'site-logistics', type: 'public', unreadCount: 0 },
+    { id: 'c5', companyId: 'c1', name: 'managers-only', type: 'private', unreadCount: 0 }
+  ];
+  for (const c of channels) {
+    await db.run(
+      `INSERT INTO channels (id, companyId, name, type, unreadCount) VALUES (?, ?, ?, ?, ?)`,
+      [c.id, c.companyId, c.name, c.type, c.unreadCount]
+    );
+  }
+
+  // --- Team Messages ---
+  const messages = [
+    { id: 'm1', channelId: 'c1', senderId: 'u2', senderName: 'Mike Thompson', senderRole: 'Project Manager', senderAvatar: 'MT', content: 'Foundation work is progressing well. Should be done by Friday.', createdAt: '2025-11-23T09:30:00' },
+    { id: 'm2', channelId: 'c1', senderId: 'u3', senderName: 'David Chen', senderRole: 'Foreman', senderAvatar: 'DC', content: 'Great! I\'ll schedule the inspection for Saturday morning.', createdAt: '2025-11-23T09:45:00' },
+    { id: 'm3', channelId: 'c1', senderId: 'u1', senderName: 'John Anderson', senderRole: 'Admin', senderAvatar: 'JA', content: 'Do we have the concrete delivery confirmed for Phase 2?', createdAt: '2025-11-23T10:15:00' },
+    { id: 'm4', channelId: 'c2', senderId: 'u2', senderName: 'Sarah Mitchell', senderRole: 'Company Admin', senderAvatar: 'SM', content: 'Updated the blueprints for the east wing.', createdAt: '2025-11-22T14:00:00' }
+  ];
+  for (const m of messages) {
+    await db.run(
+      `INSERT INTO team_messages (id, channelId, senderId, senderName, senderRole, senderAvatar, content, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [m.id, m.channelId, m.senderId, m.senderName, m.senderRole, m.senderAvatar, m.content, m.createdAt]
+    );
+  }
 }
