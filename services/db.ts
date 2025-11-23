@@ -1,4 +1,3 @@
-
 /// <reference types="vite/client" />
 import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet } from '../types';
 import { db as mockDb } from './mockDb';
@@ -241,3 +240,5 @@ class DatabaseService {
       await this.put('timesheets', id, u);
   }
 }
+
+export const db = new DatabaseService();
