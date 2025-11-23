@@ -302,6 +302,26 @@ async function initSchema(db: IDatabase) {
       status TEXT,
       companyId TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS channels (
+      id TEXT PRIMARY KEY,
+      companyId TEXT,
+      name TEXT,
+      type TEXT,
+      unreadCount INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS team_messages (
+      id TEXT PRIMARY KEY,
+      channelId TEXT,
+      senderId TEXT,
+      senderName TEXT,
+      senderRole TEXT,
+      senderAvatar TEXT,
+      content TEXT,
+      createdAt TEXT,
+      FOREIGN KEY(channelId) REFERENCES channels(id)
+    );
   `);
 
   // Migration: Add timelineOptimizations if not exists
