@@ -1,4 +1,5 @@
 
+/// <reference types="vite/client" />
 import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3002/api';

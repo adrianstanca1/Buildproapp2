@@ -6,7 +6,7 @@ services:
     ports:
       - "3002:3002"
     volumes:
-      - ./server/buildpro.sqlite:/app/buildpro.sqlite
+      - ./server/buildpro_db.sqlite:/app/buildpro_db.sqlite
     environment:
       - PORT=3002
 

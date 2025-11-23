@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { initializeDatabase, getDb } from './database';
-import { seedDatabase } from './seed';
+import { initializeDatabase, getDb } from './database.js';
+import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const app = express();

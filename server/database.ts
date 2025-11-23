@@ -5,7 +5,7 @@ let db: Database;
 
 export async function initializeDatabase() {
   db = await open({
-    filename: './buildpro.sqlite',
+    filename: './buildpro_db.sqlite',
     driver: sqlite3.Database
   });
 
