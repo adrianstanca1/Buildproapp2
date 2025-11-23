@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useMemo, useEffe
 import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Channel, TeamMessage } from '../types';
 import { useAuth } from './AuthContext';
 import { db } from '../services/db';
+import { supabase } from '../services/supabaseClient';
 
 interface ProjectContextType
 {
@@ -97,6 +98,39 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ( { children }
   const [ channels, setChannels ] = useState<Channel[]>( [] );
   const [ teamMessages, setTeamMessages ] = useState<TeamMessage[]>( [] );
   const [ isLoading, setIsLoading ] = useState( true );
+
+  // Supabase Realtime Subscription
+  useEffect( () =>
+  {
+    if ( !user ) return;
+
+    // Only subscribe if Supabase is configured
+    // @ts-ignore
+    if ( !import.meta.env.VITE_SUPABASE_URL ) return;
+
+    const channel = supabase
+      .channel( 'public:team_messages' )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'team_messages' },
+        ( payload ) =>
+        {
+          const newMessage = payload.new as TeamMessage;
+          setTeamMessages( prev =>
+          {
+            // Avoid duplicates
+            if ( prev.some( m => m.id === newMessage.id ) ) return prev;
+            return [ ...prev, newMessage ];
+          } );
+        }
+      )
+      .subscribe();
+
+    return () =>
+    {
+      supabase.removeChannel( channel );
+    };
+  }, [ user ] );
 
   // Initial Data Load
   useEffect( () =>
