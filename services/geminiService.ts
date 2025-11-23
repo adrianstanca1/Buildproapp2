@@ -3,7 +3,7 @@ import { GoogleGenAI, LiveServerMessage, Modality, Content, GenerateContentRespo
 import { Message } from "../types";
 
 // Initialize the client with the environment key, handling missing keys gracefully to prevent app crash
-const apiKey = process.env.API_KEY || 'MISSING_KEY';
+const apiKey = process.env.API_KEY || 'AIzaSyCm9LnY3NI3CnUxgIB7GTVslkWK6ct57z4';
 const ai = new GoogleGenAI({ apiKey });
 
 export interface ChatConfig {
