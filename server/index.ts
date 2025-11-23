@@ -49,6 +49,7 @@ app.get('/api/projects', async (req, res) => {
         weatherLocation: p.weatherLocation ? JSON.parse(p.weatherLocation) : null,
         zones: p.zones ? JSON.parse(p.zones) : [],
         phases: p.phases ? JSON.parse(p.phases) : [],
+        timelineOptimizations: p.timelineOptimizations ? JSON.parse(p.timelineOptimizations) : [],
         tasks: {
           total: Number(stats.total),
           completed: Number(stats.completed),
@@ -70,11 +71,12 @@ app.post('/api/projects', async (req, res) => {
     const weatherLocation = p.weatherLocation ? JSON.stringify(p.weatherLocation) : null;
     const zones = p.zones ? JSON.stringify(p.zones) : '[]';
     const phases = p.phases ? JSON.stringify(p.phases) : '[]';
+    const timelineOptimizations = p.timelineOptimizations ? JSON.stringify(p.timelineOptimizations) : '[]';
 
     await db.run(
-      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, weatherLocation, p.aiAnalysis, zones, phases]
+      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, weatherLocation, p.aiAnalysis, zones, phases, timelineOptimizations]
     );
     res.json({ ...p, id });
   } catch (e) {
@@ -92,6 +94,7 @@ app.put('/api/projects/:id', async (req, res) => {
     if (updates.weatherLocation) updates.weatherLocation = JSON.stringify(updates.weatherLocation);
     if (updates.zones) updates.zones = JSON.stringify(updates.zones);
     if (updates.phases) updates.phases = JSON.stringify(updates.phases);
+    if (updates.timelineOptimizations) updates.timelineOptimizations = JSON.stringify(updates.timelineOptimizations);
 
     // Remove id from updates if present
     delete updates.id;

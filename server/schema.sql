@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS projects (
   weatherLocation TEXT, -- JSON string
   aiAnalysis TEXT,
   zones TEXT, -- JSON array
-  phases TEXT -- JSON array
+  phases TEXT, -- JSON array
+  timelineOptimizations TEXT -- JSON array
 );
 
 -- Tasks Table

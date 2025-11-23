@@ -129,7 +129,8 @@ async function initSchema(db: IDatabase) {
       weatherLocation TEXT, -- JSON string
       aiAnalysis TEXT,
       zones TEXT, -- JSON array
-      phases TEXT -- JSON array
+      phases TEXT, -- JSON array
+      timelineOptimizations TEXT -- JSON array
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
@@ -297,4 +298,11 @@ async function initSchema(db: IDatabase) {
       companyId TEXT
     );
   `);
+
+  // Migration: Add timelineOptimizations if not exists
+  try {
+    await db.exec('ALTER TABLE projects ADD COLUMN timelineOptimizations TEXT');
+  } catch (e) {
+    // Column likely exists
+  }
 }
