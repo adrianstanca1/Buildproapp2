@@ -4,6 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "start": "node --loader ts-node/esm --experimental-specifier-resolution=node server/index.ts",
+    "init-db": "node --loader ts-node/esm --experimental-specifier-resolution=node server/init-db.ts",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
