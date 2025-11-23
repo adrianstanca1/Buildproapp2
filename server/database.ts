@@ -1,5 +1,3 @@
-import sqlite3 from 'sqlite3';
-import { open, Database as SqliteDatabase } from 'sqlite';
 import pg from 'pg';
 import dotenv from 'dotenv';
 
@@ -16,9 +14,9 @@ let dbInstance: IDatabase;
 let initPromise: Promise<IDatabase> | null = null;
 
 class SqliteAdapter implements IDatabase {
-  private db: SqliteDatabase;
-  constructor(db: SqliteDatabase) { this.db = db; }
-  async all<T = any>(sql: string, params?: any[]) { return this.db.all<T[]>(sql, params); }
+  private db: any; // Type as any to avoid importing sqlite types at top level
+  constructor(db: any) { this.db = db; }
+  async all<T = any>(sql: string, params?: any[]) { return this.db.all(sql, params); }
   async run(sql: string, params?: any[]) { return this.db.run(sql, params); }
   async exec(sql: string) { return this.db.exec(sql); }
 }
@@ -63,6 +61,10 @@ export async function initializeDatabase() {
       dbInstance = new PostgresAdapter(process.env.DATABASE_URL);
     } else {
       console.log('Initializing SQLite connection...');
+      // Dynamic import to avoid loading sqlite3 in serverless environments (Vercel)
+      const sqlite3 = (await import('sqlite3')).default;
+      const { open } = await import('sqlite');
+
       const db = await open({
         filename: './buildpro_db.sqlite',
         driver: sqlite3.Database
