@@ -22,12 +22,16 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/views/*": ["./views/*"],
+      "@/contexts/*": ["./contexts/*"],
+      "@/services/*": ["./services/*"],
+      "@/utils/*": ["./utils/*"],
+      "@/types": ["./types.ts"]
     },
     "noEmit": true
   },
-  "include": ["./**/*.ts", "./**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx", "vite-env.d.ts", "types.ts"],
   "exclude": ["node_modules", "dist", "server"]
 }

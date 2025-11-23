@@ -26,9 +26,10 @@ class SqliteAdapter implements IDatabase {
 class PostgresAdapter implements IDatabase {
   private pool: any;
   constructor(connectionString: string) {
+    const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
     this.pool = new Pool({
       connectionString,
-      ssl: { rejectUnauthorized: false } // Required for Neon/Supabase
+      ssl: isLocal ? false : { rejectUnauthorized: false }
     });
   }
 
