@@ -674,8 +674,7 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ( { installedApps, setPage }
       {
         try
         {
-          // eslint-disable-next-line no-eval
-          setDisplay( eval( equation ).toString() );
+          setDisplay(new Function('return ' + equation)().toString());
           setEquation( '' );
         } catch
         {
