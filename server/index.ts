@@ -19,39 +19,24 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Middleware to ensure DB is initialized before handling requests
-app.use(async (req, res, next) => {
-  try {
-    await ensureDbInitialized();
-    await seedDatabase();
-    next();
-  } catch (err) {
-    console.error('Database initialization failed:', err);
-    res.status(500).json({ error: 'Database initialization failed' });
-  }
-});
+// Middleware to ensure DB is initialized before handling requests (removed)
 
 // --- Projects Routes ---
 app.get('/api/projects', async (req, res) => {
   try {
     const db = getDb();
-    const projects = await db.all('SELECT * FROM projects');
-
-    // Get task statistics for each project
-    const taskStats = await db.all(`
+    const projects = await db.all(`
       SELECT
-        projectId,
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'Done' THEN 1 ELSE 0 END) as completed,
-        SUM(CASE WHEN dueDate < date('now') AND status != 'Done' THEN 1 ELSE 0 END) as overdue
-      FROM tasks
-      GROUP BY projectId
+        p.*,
+        COUNT(t.id) AS tasks_total,
+        SUM(CASE WHEN t.status = 'Done' THEN 1 ELSE 0 END) AS tasks_completed,
+        SUM(CASE WHEN t.dueDate < date('now') AND t.status != 'Done' THEN 1 ELSE 0 END) AS tasks_overdue
+      FROM projects p
+      LEFT JOIN tasks t ON p.id = t.projectId
+      GROUP BY p.id
     `);
 
-    const statsMap = new Map(taskStats.map(s => [s.projectId, s]));
-
     const parsed = projects.map(p => {
-      const stats = statsMap.get(p.id) || { total: 0, completed: 0, overdue: 0 };
       return {
         ...p,
         weatherLocation: p.weatherLocation ? JSON.parse(p.weatherLocation) : null,
@@ -59,9 +44,9 @@ app.get('/api/projects', async (req, res) => {
         phases: p.phases ? JSON.parse(p.phases) : [],
         timelineOptimizations: p.timelineOptimizations ? JSON.parse(p.timelineOptimizations) : [],
         tasks: {
-          total: Number(stats.total),
-          completed: Number(stats.completed),
-          overdue: Number(stats.overdue)
+          total: Number(p.tasks_total),
+          completed: Number(p.tasks_completed),
+          overdue: Number(p.tasks_overdue)
         }
       };
     });
@@ -304,7 +289,7 @@ const startServer = async () => {
   try {
     // Only initialize DB immediately if not in Vercel (Vercel does it via middleware)
     if (!process.env.VERCEL) {
-      await initializeDatabase();
+      await ensureDbInitialized();
       await seedDatabase();
 
       app.listen(port, () => {

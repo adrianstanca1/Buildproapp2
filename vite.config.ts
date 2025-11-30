@@ -29,6 +29,18 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            manualChunks: (id) => {
+              if (id.includes('node_modules')) {
+                // Create a single 'vendor' chunk for all node_modules
+                return 'vendor';
+              }
+            },
+          },
+        },
       }
     };
 });

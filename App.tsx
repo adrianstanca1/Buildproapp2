@@ -1,45 +1,47 @@
 
 
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
-import LoginView from '@/views/LoginView';
-import ProfileView from '@/views/ProfileView';
-import AIToolsView from '@/views/AIToolsView';
-import ReportsView from '@/views/ReportsView';
-import ScheduleView from '@/views/ScheduleView';
-import ChatView from '@/views/ChatView';
-import LiveView from '@/views/LiveView';
-import DashboardView from '@/views/DashboardView';
-import ProjectsView from '@/views/ProjectsView';
-import ProjectDetailsView from '@/views/ProjectDetailsView';
-import TasksView from '@/views/TasksView';
-import TeamView from '@/views/TeamView';
-import TimesheetsView from '@/views/TimesheetsView';
-import DocumentsView from '@/views/DocumentsView';
-import SafetyView from '@/views/SafetyView';
-import EquipmentView from '@/views/EquipmentView';
-import FinancialsView from '@/views/FinancialsView';
-import TeamChatView from '@/views/TeamChatView';
-import MLInsightsView from '@/views/MLInsightsView';
-import ComplianceView from '@/views/ComplianceView';
-import ProcurementView from '@/views/ProcurementView';
-import CustomDashView from '@/views/CustomDashView';
-import WorkforceView from '@/views/WorkforceView';
-import IntegrationsView from '@/views/IntegrationsView';
-import SecurityView from '@/views/SecurityView';
-import ExecutiveView from '@/views/ExecutiveView';
-import MapView from '@/views/MapView';
-import ClientsView from '@/views/ClientsView';
-import InventoryView from '@/views/InventoryView';
-import DevSandboxView from '@/views/DevSandboxView';
-import MarketplaceView from '@/views/MarketplaceView';
-import ImagineView from '@/views/ImagineView';
-import MyDesktopView from '@/views/MyDesktopView';
-import LiveProjectMapView from '@/views/LiveProjectMapView';
 import { Page } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+
+// Lazily loaded view components
+const LoginView = lazy( () => import( '@/views/LoginView' ) );
+const ProfileView = lazy( () => import( '@/views/ProfileView' ) );
+const AIToolsView = lazy( () => import( '@/views/AIToolsView' ) );
+const ReportsView = lazy( () => import( '@/views/ReportsView' ) );
+const ScheduleView = lazy( () => import( '@/views/ScheduleView' ) );
+const ChatView = lazy( () => import( '@/views/ChatView' ) );
+const LiveView = lazy( () => import( '@/views/LiveView' ) );
+const DashboardView = lazy( () => import( '@/views/DashboardView' ) );
+const ProjectsView = lazy( () => import( '@/views/ProjectsView' ) );
+const ProjectDetailsView = lazy( () => import( '@/views/ProjectDetailsView' ) );
+const TasksView = lazy( () => import( '@/views/TasksView' ) );
+const TeamView = lazy( () => import( '@/views/TeamView' ) );
+const TimesheetsView = lazy( () => import( '@/views/TimesheetsView' ) );
+const DocumentsView = lazy( () => import( '@/views/DocumentsView' ) );
+const SafetyView = lazy( () => import( '@/views/SafetyView' ) );
+const EquipmentView = lazy( () => import( '@/views/EquipmentView' ) );
+const FinancialsView = lazy( () => import( '@/views/FinancialsView' ) );
+const TeamChatView = lazy( () => import( '@/views/TeamChatView' ) );
+const MLInsightsView = lazy( () => import( '@/views/MLInsightsView' ) );
+const ComplianceView = lazy( () => import( '@/views/ComplianceView' ) );
+const ProcurementView = lazy( () => import( '@/views/ProcurementView' ) );
+const CustomDashView = lazy( () => import( '@/views/CustomDashView' ) );
+const WorkforceView = lazy( () => import( '@/views/WorkforceView' ) );
+const IntegrationsView = lazy( () => import( '@/views/IntegrationsView' ) );
+const SecurityView = lazy( () => import( '@/views/SecurityView' ) );
+const ExecutiveView = lazy( () => import( '@/views/ExecutiveView' ) );
+const MapView = lazy( () => import( '@/views/MapView' ) );
+const ClientsView = lazy( () => import( '@/views/ClientsView' ) );
+const InventoryView = lazy( () => import( '@/views/InventoryView' ) );
+const DevSandboxView = lazy( () => import( '@/views/DevSandboxView' ) );
+const MarketplaceView = lazy( () => import( '@/views/MarketplaceView' ) );
+const ImagineView = lazy( () => import( '@/views/ImagineView' ) );
+const MyDesktopView = lazy( () => import( '@/views/MyDesktopView' ) );
+const LiveProjectMapView = lazy( () => import( '@/views/LiveProjectMapView' ) );
 
 const AuthenticatedApp: React.FC = () =>
 {
@@ -83,55 +85,57 @@ const AuthenticatedApp: React.FC = () =>
         <TopBar setPage={ setPage } />
 
         <main className="flex-1 overflow-y-auto bg-zinc-50/50 relative">
-          { page === Page.DASHBOARD && <DashboardView setPage={ setPage } /> }
-          { page === Page.EXECUTIVE && <ExecutiveView /> }
-          { page === Page.LIVE_PROJECT_MAP && <LiveProjectMapView /> }
-          { page === Page.PROJECT_LAUNCHPAD && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } autoLaunch={ true } /> }
-          { page === Page.PROJECTS && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } /> }
-          { page === Page.PROJECT_DETAILS && (
-            <ProjectDetailsView
-              projectId={ selectedProjectId }
-              onBack={ () => setPage( Page.PROJECTS ) }
-            />
-          ) }
-          { page === Page.TASKS && <TasksView /> }
-          { page === Page.TEAM && <TeamView /> }
-          { page === Page.TIMESHEETS && <TimesheetsView /> }
-          { page === Page.DOCUMENTS && <DocumentsView /> }
-          { page === Page.SAFETY && <SafetyView /> }
-          { page === Page.EQUIPMENT && <EquipmentView /> }
-          { page === Page.FINANCIALS && <FinancialsView /> }
-          { page === Page.TEAM_CHAT && <TeamChatView /> }
-          { page === Page.AI_TOOLS && <AIToolsView setPage={ setPage } /> }
-          { page === Page.ML_INSIGHTS && <MLInsightsView /> }
-          { page === Page.COMPLIANCE && <ComplianceView /> }
-          { page === Page.PROCUREMENT && <ProcurementView /> }
-          { page === Page.SCHEDULE && <ScheduleView /> }
-          { page === Page.CUSTOM_DASH && <CustomDashView /> }
-          { page === Page.REPORTS && <ReportsView /> }
-          { page === Page.WORKFORCE && <WorkforceView /> }
-          { page === Page.INTEGRATIONS && <IntegrationsView /> }
-          { page === Page.SECURITY && <SecurityView /> }
-          { page === Page.PROFILE && <ProfileView /> }
-          { page === Page.MAP_VIEW && <MapView /> }
-          { page === Page.CLIENTS && <ClientsView /> }
-          { page === Page.INVENTORY && <InventoryView /> }
-          { page === Page.CHAT && <ChatView setPage={ setPage } /> }
-          { page === Page.LIVE && <LiveView setPage={ setPage } /> }
-          { page === Page.DEV_SANDBOX && <DevSandboxView /> }
-          { page === Page.MARKETPLACE && (
-            <MarketplaceView
-              installedApps={ installedApps }
-              toggleInstall={ toggleAppInstall }
-            />
-          ) }
-          { page === Page.IMAGINE && <ImagineView /> }
-          { page === Page.MY_DESKTOP && (
-            <MyDesktopView
-              installedApps={ installedApps }
-              setPage={ setPage }
-            />
-          ) }
+          <Suspense fallback={ <div className="p-4 text-center">Loading...</div> }>
+            { page === Page.DASHBOARD && <DashboardView setPage={ setPage } /> }
+            { page === Page.EXECUTIVE && <ExecutiveView /> }
+            { page === Page.LIVE_PROJECT_MAP && <LiveProjectMapView /> }
+            { page === Page.PROJECT_LAUNCHPAD && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } autoLaunch={ true } /> }
+            { page === Page.PROJECTS && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } /> }
+            { page === Page.PROJECT_DETAILS && (
+              <ProjectDetailsView
+                projectId={ selectedProjectId }
+                onBack={ () => setPage( Page.PROJECTS ) }
+              />
+            ) }
+            { page === Page.TASKS && <TasksView /> }
+            { page === Page.TEAM && <TeamView /> }
+            { page === Page.TIMESHEETS && <TimesheetsView /> }
+            { page === Page.DOCUMENTS && <DocumentsView /> }
+            { page === Page.SAFETY && <SafetyView /> }
+            { page === Page.EQUIPMENT && <EquipmentView /> }
+            { page === Page.FINANCIALS && <FinancialsView /> }
+            { page === Page.TEAM_CHAT && <TeamChatView /> }
+            { page === Page.AI_TOOLS && <AIToolsView setPage={ setPage } /> }
+            { page === Page.ML_INSIGHTS && <MLInsightsView /> }
+            { page === Page.COMPLIANCE && <ComplianceView /> }
+            { page === Page.PROCUREMENT && <ProcurementView /> }
+            { page === Page.SCHEDULE && <ScheduleView /> }
+            { page === Page.CUSTOM_DASH && <CustomDashView /> }
+            { page === Page.REPORTS && <ReportsView /> }
+            { page === Page.WORKFORCE && <WorkforceView /> }
+            { page === Page.INTEGRATIONS && <IntegrationsView /> }
+            { page === Page.SECURITY && <SecurityView /> }
+            { page === Page.PROFILE && <ProfileView /> }
+            { page === Page.MAP_VIEW && <MapView /> }
+            { page === Page.CLIENTS && <ClientsView /> }
+            { page === Page.INVENTORY && <InventoryView /> }
+            { page === Page.CHAT && <ChatView setPage={ setPage } /> }
+            { page === Page.LIVE && <LiveView setPage={ setPage } /> }
+            { page === Page.DEV_SANDBOX && <DevSandboxView /> }
+            { page === Page.MARKETPLACE && (
+              <MarketplaceView
+                installedApps={ installedApps }
+                toggleInstall={ toggleAppInstall }
+              />
+            ) }
+            { page === Page.IMAGINE && <ImagineView /> }
+            { page === Page.MY_DESKTOP && (
+              <MyDesktopView
+                installedApps={ installedApps }
+                setPage={ setPage }
+              />
+            ) }
+          </Suspense>
         </main>
       </div>
     </div>
