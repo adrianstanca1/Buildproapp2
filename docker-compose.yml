@@ -6,9 +6,11 @@ services:
     ports:
       - "3002:3002"
     volumes:
-      - ./server/buildpro_db.sqlite:/app/buildpro_db.sqlite
+      - ./server/buildpro.sqlite:/app/buildpro.sqlite
     environment:
       - PORT=3002
+      - DATABASE_URL=
+      - POSTGRES_URL=
 
   frontend:
     build:

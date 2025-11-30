@@ -1,3 +1,8 @@
+console.log('--- DUMPING PROCESS.ENV ---');
+console.log(process.env);
+console.log('--- END DUMPING PROCESS.ENV ---');
+process.exit(0);
+
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 require('dotenv').config();
