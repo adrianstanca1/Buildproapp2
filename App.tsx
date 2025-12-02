@@ -44,6 +44,7 @@ const MarketplaceView = lazy( () => import( '@/views/MarketplaceView' ) );
 const ImagineView = lazy( () => import( '@/views/ImagineView' ) );
 const MyDesktopView = lazy( () => import( '@/views/MyDesktopView' ) );
 const LiveProjectMapView = lazy( () => import( '@/views/LiveProjectMapView' ) );
+const ProjectLaunchpadView = lazy( () => import( '@/views/ProjectLaunchpadView' ) );
 
 const AuthenticatedApp: React.FC = () =>
 {
@@ -92,7 +93,7 @@ const AuthenticatedApp: React.FC = () =>
               { page === Page.DASHBOARD && <DashboardView setPage={ setPage } /> }
             { page === Page.EXECUTIVE && <ExecutiveView /> }
             { page === Page.LIVE_PROJECT_MAP && <LiveProjectMapView /> }
-            { page === Page.PROJECT_LAUNCHPAD && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } autoLaunch={ true } /> }
+            { page === Page.PROJECT_LAUNCHPAD && <ProjectLaunchpadView onClose={ () => setPage( Page.PROJECTS ) } onViewProject={ handleProjectSelect } /> }
             { page === Page.PROJECTS && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } /> }
             { page === Page.PROJECT_DETAILS && (
               <ProjectDetailsView
