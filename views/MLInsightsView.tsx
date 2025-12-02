@@ -1,8 +1,30 @@
 
-import React, { useState } from 'react';
-import { TrendingUp, AlertTriangle, Zap, RefreshCw, Activity, Brain, CheckCircle2, XCircle, ArrowRight, Rocket } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { TrendingUp, AlertTriangle, Zap, RefreshCw, Activity, Brain, CheckCircle2, XCircle, ArrowRight, Rocket, BarChart3, Cpu, Database, GitBranch, PlayCircle, PauseCircle, Download, Upload, Trash2, Eye, Settings as SettingsIcon, Clock, Target, TrendingDown } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { runRawPrompt } from '@/services/geminiService';
+
+// --- ML Pipeline Types ---
+interface MLModel {
+    id: string;
+    name: string;
+    type: 'regression' | 'classification' | 'anomaly' | 'forecast';
+    accuracy: number;
+    trainedSamples: number;
+    lastTrained: string;
+    status: 'idle' | 'training' | 'deployed';
+    version: string;
+}
+
+interface MLPrediction {
+    id: string;
+    modelId: string;
+    timestamp: string;
+    input: string;
+    output: number | string;
+    confidence: number;
+    actualValue?: number;
+}
 
 const MLInsightsView: React.FC = () =>
 {
@@ -13,6 +35,23 @@ const MLInsightsView: React.FC = () =>
         "Model initialized: Gemini 3 Pro",
         "Awaiting portfolio data input...",
     ] );
+
+    // ML Pipeline State
+    const [ mlModels, setMlModels ] = useState<MLModel[]>( [
+        { id: 'm1', name: 'Budget Forecasting', type: 'regression', accuracy: 92.4, trainedSamples: 1250, lastTrained: '2025-11-18', status: 'deployed', version: '2.3.1' },
+        { id: 'm2', name: 'Risk Detection', type: 'classification', accuracy: 88.7, trainedSamples: 856, lastTrained: '2025-11-15', status: 'deployed', version: '1.8.0' },
+        { id: 'm3', name: 'Schedule Anomaly', type: 'anomaly', accuracy: 85.3, trainedSamples: 642, lastTrained: '2025-11-10', status: 'idle', version: '1.5.2' },
+        { id: 'm4', name: 'Resource Demand', type: 'forecast', accuracy: 91.2, trainedSamples: 1100, lastTrained: '2025-11-17', status: 'deployed', version: '3.1.0' },
+    ] );
+    const [ predictions, setPredictions ] = useState<MLPrediction[]>( [
+        { id: 'p1', modelId: 'm1', timestamp: '2m ago', input: 'Project: City Centre Plaza', output: 2850000, confidence: 94.2 },
+        { id: 'p2', modelId: 'm2', timestamp: '5m ago', input: 'High cost overruns detected', output: 'High Risk', confidence: 87.8 },
+        { id: 'p3', modelId: 'm4', timestamp: '1m ago', input: 'Next 30 days forecast', output: 45, confidence: 91.5 },
+    ] );
+    const [ selectedModel, setSelectedModel ] = useState<MLModel | null>( null );
+    const [ showModelDetails, setShowModelDetails ] = useState( false );
+    const [ modelMetrics, setModelMetrics ] = useState<{ name: string; value: number }[]>( [] );
+    const [ showTrainingPanel, setShowTrainingPanel ] = useState( false );
 
     const runSimulation = async () =>
     {
@@ -71,6 +110,48 @@ const MLInsightsView: React.FC = () =>
         {
             setIsSimulating( false );
         }
+    };
+
+    // ML Pipeline Handlers
+    const handleTrainModel = ( modelId: string ) =>
+    {
+        setMlModels( prev => prev.map( m =>
+            m.id === modelId ? { ...m, status: 'training' } : m
+        ) );
+        setTimeout( () =>
+        {
+            setMlModels( prev => prev.map( m =>
+                m.id === modelId
+                    ? {
+                        ...m,
+                        status: 'deployed',
+                        accuracy: Math.min( 99.9, m.accuracy + Math.random() * 3 ),
+                        trainedSamples: m.trainedSamples + Math.floor( Math.random() * 500 ),
+                        lastTrained: new Date().toISOString().split( 'T' )[ 0 ],
+                        version: ( parseFloat( m.version ) + 0.1 ).toFixed( 1 )
+                    }
+                    : m
+            ) );
+        }, 3000 );
+    };
+
+    const handleModelClick = ( model: MLModel ) =>
+    {
+        setSelectedModel( model );
+        setModelMetrics( [
+            { name: 'Precision', value: model.accuracy + 2 },
+            { name: 'Recall', value: model.accuracy - 1.5 },
+            { name: 'F1-Score', value: model.accuracy - 0.5 },
+            { name: 'AUC-ROC', value: Math.min( 100, model.accuracy + 1 ) },
+        ] );
+        setShowModelDetails( true );
+    };
+
+    const deployModel = ( modelId: string ) =>
+    {
+        setMlModels( prev => prev.map( m =>
+            m.id === modelId ? { ...m, status: 'deployed' } : m
+        ) );
     };
 
     // Fallback initial state if analysis not run
@@ -228,6 +309,160 @@ const MLInsightsView: React.FC = () =>
                     </div>
                 </div>
             </div>
+
+            {/* ML Models Section */}
+            <div className="mt-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-3">
+                        <Cpu size={ 28 } className="text-[#0f5c82]" /> ML Pipeline Models
+                    </h2>
+                    <button
+                        onClick={ () => setShowTrainingPanel( !showTrainingPanel ) }
+                        className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+                    >
+                        <SettingsIcon size={ 16 } /> Configure
+                    </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    { mlModels.map( model => (
+                        <div
+                            key={ model.id }
+                            onClick={ () => handleModelClick( model ) }
+                            className="bg-white border border-zinc-200 rounded-xl p-5 shadow-sm hover:shadow-lg hover:border-[#0f5c82] transition-all cursor-pointer group"
+                        >
+                            <div className="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 className="font-semibold text-zinc-900 text-sm">{ model.name }</h4>
+                                    <p className="text-xs text-zinc-500 mt-1">v{ model.version }</p>
+                                </div>
+                                <div className={ `text-xs px-2 py-1 rounded-full font-medium ${ model.status === 'deployed' ? 'bg-green-100 text-green-700' : model.status === 'training' ? 'bg-yellow-100 text-yellow-700 animate-pulse' : 'bg-zinc-100 text-zinc-600' }` }>
+                                    { model.status === 'deployed' ? 'Deployed' : model.status === 'training' ? 'Training...' : 'Idle' }
+                                </div>
+                            </div>
+
+                            <div className="bg-zinc-50 rounded-lg p-3 mb-3">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-xs text-zinc-500 font-medium">Accuracy</span>
+                                    <span className="text-sm font-bold text-[#0f5c82]">{ model.accuracy.toFixed( 1 ) }%</span>
+                                </div>
+                                <div className="w-full bg-zinc-200 h-1.5 rounded-full overflow-hidden">
+                                    <div className="bg-gradient-to-r from-[#0f5c82] to-blue-500 h-full transition-all" style={ { width: `${ model.accuracy }%` } }></div>
+                                </div>
+                            </div>
+
+                            <div className="text-xs text-zinc-600 mb-4">
+                                <div className="flex justify-between"><span>Type:</span><span className="font-medium">{ model.type }</span></div>
+                                <div className="flex justify-between"><span>Samples:</span><span className="font-medium">{ model.trainedSamples.toLocaleString() }</span></div>
+                                <div className="flex justify-between mt-1"><span>Trained:</span><span className="font-medium">{ model.lastTrained }</span></div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                { model.status === 'training' ? (
+                                    <button disabled className="flex-1 py-1.5 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-lg cursor-not-allowed">
+                                        <RefreshCw size={ 12 } className="inline animate-spin mr-1" /> Training
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={ ( e ) => { e.stopPropagation(); handleTrainModel( model.id ); } }
+                                        className="flex-1 py-1.5 text-xs font-medium bg-[#0f5c82]/10 text-[#0f5c82] hover:bg-[#0f5c82]/20 rounded-lg transition-colors flex items-center justify-center gap-1"
+                                    >
+                                        <PlayCircle size={ 12 } /> Train
+                                    </button>
+                                ) }
+                                { model.status !== 'deployed' && (
+                                    <button
+                                        onClick={ ( e ) => { e.stopPropagation(); deployModel( model.id ); } }
+                                        className="flex-1 py-1.5 text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 rounded-lg transition-colors"
+                                    >
+                                        Deploy
+                                    </button>
+                                ) }
+                            </div>
+                        </div>
+                    ) ) }
+                </div>
+            </div>
+
+            {/* Predictions Section */}
+            <div className="mt-8 mb-8">
+                <div className="flex items-center gap-3 mb-6">
+                    <h2 className="text-2xl font-bold text-zinc-900">Recent Predictions</h2>
+                    <span className="bg-[#0f5c82] text-white text-xs font-bold px-3 py-1 rounded-full">{ predictions.length } live</span>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-zinc-50 border-b border-zinc-200">
+                                <tr>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-zinc-600">Model</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-zinc-600">Input</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-zinc-600">Prediction</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-zinc-600">Confidence</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-zinc-600">Time</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                                { predictions.map( pred => {
+                                    const model = mlModels.find( m => m.id === pred.modelId );
+                                    return (
+                                        <tr key={ pred.id } className="hover:bg-zinc-50 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="font-medium text-zinc-900">{ model?.name }</div>
+                                                <div className="text-xs text-zinc-500">{ model?.type }</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-zinc-600 max-w-xs truncate">{ pred.input }</td>
+                                            <td className="px-6 py-4 font-semibold text-zinc-900">
+                                                { typeof pred.output === 'number' ? `£${ ( pred.output / 1000000 ).toFixed( 2 ) }M` : pred.output }
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-full bg-zinc-200 h-1.5 rounded-full overflow-hidden w-24">
+                                                        <div className={ `h-full transition-all ${ pred.confidence > 90 ? 'bg-green-500' : pred.confidence > 75 ? 'bg-blue-500' : 'bg-yellow-500' }` } style={ { width: `${ pred.confidence }%` } }></div>
+                                                    </div>
+                                                    <span className="text-xs font-medium text-zinc-700 w-12 text-right">{ pred.confidence.toFixed( 1 ) }%</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-zinc-500 text-xs flex items-center gap-1">
+                                                <Clock size={ 12 } /> { pred.timestamp }
+                                            </td>
+                                        </tr>
+                                    );
+                                } ) }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Model Details Modal */}
+            { showModelDetails && selectedModel && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center">
+                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden">
+                        <div className="p-6 border-b border-zinc-100 bg-gradient-to-r from-[#0f5c82]/5 to-blue-500/5">
+                            <h3 className="text-2xl font-bold text-zinc-900 mb-1">{ selectedModel.name }</h3>
+                            <p className="text-zinc-600">Model: v{ selectedModel.version } • Type: { selectedModel.type } • Status: { selectedModel.status }</p>
+                        </div>
+                        <div className="p-6 space-y-6">
+                            <div className="grid grid-cols-2 gap-6">
+                                { modelMetrics.map( ( metric, i ) => (
+                                    <div key={ i } className="border border-zinc-200 rounded-xl p-4">
+                                        <div className="text-sm text-zinc-600 mb-2">{ metric.name }</div>
+                                        <div className="text-3xl font-bold text-[#0f5c82]">{ metric.value.toFixed( 1 ) }%</div>
+                                        <div className="w-full bg-zinc-200 h-1 rounded-full mt-3 overflow-hidden">
+                                            <div className="bg-[#0f5c82] h-full" style={ { width: `${ metric.value }%` } }></div>
+                                        </div>
+                                    </div>
+                                ) ) }
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-zinc-100 bg-zinc-50 flex justify-end gap-3">
+                            <button onClick={ () => setShowModelDetails( false ) } className="px-6 py-2.5 text-zinc-600 font-medium hover:bg-zinc-200 rounded-lg transition-colors">Close</button>
+                        </div>
+                    </div>
+                </div>
+            ) }
         </div>
     );
 };
