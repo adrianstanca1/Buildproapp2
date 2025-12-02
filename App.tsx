@@ -3,9 +3,11 @@
 import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
+import ErrorBoundary from '@/components/ErrorBoundary';
 import { Page } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import ToastProvider from '@/contexts/ToastContext';
 
 // Lazily loaded view components
 const LoginView = lazy( () => import( '@/views/LoginView' ) );
@@ -85,8 +87,9 @@ const AuthenticatedApp: React.FC = () =>
         <TopBar setPage={ setPage } />
 
         <main className="flex-1 overflow-y-auto bg-zinc-50/50 relative">
-          <Suspense fallback={ <div className="p-4 text-center">Loading...</div> }>
-            { page === Page.DASHBOARD && <DashboardView setPage={ setPage } /> }
+          <ErrorBoundary>
+            <Suspense fallback={ <div className="p-4 text-center">Loading...</div> }>
+              { page === Page.DASHBOARD && <DashboardView setPage={ setPage } /> }
             { page === Page.EXECUTIVE && <ExecutiveView /> }
             { page === Page.LIVE_PROJECT_MAP && <LiveProjectMapView /> }
             { page === Page.PROJECT_LAUNCHPAD && <ProjectsView onProjectSelect={ handleProjectSelect } setPage={ setPage } autoLaunch={ true } /> }
@@ -135,7 +138,8 @@ const AuthenticatedApp: React.FC = () =>
                 setPage={ setPage }
               />
             ) }
-          </Suspense>
+            </Suspense>
+          </ErrorBoundary>
         </main>
       </div>
     </div>
@@ -145,11 +149,13 @@ const AuthenticatedApp: React.FC = () =>
 const App: React.FC = () =>
 {
   return (
-    <AuthProvider>
-      <ProjectProvider>
-        <AuthenticatedApp />
-      </ProjectProvider>
-    </AuthProvider>
+    <ToastProvider>
+      <AuthProvider>
+        <ProjectProvider>
+          <AuthenticatedApp />
+        </ProjectProvider>
+      </AuthProvider>
+    </ToastProvider>
   );
 };
 
