@@ -36,7 +36,8 @@ export enum Page {
   IMAGINE = 'IMAGINE',
   MY_DESKTOP = 'MY_DESKTOP',
   LIVE_PROJECT_MAP = 'LIVE_PROJECT_MAP',
-  PROJECT_LAUNCHPAD = 'PROJECT_LAUNCHPAD'
+  PROJECT_LAUNCHPAD = 'PROJECT_LAUNCHPAD',
+  TENANT_MANAGEMENT = 'TENANT_MANAGEMENT'
 }
 
 export enum UserRole {
@@ -55,6 +56,108 @@ export interface Company {
   projects: number;
   mrr: number;
   joinedDate: string;
+}
+
+// Enhanced tenant management types
+export interface Tenant {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string;
+  logo?: string;
+  website?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  plan: 'Enterprise' | 'Business' | 'Starter' | 'Custom';
+  status: 'Active' | 'Suspended' | 'Trial' | 'Inactive';
+  settings: TenantSettings;
+  subscription: TenantSubscription;
+  createdAt: string;
+  updatedAt: string;
+  maxUsers?: number;
+  maxProjects?: number;
+  features?: TenantFeature[];
+}
+
+export interface TenantSettings {
+  timezone: string;
+  language: string;
+  dateFormat: string;
+  currency: string;
+  emailNotifications: boolean;
+  dataRetention: number; // days
+  twoFactorAuth: boolean;
+  ipWhitelist?: string[];
+  sso: boolean;
+  customBranding: boolean;
+}
+
+export interface TenantSubscription {
+  id: string;
+  planId: string;
+  status: 'active' | 'cancelled' | 'suspended' | 'past_due';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  canceledAt?: string;
+  billingEmail: string;
+  billingAddress?: string;
+  paymentMethod?: string;
+}
+
+export interface TenantFeature {
+  id: string;
+  name: string;
+  enabled: boolean;
+  limit?: number; // e.g., max users, projects
+  usedCount?: number;
+}
+
+export interface TenantAuditLog {
+  id: string;
+  tenantId: string;
+  userId: string;
+  userName: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  changes?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  status: 'success' | 'failure';
+  message?: string;
+  timestamp: string;
+}
+
+export interface TenantMember {
+  id: string;
+  tenantId: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt: string;
+  lastActive?: string;
+  isActive: boolean;
+}
+
+export interface TenantUsage {
+  tenantId: string;
+  currentUsers: number;
+  currentProjects: number;
+  currentStorage: number; // MB
+  currentApiCalls: number;
+  period: string; // YYYY-MM
+  limit: {
+    users?: number;
+    projects?: number;
+    storage?: number; // MB
+    apiCalls?: number;
+  };
 }
 
 export interface Zone {

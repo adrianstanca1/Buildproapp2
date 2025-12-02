@@ -7,6 +7,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import { Page } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { TenantProvider } from '@/contexts/TenantContext';
 import ToastProvider from '@/contexts/ToastContext';
 
 // Lazily loaded view components
@@ -45,6 +46,7 @@ const ImagineView = lazy( () => import( '@/views/ImagineView' ) );
 const MyDesktopView = lazy( () => import( '@/views/MyDesktopView' ) );
 const LiveProjectMapView = lazy( () => import( '@/views/LiveProjectMapView' ) );
 const ProjectLaunchpadView = lazy( () => import( '@/views/ProjectLaunchpadView' ) );
+const TenantManagementView = lazy( () => import( '@/views/TenantManagementView' ) );
 
 const AuthenticatedApp: React.FC = () =>
 {
@@ -139,6 +141,7 @@ const AuthenticatedApp: React.FC = () =>
                 setPage={ setPage }
               />
             ) }
+            { page === Page.TENANT_MANAGEMENT && <TenantManagementView /> }
             </Suspense>
           </ErrorBoundary>
         </main>
@@ -153,7 +156,9 @@ const App: React.FC = () =>
     <ToastProvider>
       <AuthProvider>
         <ProjectProvider>
-          <AuthenticatedApp />
+          <TenantProvider>
+            <AuthenticatedApp />
+          </TenantProvider>
         </ProjectProvider>
       </AuthProvider>
     </ToastProvider>
