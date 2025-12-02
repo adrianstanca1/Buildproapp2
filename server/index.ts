@@ -1,7 +1,8 @@
-console.log('--- DUMPING PROCESS.ENV ---');
-console.log(process.env);
-console.log('--- END DUMPING PROCESS.ENV ---');
-process.exit(0);
+
+
+console.log('--- Checking process.env.VERCEL ---');
+console.log('process.env.VERCEL:', process.env.VERCEL);
+console.log('--- End Checking process.env.VERCEL ---');
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
