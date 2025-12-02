@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Channel, TeamMessage } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 
@@ -140,6 +140,131 @@ const initialDayworks: Daywork[] = [
     },
 ];
 
+// --- Safety Incidents ---
+const initialSafetyIncidents: SafetyIncident[] = [
+  {
+    id: 'si1',
+    projectId: 'p1',
+    title: 'Minor Cut Injury',
+    description: 'Worker sustained minor cut while handling rebar',
+    severity: 'Low',
+    date: '2025-11-10',
+    reportedBy: 'Mike T.',
+    status: 'Resolved',
+    actionItems: ['First aid applied', 'Safety briefing conducted']
+  },
+  {
+    id: 'si2',
+    projectId: 'p1',
+    title: 'Near Miss - Falling Object',
+    description: 'Tool dropped from scaffolding, no injuries',
+    severity: 'Medium',
+    date: '2025-11-08',
+    reportedBy: 'David Chen',
+    status: 'Under Investigation',
+    actionItems: ['Tool tether system implemented', 'Daily toolbox talks scheduled']
+  }
+];
+
+// --- Equipment ---
+const initialEquipment: Equipment[] = [
+  {
+    id: 'eq1',
+    projectId: 'p1',
+    name: 'Concrete Pump Truck',
+    type: 'Heavy Equipment',
+    status: 'In Use',
+    manufacturer: 'Putzmeister',
+    lastMaintenance: '2025-11-01',
+    nextMaintenance: '2025-12-01',
+    operator: 'Mike T.'
+  },
+  {
+    id: 'eq2',
+    projectId: 'p1',
+    name: 'Excavator',
+    type: 'Heavy Equipment',
+    status: 'Available',
+    manufacturer: 'Caterpillar',
+    lastMaintenance: '2025-10-15',
+    nextMaintenance: '2025-11-15',
+    operator: 'James W.'
+  }
+];
+
+// --- Timesheets ---
+const initialTimesheets: Timesheet[] = [
+  {
+    id: 'ts1',
+    employeeId: 'tm1',
+    employeeName: 'Mike Thompson',
+    projectId: 'p1',
+    week: '2025-W45',
+    totalHours: 40,
+    regularHours: 40,
+    overtimeHours: 0,
+    status: 'Approved',
+    approvedBy: 'John Anderson'
+  },
+  {
+    id: 'ts2',
+    employeeId: 'tm2',
+    employeeName: 'David Chen',
+    projectId: 'p1',
+    week: '2025-W45',
+    totalHours: 45,
+    regularHours: 40,
+    overtimeHours: 5,
+    status: 'Pending'
+  }
+];
+
+// --- Channels ---
+const initialChannels: Channel[] = [
+  {
+    id: 'ch1',
+    projectId: 'p1',
+    name: 'General',
+    description: 'General project discussion',
+    createdBy: 'John Anderson',
+    createdAt: '2025-01-15',
+    type: 'public'
+  },
+  {
+    id: 'ch2',
+    projectId: 'p1',
+    name: 'Safety Updates',
+    description: 'Daily safety briefings',
+    createdBy: 'John Anderson',
+    createdAt: '2025-01-15',
+    type: 'public'
+  }
+];
+
+// --- Team Messages ---
+const initialTeamMessages: TeamMessage[] = [
+  {
+    id: 'msg1',
+    channelId: 'ch1',
+    projectId: 'p1',
+    sender: 'John Anderson',
+    senderId: 'u1',
+    content: 'Welcome to City Centre Plaza! Please review the project charter.',
+    timestamp: '2025-11-12T08:00:00Z',
+    type: 'text'
+  },
+  {
+    id: 'msg2',
+    channelId: 'ch2',
+    projectId: 'p1',
+    sender: 'Mike T.',
+    senderId: 'tm1',
+    content: 'Daily safety briefing: Focus on fall protection. Tie off at heights above 6 feet.',
+    timestamp: '2025-11-12T06:30:00Z',
+    type: 'text'
+  }
+];
+
 const DB_KEYS = {
   PROJECTS: 'buildpro_projects',
   TASKS: 'buildpro_tasks',
@@ -151,6 +276,11 @@ const DB_KEYS = {
   PUNCH_LIST: 'buildpro_punch_list',
   DAILY_LOGS: 'buildpro_daily_logs',
   DAYWORKS: 'buildpro_dayworks',
+  SAFETY_INCIDENTS: 'buildpro_safety_incidents',
+  EQUIPMENT: 'buildpro_equipment',
+  TIMESHEETS: 'buildpro_timesheets',
+  CHANNELS: 'buildpro_channels',
+  TEAM_MESSAGES: 'buildpro_team_messages',
 };
 
 // Helper
@@ -167,6 +297,11 @@ class MockDatabase {
     if (!localStorage.getItem(DB_KEYS.PUNCH_LIST)) localStorage.setItem(DB_KEYS.PUNCH_LIST, JSON.stringify(initialPunchList));
     if (!localStorage.getItem(DB_KEYS.DAILY_LOGS)) localStorage.setItem(DB_KEYS.DAILY_LOGS, JSON.stringify(initialDailyLogs));
     if (!localStorage.getItem(DB_KEYS.DAYWORKS)) localStorage.setItem(DB_KEYS.DAYWORKS, JSON.stringify(initialDayworks));
+    if (!localStorage.getItem(DB_KEYS.SAFETY_INCIDENTS)) localStorage.setItem(DB_KEYS.SAFETY_INCIDENTS, JSON.stringify(initialSafetyIncidents));
+    if (!localStorage.getItem(DB_KEYS.EQUIPMENT)) localStorage.setItem(DB_KEYS.EQUIPMENT, JSON.stringify(initialEquipment));
+    if (!localStorage.getItem(DB_KEYS.TIMESHEETS)) localStorage.setItem(DB_KEYS.TIMESHEETS, JSON.stringify(initialTimesheets));
+    if (!localStorage.getItem(DB_KEYS.CHANNELS)) localStorage.setItem(DB_KEYS.CHANNELS, JSON.stringify(initialChannels));
+    if (!localStorage.getItem(DB_KEYS.TEAM_MESSAGES)) localStorage.setItem(DB_KEYS.TEAM_MESSAGES, JSON.stringify(initialTeamMessages));
 
     // Ensure basics exist (simplified check)
     if (!localStorage.getItem(DB_KEYS.PROJECTS)) localStorage.setItem(DB_KEYS.PROJECTS, JSON.stringify(initialProjects));
@@ -316,6 +451,21 @@ class MockDatabase {
 
   async getDayworks(): Promise<Daywork[]> { return this.getAll<Daywork>(DB_KEYS.DAYWORKS); }
   async addDaywork(item: Daywork) { return this.add(DB_KEYS.DAYWORKS, item); }
+
+  async getSafetyIncidents(): Promise<SafetyIncident[]> { return this.getAll<SafetyIncident>(DB_KEYS.SAFETY_INCIDENTS); }
+  async addSafetyIncident(item: SafetyIncident) { return this.add(DB_KEYS.SAFETY_INCIDENTS, item); }
+
+  async getEquipment(): Promise<Equipment[]> { return this.getAll<Equipment>(DB_KEYS.EQUIPMENT); }
+  async addEquipment(item: Equipment) { return this.add(DB_KEYS.EQUIPMENT, item); }
+
+  async getTimesheets(): Promise<Timesheet[]> { return this.getAll<Timesheet>(DB_KEYS.TIMESHEETS); }
+  async addTimesheet(item: Timesheet) { return this.add(DB_KEYS.TIMESHEETS, item); }
+
+  async getChannels(): Promise<Channel[]> { return this.getAll<Channel>(DB_KEYS.CHANNELS); }
+  async addChannel(item: Channel) { return this.add(DB_KEYS.CHANNELS, item); }
+
+  async getTeamMessages(): Promise<TeamMessage[]> { return this.getAll<TeamMessage>(DB_KEYS.TEAM_MESSAGES); }
+  async addTeamMessage(item: TeamMessage) { return this.add(DB_KEYS.TEAM_MESSAGES, item); }
 
   // Generic Helpers for internal use
   async getAll<T>(key: string): Promise<T[]> {
