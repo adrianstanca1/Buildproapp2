@@ -6,7 +6,7 @@ import
     Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
     ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
     HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-    BrainCircuit
+    BrainCircuit, Building2
   } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -69,6 +69,7 @@ const Sidebar: React.FC<SidebarProps> = ( { currentPage, setPage } ) =>
       title: 'System',
       items: [
         { id: Page.MY_DESKTOP, label: 'My Desktop', icon: Monitor, roles: [ UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR ] },
+        { id: Page.TENANT_MANAGEMENT, label: 'Tenant Management', icon: Building2, roles: [ UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN ] },
         { id: Page.COMPLIANCE, label: 'Compliance', icon: ClipboardCheck, roles: [ UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR ] },
         { id: Page.WORKFORCE, label: 'Workforce', icon: HardHat, roles: [ UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN ] },
         { id: Page.INTEGRATIONS, label: 'Integrations', icon: Zap, roles: [ UserRole.SUPER_ADMIN ] },
