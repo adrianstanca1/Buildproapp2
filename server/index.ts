@@ -1,8 +1,5 @@
 
 
-console.log('--- Checking process.env.VERCEL ---');
-console.log('process.env.VERCEL:', process.env.VERCEL);
-console.log('--- End Checking process.env.VERCEL ---');
 
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);

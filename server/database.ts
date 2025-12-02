@@ -29,7 +29,7 @@ class PostgresAdapter implements IDatabase {
     const isLocal = connectionString.includes('localhost') || connectionString.includes('127.0.0.1');
     this.pool = new Pool({
       connectionString,
-      ssl: isLocal ? false : { rejectUnauthorized: false }
+      ssl: isLocal ? false : { rejectUnauthorized: false, strict: false }
     });
   }
 
