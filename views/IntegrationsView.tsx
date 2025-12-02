@@ -1,6 +1,24 @@
 
 import React, { useState } from 'react';
-import { Key, Link, Terminal, Code, Shield, Copy, Check, Plus, Trash2, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Key, Link, Terminal, Code, Shield, Copy, Check, Plus, Trash2, RefreshCw, Eye, EyeOff, Loader2, AlertCircle, CheckCircle2, Settings, LogOut } from 'lucide-react';
+
+interface Integration {
+  id: string;
+  name: string;
+  connected: boolean;
+  lastSync: string;
+  permissions: string[];
+  refreshToken?: string;
+  accessToken?: string;
+  expiresAt?: string;
+}
+
+interface OAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  scope: string;
+}
 
 const IntegrationsView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'APPS' | 'DEV'>('APPS');
@@ -11,6 +29,67 @@ const IntegrationsView: React.FC = () => {
   const [newWebhookUrl, setNewWebhookUrl] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [token] = useState('pk_live_8f920dka9201jj2901kals92019');
+  const [connecting, setConnecting] = useState<string | null>(null);
+  const [integrations, setIntegrations] = useState<Integration[]>([
+    { id: 'procore', name: 'Procore', connected: true, lastSync: '2025-11-09 18:30', permissions: ['projects.read', 'tasks.read', 'budget.read'] },
+    { id: 'quickbooks', name: 'QuickBooks', connected: true, lastSync: '2025-11-10 00:00', permissions: ['company.read', 'invoice.read', 'payment.write'] },
+    { id: 'autocad', name: 'AutoCAD', connected: false, lastSync: 'Never', permissions: ['drawings.read', 'layers.read'] },
+    { id: 'slack', name: 'Slack', connected: true, lastSync: '2025-11-10 08:15', permissions: ['chat:write', 'channels:read'] }
+  ]);
+  const [settingsModal, setSettingsModal] = useState<string | null>(null);
+
+  const oauthConfigs: Record<string, OAuthConfig> = {
+    procore: {
+      clientId: 'pk_procore_abc123xyz',
+      clientSecret: '***hidden***',
+      redirectUri: 'https://buildproapp.com/oauth/procore',
+      scope: 'projects tasks budgets'
+    },
+    quickbooks: {
+      clientId: 'pk_qb_def456uvw',
+      clientSecret: '***hidden***',
+      redirectUri: 'https://buildproapp.com/oauth/quickbooks',
+      scope: 'com.intuit.quickbooks.accounting'
+    },
+    autocad: {
+      clientId: 'pk_autocad_ghi789tst',
+      clientSecret: '***hidden***',
+      redirectUri: 'https://buildproapp.com/oauth/autocad',
+      scope: 'data:read'
+    },
+    slack: {
+      clientId: 'pk_slack_jkl012qrs',
+      clientSecret: '***hidden***',
+      redirectUri: 'https://buildproapp.com/oauth/slack',
+      scope: 'chat:write channels:read'
+    }
+  };
+
+  const connectIntegration = async (integrationId: string) => {
+    setConnecting(integrationId);
+
+    // Simulate OAuth flow
+    setTimeout(() => {
+      const config = oauthConfigs[integrationId];
+      const authUrl = `https://${integrationId}.com/oauth/authorize?client_id=${config.clientId}&redirect_uri=${config.redirectUri}&scope=${encodeURIComponent(config.scope)}&response_type=code`;
+
+      // In production, this would open the OAuth consent screen
+      setIntegrations(prev => prev.map(i =>
+        i.id === integrationId
+          ? { ...i, connected: true, lastSync: new Date().toLocaleString(), accessToken: `token_${Date.now()}`, refreshToken: `refresh_${Date.now()}`, expiresAt: new Date(Date.now() + 3600000).toISOString() }
+          : i
+      ));
+      setConnecting(null);
+    }, 2000);
+  };
+
+  const disconnectIntegration = (integrationId: string) => {
+    setIntegrations(prev => prev.map(i =>
+      i.id === integrationId
+        ? { ...i, connected: false, lastSync: 'Never', accessToken: undefined, refreshToken: undefined, expiresAt: undefined }
+        : i
+    ));
+  };
 
   const addWebhook = () => {
       if (newWebhookUrl) {
@@ -44,46 +123,115 @@ const IntegrationsView: React.FC = () => {
 
       {activeTab === 'APPS' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 animate-in fade-in">
-              {/* Procore */}
-              <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
+              {integrations.map(integration => (
+                <div key={integration.id} className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
                   <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-bold text-zinc-800 text-lg">Procore</h3>
-                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-medium">Connected</span>
+                      <div>
+                        <h3 className="font-bold text-zinc-800 text-lg">{integration.name}</h3>
+                        <div className="flex gap-1 mt-2 flex-wrap">
+                          {integration.permissions.map(perm => (
+                            <span key={perm} className="text-[10px] bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200">{perm}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <span className={`text-xs px-2 py-1 rounded font-medium flex items-center gap-1 ${
+                        integration.connected
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-orange-100 text-orange-700'
+                      }`}>
+                        {integration.connected ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                        {integration.connected ? 'Connected' : 'Disconnected'}
+                      </span>
                   </div>
-                  <p className="text-xs text-zinc-500 mb-4">Last Sync: 2025-11-09 18:30</p>
-                  <button className="w-full bg-zinc-100 text-zinc-600 py-2 rounded text-sm font-medium hover:bg-zinc-200">Disconnect</button>
-              </div>
 
-               {/* QuickBooks */}
-              <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-bold text-zinc-800 text-lg">QuickBooks</h3>
-                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-medium">Connected</span>
-                  </div>
-                  <p className="text-xs text-zinc-500 mb-4">Last Sync: 2025-11-10 00:00</p>
-                  <button className="w-full bg-zinc-100 text-zinc-600 py-2 rounded text-sm font-medium hover:bg-zinc-200">Disconnect</button>
-              </div>
+                  <p className="text-xs text-zinc-500 mb-3">Last Sync: {integration.lastSync}</p>
+                  {integration.expiresAt && (
+                    <p className="text-xs text-amber-600 mb-3">Token expires: {new Date(integration.expiresAt).toLocaleString()}</p>
+                  )}
 
-               {/* AutoCAD */}
-              <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-bold text-zinc-800 text-lg">AutoCAD</h3>
-                      <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded font-medium">Disconnected</span>
+                  <div className="flex gap-2">
+                    {integration.connected ? (
+                      <>
+                        <button
+                          onClick={() => setSettingsModal(integration.id)}
+                          className="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 py-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Settings size={14} /> Settings
+                        </button>
+                        <button
+                          onClick={() => disconnectIntegration(integration.id)}
+                          className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded text-sm font-medium transition-colors flex items-center justify-center gap-1"
+                        >
+                          <LogOut size={14} /> Disconnect
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => connectIntegration(integration.id)}
+                        disabled={connecting === integration.id}
+                        className="w-full bg-[#1f7d98] hover:bg-[#166ba1] text-white py-2 rounded text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+                      >
+                        {connecting === integration.id ? (
+                          <>
+                            <Loader2 size={14} className="animate-spin" /> Connecting...
+                          </>
+                        ) : (
+                          'Connect'
+                        )}
+                      </button>
+                    )}
                   </div>
-                  <p className="text-xs text-zinc-500 mb-4">Last Sync: Never</p>
-                  <button className="w-full bg-[#1f7d98] text-white py-2 rounded text-sm font-medium hover:bg-[#166ba1]">Connect</button>
-              </div>
-
-               {/* Slack */}
-              <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                  <div className="flex justify-between items-start mb-4">
-                      <h3 className="font-bold text-zinc-800 text-lg">Slack</h3>
-                      <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded font-medium">Connected</span>
-                  </div>
-                  <p className="text-xs text-zinc-500 mb-4">Last Sync: 2025-11-10 08:15</p>
-                  <button className="w-full bg-zinc-100 text-zinc-600 py-2 rounded text-sm font-medium hover:bg-zinc-200">Disconnect</button>
-              </div>
+                </div>
+              ))}
           </div>
+      )}
+
+      {/* Integration Settings Modal */}
+      {settingsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 max-h-96 overflow-y-auto">
+            <h2 className="text-2xl font-bold text-zinc-900 mb-6">
+              {integrations.find(i => i.id === settingsModal)?.name} Settings
+            </h2>
+
+            {settingsModal && oauthConfigs[settingsModal] && (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-semibold text-zinc-700">Client ID</label>
+                  <p className="text-sm text-zinc-600 bg-zinc-50 p-2 rounded mt-1 font-mono break-all">{oauthConfigs[settingsModal].clientId}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-zinc-700">Redirect URI</label>
+                  <p className="text-sm text-zinc-600 bg-zinc-50 p-2 rounded mt-1 font-mono break-all">{oauthConfigs[settingsModal].redirectUri}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-zinc-700">Requested Scopes</label>
+                  <div className="flex gap-2 flex-wrap mt-1">
+                    {oauthConfigs[settingsModal].scope.split(' ').map(scope => (
+                      <span key={scope} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">{scope}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-semibold text-zinc-700">Token Details</label>
+                  {integrations.find(i => i.id === settingsModal)?.accessToken && (
+                    <div className="mt-2 space-y-2">
+                      <p className="text-xs text-zinc-600">Access Token: <code className="bg-zinc-50 px-1 rounded">{integrations.find(i => i.id === settingsModal)?.accessToken?.substring(0, 20)}...</code></p>
+                      <p className="text-xs text-zinc-600">Expires: {integrations.find(i => i.id === settingsModal)?.expiresAt && new Date(integrations.find(i => i.id === settingsModal)?.expiresAt!).toLocaleString()}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={() => setSettingsModal(null)}
+              className="w-full mt-8 bg-zinc-900 hover:bg-zinc-800 text-white py-2 rounded-lg font-medium transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
 
       {activeTab === 'DEV' && (
