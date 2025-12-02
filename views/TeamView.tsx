@@ -10,6 +10,8 @@ import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { TeamMember, Certification, UserRole } from '@/types';
 import { runRawPrompt } from '@/services/geminiService';
+import AddMemberModal from '@/components/AddMemberModal';
+import EditMemberModal from '@/components/EditMemberModal';
 
 interface TeamViewProps
 {
@@ -618,47 +620,32 @@ const TeamView: React.FC<TeamViewProps> = ( { projectId } ) =>
                 </div>
             ) }
 
-            {/* Add Member Modal (Same as previous) */ }
-            { showAddModal && (
-                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
-                    <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 max-h-[90vh] flex flex-col">
-                        {/* ... (Modal Content same as before, simplified for brevity in this response but fully functional in code) ... */ }
-                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center flex-shrink-0 bg-zinc-50">
-                            <h3 className="text-lg font-bold text-zinc-900">Add New Team Member</h3>
-                            <button onClick={ () => setShowAddModal( false ) } className="p-1 hover:bg-zinc-200 rounded-full transition-colors"><X size={ 20 } className="text-zinc-400" /></button>
-                        </div>
-                        <div className="p-6 space-y-6 overflow-y-auto flex-1">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Full Name *</label>
-                                    <input type="text" className="w-full p-3 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#0f5c82]" value={ newMemberData.name } onChange={ e => setNewMemberData( { ...newMemberData, name: e.target.value } ) } />
-                                </div>
-                                <div>
-                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Role</label>
-                                    <select className="w-full p-3 border border-zinc-200 rounded-xl text-sm outline-none bg-white" value={ newMemberData.role } onChange={ e => setNewMemberData( { ...newMemberData, role: e.target.value } ) }>
-                                        <option value="Operative">Operative</option>
-                                        <option value="Foreman">Foreman</option>
-                                        <option value="Project Manager">Project Manager</option>
-                                        <option value="Supervisor">Supervisor</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div><label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Email</label><input type="email" className="w-full p-3 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#0f5c82]" value={ newMemberData.email } onChange={ e => setNewMemberData( { ...newMemberData, email: e.target.value } ) } /></div>
-                                <div><label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Phone</label><input type="text" className="w-full p-3 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#0f5c82]" value={ newMemberData.phone } onChange={ e => setNewMemberData( { ...newMemberData, phone: e.target.value } ) } /></div>
-                            </div>
-                            <div>
-                                <label className="text-xs font-bold text-zinc-500 uppercase mb-1 flex justify-between">Skills <button onClick={ handleAutoGenerateSkills } disabled={ isGeneratingSkills } className="text-[#0f5c82] text-[10px] font-bold flex items-center gap-1">{ isGeneratingSkills ? <Loader2 size={ 10 } className="animate-spin" /> : <Sparkles size={ 10 } /> } AI Suggest</button></label>
-                                <input type="text" className="w-full p-3 border border-zinc-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#0f5c82]" value={ newMemberData.skills } onChange={ e => setNewMemberData( { ...newMemberData, skills: e.target.value } ) } placeholder="e.g. Welding, First Aid" />
-                            </div>
-                        </div>
-                        <div className="p-6 border-t border-zinc-100 bg-zinc-50 flex justify-end gap-3 flex-shrink-0">
-                            <button onClick={ () => setShowAddModal( false ) } className="px-6 py-2.5 text-zinc-600 font-medium hover:bg-zinc-100 rounded-xl transition-colors">Cancel</button>
-                            <button onClick={ handleCreateMember } disabled={ !newMemberData.name } className="px-6 py-2.5 bg-[#0f5c82] text-white font-bold rounded-xl hover:bg-[#0c4a6e] disabled:opacity-50 transition-colors shadow-lg">Create Member</button>
-                        </div>
-                    </div>
-                </div>
-            ) }
+            {/* Add Member Modal with Email Support */ }
+            <AddMemberModal
+                isOpen={ showAddModal }
+                onClose={ () => setShowAddModal( false ) }
+                onAdd={ ( member ) => {
+                    addTeamMember( member );
+                    setShowAddModal( false );
+                } }
+                projectName={ projectId ? `Project ${projectId}` : 'Team' }
+            />
+
+            {/* Edit Member Modal with Email Support */ }
+            <EditMemberModal
+                isOpen={ selectedMember !== null }
+                member={ selectedMember }
+                onClose={ () => setSelectedMember( null ) }
+                onUpdate={ ( updatedMember ) => {
+                    // Update member logic
+                    setSelectedMember( null );
+                } }
+                onDelete={ ( memberId ) => {
+                    // Delete member logic
+                    setSelectedMember( null );
+                } }
+                projectName={ projectId ? `Project ${projectId}` : 'Team' }
+            />
         </div>
     );
 };
