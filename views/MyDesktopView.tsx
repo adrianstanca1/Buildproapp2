@@ -77,6 +77,18 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ( { installedApps, setPage }
     'readme': { id: 'readme', name: 'README.md', type: 'file', content: '# BuildOS v2.5\nWelcome to the next generation construction OS.', parentId: 'docs', created: Date.now() },
   } );
 
+  // --- Widget System Types ---
+  interface DesktopWidget {
+    id: string;
+    appId: string;
+    title: string;
+    icon: React.ElementType;
+    position: { x: number; y: number };
+    size: { w: number; h: number };
+    isPinned: boolean;
+    lastModified: number;
+  }
+
   // --- Desktop State ---
   const [ windows, setWindows ] = useState<WindowState[]>( [] );
   const [ activeWindowId, setActiveWindowId ] = useState<string | null>( null );
@@ -86,10 +98,77 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ( { installedApps, setPage }
   const [ contextMenu, setContextMenu ] = useState<{ x: number, y: number, show: boolean } | null>( null );
   const [ showCalendar, setShowCalendar ] = useState( false );
   const [ showQuickSettings, setShowQuickSettings ] = useState( false );
+  const [ desktopWidgets, setDesktopWidgets ] = useState<DesktopWidget[]>( [
+    { id: 'w1', appId: 'procore', title: 'Project Status', icon: Briefcase, position: { x: 20, y: 20 }, size: { w: 280, h: 200 }, isPinned: true, lastModified: Date.now() },
+    { id: 'w2', appId: 'tasks', title: 'Today\' Tasks', icon: CalendarIcon, position: { x: 320, y: 20 }, size: { w: 280, h: 200 }, isPinned: false, lastModified: Date.now() },
+    { id: 'w3', appId: 'weather', title: 'Site Weather', icon: Wifi, position: { x: 620, y: 20 }, size: { w: 280, h: 200 }, isPinned: true, lastModified: Date.now() },
+    { id: 'w4', appId: 'budget', title: 'Budget Summary', icon: Briefcase, position: { x: 20, y: 240 }, size: { w: 280, h: 200 }, isPinned: false, lastModified: Date.now() },
+  ] );
+  const [ widgetDragState, setWidgetDragState ] = useState<{ id: string; startX: number; startY: number; initX: number; initY: number } | null>( null );
+  const [ showWidgetManager, setShowWidgetManager ] = useState( false );
+  const widgetsContainerRef = useRef<HTMLDivElement>( null );
 
   // Refs
   const dragRef = useRef<{ id: string, startX: number, startY: number, initX: number, initY: number } | null>( null );
   const desktopRef = useRef<HTMLDivElement>( null );
+
+  // --- Widget Handlers ---
+  const handleWidgetMouseDown = ( e: React.MouseEvent, widgetId: string ) =>
+  {
+    if ( ( e.target as HTMLElement ).closest( 'button' ) ) return;
+    setWidgetDragState( { id: widgetId, startX: e.clientX, startY: e.clientY, initX: e.clientX, initY: e.clientY } );
+  };
+
+  const handleWidgetMouseMove = ( e: React.MouseEvent ) =>
+  {
+    if ( !widgetDragState || !widgetsContainerRef.current ) return;
+    const widget = desktopWidgets.find( w => w.id === widgetDragState.id );
+    if ( !widget ) return;
+
+    const dx = e.clientX - widgetDragState.startX;
+    const dy = e.clientY - widgetDragState.startY;
+
+    setDesktopWidgets( prev => prev.map( w =>
+      w.id === widgetDragState.id
+        ? { ...w, position: { x: Math.max( 0, widget.position.x + dx ), y: Math.max( 0, widget.position.y + dy ) }, lastModified: Date.now() }
+        : w
+    ) );
+
+    setWidgetDragState( { ...widgetDragState, startX: e.clientX, startY: e.clientY } );
+  };
+
+  const handleWidgetMouseUp = () =>
+  {
+    setWidgetDragState( null );
+  };
+
+  const toggleWidgetPin = ( widgetId: string ) =>
+  {
+    setDesktopWidgets( prev => prev.map( w =>
+      w.id === widgetId ? { ...w, isPinned: !w.isPinned } : w
+    ) );
+  };
+
+  const removeWidget = ( widgetId: string ) =>
+  {
+    setDesktopWidgets( prev => prev.filter( w => w.id !== widgetId ) );
+  };
+
+  const addWidget = ( app: any ) =>
+  {
+    const newWidget: DesktopWidget = {
+      id: `w-${ Date.now() }`,
+      appId: app.id,
+      title: app.title,
+      icon: app.icon,
+      position: { x: Math.random() * 400, y: Math.random() * 300 },
+      size: { w: 280, h: 200 },
+      isPinned: false,
+      lastModified: Date.now()
+    };
+    setDesktopWidgets( prev => [ ...prev, newWidget ] );
+    setShowWidgetManager( false );
+  };
 
   // --- Helpers ---
   const getPath = ( nodeId: string ): string =>
@@ -845,8 +924,8 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ( { installedApps, setPage }
         background: 'linear-gradient(135deg, #0f5c82 0%, #0284c7 50%, #e0f2fe 100%)',
         backgroundSize: 'cover'
       } }
-      onMouseMove={ handleMouseMove }
-      onMouseUp={ handleMouseUp }
+      onMouseMove={ widgetDragState ? handleWidgetMouseMove : handleMouseMove }
+      onMouseUp={ widgetDragState ? handleWidgetMouseUp : handleMouseUp }
       onMouseDown={ closeContextMenu }
       onContextMenu={ handleContextMenu }
     >
@@ -864,6 +943,56 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ( { installedApps, setPage }
             <span className="text-white text-xs font-medium drop-shadow-md text-center leading-tight line-clamp-2">
               { app.title }
             </span>
+          </div>
+        ) ) }
+      </div>
+
+      {/* Desktop Widgets Layer */ }
+      <div ref={ widgetsContainerRef } className="absolute inset-0 pointer-events-none">
+        { desktopWidgets.map( widget => (
+          <div
+            key={ widget.id }
+            style={ {
+              position: 'absolute',
+              left: widget.position.x,
+              top: widget.position.y,
+              width: widget.size.w,
+              height: widget.size.h,
+              pointerEvents: 'auto'
+            } }
+            className={ `bg-white/90 backdrop-blur-md border border-white/30 rounded-2xl shadow-xl overflow-hidden transition-all ${ widgetDragState?.id === widget.id ? 'scale-105 shadow-2xl border-white/50' : 'hover:shadow-2xl' }` }
+            onMouseDown={ ( e ) => handleWidgetMouseDown( e, widget.id ) }
+          >
+            {/* Widget Header */ }
+            <div className="h-10 bg-gradient-to-r from-[#0f5c82]/10 to-[#0f5c82]/5 border-b border-white/20 flex items-center justify-between px-3 flex-shrink-0 select-none cursor-move">
+              <div className="flex items-center gap-2 min-w-0">
+                <widget.icon size={ 16 } className="text-[#0f5c82] flex-shrink-0" />
+                <span className="text-xs font-semibold text-zinc-700 truncate">{ widget.title }</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={ ( e ) => { e.stopPropagation(); toggleWidgetPin( widget.id ); } }
+                  className={ `p-1 rounded hover:bg-white/50 transition-colors ${ widget.isPinned ? 'text-blue-600' : 'text-zinc-400 hover:text-zinc-600' }` }
+                  title={ widget.isPinned ? 'Unpin' : 'Pin' }
+                >
+                  <Plus size={ 14 } />
+                </button>
+                <button
+                  onClick={ ( e ) => { e.stopPropagation(); removeWidget( widget.id ); } }
+                  className="p-1 rounded hover:bg-red-100 text-zinc-400 hover:text-red-600 transition-colors"
+                  title="Remove widget"
+                >
+                  <X size={ 14 } />
+                </button>
+              </div>
+            </div>
+
+            {/* Widget Content */ }
+            <div className="p-3 text-xs text-zinc-600 flex flex-col items-center justify-center h-[calc(100%-40px)] bg-gradient-to-br from-white/50 to-white/30">
+              <widget.icon size={ 28 } className="text-[#0f5c82]/50 mb-2" />
+              <p className="font-medium">{ widget.title }</p>
+              <p className="text-[10px] opacity-60 mt-1">Live Widget</p>
+            </div>
           </div>
         ) ) }
       </div>
