@@ -31,6 +31,37 @@ interface TimelinePhase
     riskLevel: 'Low' | 'Medium' | 'High';
 }
 
+interface ProjectTemplate
+{
+    id: string;
+    name: string;
+    type: string;
+    description: string;
+    averagebudget: number;
+    averageDuration: number;
+    phases: TimelinePhase[];
+    icon: any;
+}
+
+interface ComplianceChecklistItem
+{
+    id: string;
+    category: string;
+    item: string;
+    required: boolean;
+    priority: 'critical' | 'high' | 'medium' | 'low';
+    checked?: boolean;
+}
+
+interface CostEstimate
+{
+    category: string;
+    baseAmount: number;
+    contingency: number;
+    total: number;
+    notes: string;
+}
+
 const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ( { onClose, onViewProject } ) =>
 {
     const { addProject, addDocument, addTask } = useProjects();
@@ -68,6 +99,62 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ( { onClose, onVie
         { id: 'welcome', role: 'ai', text: "Hello! I'm your AI Architect using Gemini 3 Pro. I can help you define the project scope, estimate budgets from site plans, and generate detailed timelines. Upload a document or describe your project to begin." }
     ] );
     const chatEndRef = useRef<HTMLDivElement>( null );
+
+    // Advanced Features State
+    const [ showTemplates, setShowTemplates ] = useState( false );
+    const [ complianceChecklist, setComplianceChecklist ] = useState<ComplianceChecklistItem[]>( [] );
+    const [ costEstimates, setCostEstimates ] = useState<CostEstimate[]>( [] );
+    const [ showComplianceTab, setShowComplianceTab ] = useState( false );
+    const [ showCostBredown, setShowCostBreakdown ] = useState( false );
+
+    // Pre-defined Project Templates
+    const projectTemplates: ProjectTemplate[] = [
+        {
+            id: 'commercial-office',
+            name: 'Commercial Office Building',
+            type: 'Commercial',
+            description: 'Multi-story office complex with standard building code compliance',
+            averagebudget: 5000000,
+            averageDuration: 24,
+            phases: [
+                { phaseName: 'Design & Permits', durationWeeks: 12, keyMilestone: 'Drawings Approved', riskLevel: 'Medium' },
+                { phaseName: 'Foundation & Structure', durationWeeks: 16, keyMilestone: 'Structural Completion', riskLevel: 'High' },
+                { phaseName: 'MEP & Interiors', durationWeeks: 14, keyMilestone: 'Systems Testing', riskLevel: 'Medium' },
+                { phaseName: 'Finishes & Handover', durationWeeks: 8, keyMilestone: 'Final Inspection', riskLevel: 'Low' },
+            ],
+            icon: Building2
+        },
+        {
+            id: 'residential-complex',
+            name: 'Residential Complex',
+            type: 'Residential',
+            description: 'Multi-unit residential development with standard finishing',
+            averagebudget: 3500000,
+            averageDuration: 20,
+            phases: [
+                { phaseName: 'Site Prep', durationWeeks: 6, keyMilestone: 'Foundation Ready', riskLevel: 'Low' },
+                { phaseName: 'Structure & Framing', durationWeeks: 12, keyMilestone: 'Roof On', riskLevel: 'Medium' },
+                { phaseName: 'Systems & Finishes', durationWeeks: 14, keyMilestone: 'Unit Completion', riskLevel: 'Medium' },
+                { phaseName: 'Final Inspection & Delivery', durationWeeks: 6, keyMilestone: 'Occupancy Ready', riskLevel: 'Low' },
+            ],
+            icon: Home
+        },
+        {
+            id: 'industrial-facility',
+            name: 'Industrial Facility',
+            type: 'Industrial',
+            description: 'Manufacturing or warehouse facility with specialized requirements',
+            averagebudget: 2500000,
+            averageDuration: 18,
+            phases: [
+                { phaseName: 'Site Development', durationWeeks: 8, keyMilestone: 'Ground Work Complete', riskLevel: 'High' },
+                { phaseName: 'Main Structure', durationWeeks: 10, keyMilestone: 'Building Envelope', riskLevel: 'High' },
+                { phaseName: 'Equipment & Utilities', durationWeeks: 12, keyMilestone: 'Systems Operational', riskLevel: 'High' },
+                { phaseName: 'Testing & Startup', durationWeeks: 4, keyMilestone: 'Operational', riskLevel: 'Medium' },
+            ],
+            icon: Factory
+        }
+    ];
 
     useEffect( () =>
     {
@@ -121,6 +208,96 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ( { onClose, onVie
         setUploadedFile( null );
         setFilePreview( null );
         if ( fileInputRef.current ) fileInputRef.current.value = '';
+    };
+
+    // Generate Compliance Checklist Based on Project Type
+    const generateComplianceChecklist = () =>
+    {
+        const baseChecklist: ComplianceChecklistItem[] = [
+            { id: '1', category: 'Permits & Approvals', item: 'Building Permit', required: true, priority: 'critical' },
+            { id: '2', category: 'Permits & Approvals', item: 'Environmental Clearance', required: true, priority: 'critical' },
+            { id: '3', category: 'Permits & Approvals', item: 'Fire Safety Approval', required: true, priority: 'critical' },
+            { id: '4', category: 'Safety', item: 'Safety Plan & Documentation', required: true, priority: 'high' },
+            { id: '5', category: 'Safety', item: 'Worker Training Records', required: true, priority: 'high' },
+            { id: '6', category: 'Safety', item: 'PPE & Equipment Certification', required: true, priority: 'high' },
+            { id: '7', category: 'Quality', item: 'Material Testing & Certification', required: true, priority: 'high' },
+            { id: '8', category: 'Quality', item: 'Structural Inspections', required: true, priority: 'high' },
+            { id: '9', category: 'Environmental', item: 'Waste Management Plan', required: formData.type !== 'Residential', priority: 'medium' },
+            { id: '10', category: 'Environmental', item: 'Dust Control Measures', required: true, priority: 'medium' },
+            { id: '11', category: 'Documentation', item: 'Daily Progress Reports', required: true, priority: 'medium' },
+            { id: '12', category: 'Documentation', item: 'As-Built Drawings', required: true, priority: 'high' },
+        ];
+
+        setComplianceChecklist( baseChecklist );
+        setShowComplianceTab( true );
+    };
+
+    // Generate Cost Breakdown Based on Budget
+    const generateCostEstimates = () =>
+    {
+        const budget = Number( formData.budget ) || 1000000;
+        const estimates: CostEstimate[] = [
+            {
+                category: 'Labor',
+                baseAmount: budget * 0.35,
+                contingency: budget * 0.35 * 0.1,
+                total: budget * 0.35 * 1.1,
+                notes: '35% of total budget allocated to labor costs'
+            },
+            {
+                category: 'Materials',
+                baseAmount: budget * 0.30,
+                contingency: budget * 0.30 * 0.12,
+                total: budget * 0.30 * 1.12,
+                notes: '30% of total budget for materials and procurement'
+            },
+            {
+                category: 'Equipment & Machinery',
+                baseAmount: budget * 0.15,
+                contingency: budget * 0.15 * 0.08,
+                total: budget * 0.15 * 1.08,
+                notes: '15% for equipment rental and specialized machinery'
+            },
+            {
+                category: 'Permits & Inspections',
+                baseAmount: budget * 0.05,
+                contingency: 0,
+                total: budget * 0.05,
+                notes: '5% for permits, licenses, and inspections'
+            },
+            {
+                category: 'Contingency Reserve',
+                baseAmount: 0,
+                contingency: budget * 0.10,
+                total: budget * 0.10,
+                notes: '10% contingency for unforeseen circumstances'
+            },
+            {
+                category: 'Project Management',
+                baseAmount: budget * 0.05,
+                contingency: 0,
+                total: budget * 0.05,
+                notes: '5% for project management and administration'
+            },
+        ];
+
+        setCostEstimates( estimates );
+        setShowCostBreakdown( true );
+    };
+
+    // Load Template
+    const loadTemplate = ( template: ProjectTemplate ) =>
+    {
+        setFormData( prev => ( {
+            ...prev,
+            type: template.type,
+            budget: template.averagebudget,
+            endDate: new Date( new Date().setMonth( new Date().getMonth() + Math.ceil( template.averageDuration / 4 ) ) ).toISOString().split( 'T' )[ 0 ]
+        } ) );
+        setGeneratedTimeline( template.phases );
+        setShowTemplates( false );
+        generateComplianceChecklist();
+        generateCostEstimates();
     };
 
     // --- Core AI Logic ---
@@ -404,9 +581,158 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ( { onClose, onVie
 
                     { step === 'INPUT' && (
                         <div className="flex flex-col lg:flex-row h-full animate-in fade-in slide-in-from-right-4 overflow-hidden">
+                            {/* Templates Overlay */ }
+                            { showTemplates && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                                    <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full p-8 max-h-[90vh] overflow-y-auto">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h2 className="text-2xl font-bold text-zinc-900">Project Templates</h2>
+                                            <button onClick={ () => setShowTemplates( false ) } className="text-zinc-400 hover:text-zinc-600 text-2xl">×</button>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            { projectTemplates.map( template => (
+                                                <div
+                                                    key={ template.id }
+                                                    onClick={ () => loadTemplate( template ) }
+                                                    className="p-6 border border-zinc-200 rounded-xl hover:border-[#0f5c82] hover:bg-blue-50 transition-all cursor-pointer group"
+                                                >
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                                                            <template.icon size={ 24 } className="text-[#0f5c82]" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-bold text-zinc-900">{ template.name }</h3>
+                                                            <p className="text-xs text-zinc-500">{ template.type }</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-xs text-zinc-600 mb-4">{ template.description }</p>
+                                                    <div className="space-y-1 text-xs">
+                                                        <div className="flex justify-between text-zinc-600">
+                                                            <span>Avg Budget:</span>
+                                                            <span className="font-bold">£{ ( template.averagebudget / 1000000 ).toFixed( 1 ) }M</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-zinc-600">
+                                                            <span>Duration:</span>
+                                                            <span className="font-bold">{ template.averageDuration } months</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) ) }
+                                        </div>
+                                    </div>
+                                </div>
+                            ) }
+
+                            {/* Compliance Checklist Overlay */ }
+                            { showComplianceTab && complianceChecklist.length > 0 && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div>
+                                                <h2 className="text-2xl font-bold text-zinc-900">Compliance Checklist</h2>
+                                                <p className="text-sm text-zinc-600 mt-1">{ formData.type } Project</p>
+                                            </div>
+                                            <button onClick={ () => setShowComplianceTab( false ) } className="text-zinc-400 hover:text-zinc-600 text-2xl">×</button>
+                                        </div>
+                                        <div className="space-y-6">
+                                            { [ 'Permits & Approvals', 'Safety', 'Quality', 'Environmental', 'Documentation' ].map( category => (
+                                                <div key={ category }>
+                                                    <h3 className="font-bold text-zinc-900 mb-3 flex items-center gap-2">
+                                                        <Shield size={ 16 } className="text-[#0f5c82]" /> { category }
+                                                    </h3>
+                                                    <div className="space-y-2 ml-6">
+                                                        { complianceChecklist
+                                                            .filter( item => item.category === category )
+                                                            .map( item => (
+                                                                <div key={ item.id } className="flex items-center gap-3 p-2 hover:bg-zinc-50 rounded">
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={ item.checked || false }
+                                                                        onChange={ ( e ) =>
+                                                                        {
+                                                                            setComplianceChecklist( prev =>
+                                                                                prev.map( i => i.id === item.id ? { ...i, checked: e.target.checked } : i )
+                                                                            );
+                                                                        } }
+                                                                        className="w-4 h-4 rounded border-zinc-300 text-[#0f5c82] cursor-pointer"
+                                                                    />
+                                                                    <div className="flex-1">
+                                                                        <div className="font-medium text-sm text-zinc-900">{ item.item }</div>
+                                                                        { item.required && <span className="text-[10px] text-red-600 font-bold">Required</span> }
+                                                                    </div>
+                                                                    <span className={ `text-xs px-2 py-1 rounded font-bold ${ item.priority === 'critical' ? 'bg-red-100 text-red-700' : item.priority === 'high' ? 'bg-orange-100 text-orange-700' : item.priority === 'medium' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700' }` }>
+                                                                        { item.priority }
+                                                                    </span>
+                                                                </div>
+                                                            ) ) }
+                                                    </div>
+                                                </div>
+                                            ) ) }
+                                        </div>
+                                    </div>
+                                </div>
+                            ) }
+
+                            {/* Cost Breakdown Overlay */ }
+                            { showCostBreakdown && costEstimates.length > 0 && (
+                                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-8 max-h-[90vh] overflow-y-auto">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <div>
+                                                <h2 className="text-2xl font-bold text-zinc-900">Cost Breakdown</h2>
+                                                <p className="text-sm text-zinc-600 mt-1">Budget: £{ Number( formData.budget ).toLocaleString() }</p>
+                                            </div>
+                                            <button onClick={ () => setShowCostBreakdown( false ) } className="text-zinc-400 hover:text-zinc-600 text-2xl">×</button>
+                                        </div>
+                                        <div className="space-y-3 mb-6">
+                                            { costEstimates.map( ( est, i ) => (
+                                                <div key={ i } className="p-4 border border-zinc-200 rounded-lg hover:border-[#0f5c82] transition-colors">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div>
+                                                            <h4 className="font-bold text-zinc-900">{ est.category }</h4>
+                                                            <p className="text-xs text-zinc-600 mt-1">{ est.notes }</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="text-sm font-bold text-[#0f5c82]">£{ est.total.toLocaleString( undefined, { maximumFractionDigits: 0 } ) }</div>
+                                                        </div>
+                                                    </div>
+                                                    { ( est.baseAmount > 0 || est.contingency > 0 ) && (
+                                                        <div className="flex items-center gap-4 text-[10px] text-zinc-500 ml-auto">
+                                                            { est.baseAmount > 0 && <span>Base: £{ est.baseAmount.toLocaleString( undefined, { maximumFractionDigits: 0 } ) }</span> }
+                                                            { est.contingency > 0 && <span>Contingency: £{ est.contingency.toLocaleString( undefined, { maximumFractionDigits: 0 } ) }</span> }
+                                                        </div>
+                                                    ) }
+                                                </div>
+                                            ) ) }
+                                        </div>
+                                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                                            <div className="flex justify-between">
+                                                <span className="font-bold text-zinc-900">Total Project Cost</span>
+                                                <span className="font-bold text-lg text-[#0f5c82]">£{ costEstimates.reduce( ( sum, est ) => sum + est.total, 0 ).toLocaleString( undefined, { maximumFractionDigits: 0 } ) }</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) }
+
                             {/* Left: Main Form Area */ }
                             <div className="flex-1 p-8 overflow-y-auto scrollbar-hide bg-zinc-50/30 relative z-10 border-r border-zinc-100">
                                 <div className="max-w-2xl mx-auto space-y-8 pb-20">
+                                    {/* Quick Template Loader */ }
+                                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-2xl p-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="font-bold text-zinc-900 flex items-center gap-2 mb-1"><Wand2 size={ 18 } className="text-purple-600" /> Start with a Template</h3>
+                                                <p className="text-xs text-zinc-600">Quick-load pre-configured project types with timelines and budgets</p>
+                                            </div>
+                                            <button
+                                                onClick={ () => setShowTemplates( !showTemplates ) }
+                                                className="px-4 py-2 bg-purple-600 text-white rounded-lg font-bold text-sm hover:bg-purple-700 transition-colors whitespace-nowrap"
+                                            >
+                                                Browse Templates
+                                            </button>
+                                        </div>
+                                    </div>
 
                                     {/* File Upload Dropzone */ }
                                     <div
@@ -541,19 +867,38 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ( { onClose, onVie
                                 </div>
 
                                 {/* Smart Suggestions Chips */ }
-                                <div className="px-4 py-3 bg-white border-t border-zinc-100">
-                                    <div className="text-[10px] font-bold text-zinc-400 uppercase mb-2 pl-1">Smart Suggestions</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        { [ 'Generate Timeline', 'Analyze Risks', 'Estimate Budget', 'Suggest Team Size', 'Optimize Schedule' ].map( suggestion => (
+                                <div className="px-4 py-3 bg-white border-t border-zinc-100 space-y-3">
+                                    <div>
+                                        <div className="text-[10px] font-bold text-zinc-400 uppercase mb-2 pl-1">AI Suggestions</div>
+                                        <div className="flex flex-wrap gap-2">
+                                            { [ 'Generate Timeline', 'Analyze Risks', 'Estimate Budget', 'Suggest Team Size', 'Optimize Schedule' ].map( suggestion => (
+                                                <button
+                                                    key={ suggestion }
+                                                    onClick={ () => handleAIChat( suggestion ) }
+                                                    disabled={ isChatProcessing }
+                                                    className="px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors flex items-center gap-1.5"
+                                                >
+                                                    <Sparkles size={ 10 } className="text-purple-400" /> { suggestion }
+                                                </button>
+                                            ) ) }
+                                        </div>
+                                    </div>
+                                    <div className="border-t border-zinc-100 pt-2">
+                                        <div className="text-[10px] font-bold text-zinc-400 uppercase mb-2 pl-1">Project Setup</div>
+                                        <div className="flex flex-wrap gap-2">
                                             <button
-                                                key={ suggestion }
-                                                onClick={ () => handleAIChat( suggestion ) }
-                                                disabled={ isChatProcessing }
-                                                className="px-3 py-1.5 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-600 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-colors flex items-center gap-1.5"
+                                                onClick={ generateComplianceChecklist }
+                                                className="px-3 py-1.5 bg-orange-50 border border-orange-200 rounded-lg text-xs font-medium text-orange-700 hover:bg-orange-100 transition-colors flex items-center gap-1.5"
                                             >
-                                                <Sparkles size={ 10 } className="text-purple-400" /> { suggestion }
+                                                <Shield size={ 10 } /> Compliance
                                             </button>
-                                        ) ) }
+                                            <button
+                                                onClick={ generateCostEstimates }
+                                                className="px-3 py-1.5 bg-green-50 border border-green-200 rounded-lg text-xs font-medium text-green-700 hover:bg-green-100 transition-colors flex items-center gap-1.5"
+                                            >
+                                                <PoundSterling size={ 10 } /> Cost Breakdown
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
