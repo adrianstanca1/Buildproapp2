@@ -6,7 +6,9 @@ import
     FileText, Loader2, ZoomIn, ZoomOut, Eye, CheckCircle2,
     Cpu, XCircle, Maximize, Grid,
     FolderOpen, Clock, X, Image as ImageIcon, Search, Briefcase, RefreshCw,
-    PlusSquare, PenTool, Sparkles, ChevronDown, CheckSquare, MapPin
+    PlusSquare, PenTool, Sparkles, ChevronDown, CheckSquare, MapPin,
+    Video, Play, Pause, Square, Volume2, Volume1, Volume, VolumeX,
+    Wifi, WifiOff, MoreVertical, Settings, Download, Maximize2
 } from 'lucide-react';
 import * as L from 'leaflet';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -40,6 +42,35 @@ interface Drawing
     preview: string; // Mock URL for preview
     project: string;
     projectId?: string;
+}
+
+interface CameraStream
+{
+    id: string;
+    name: string;
+    location: string;
+    streamUrl: string;
+    thumbnailUrl: string;
+    isActive: boolean;
+    connectionQuality: 'excellent' | 'good' | 'fair' | 'poor';
+    bitrate: number; // kbps
+    resolution: '1080p' | '720p' | '480p';
+    lat: number;
+    lng: number;
+    recordingActive: boolean;
+    lastFrame?: string;
+}
+
+interface StreamRecording
+{
+    id: string;
+    cameraId: string;
+    cameraName: string;
+    startTime: string;
+    endTime?: string;
+    duration: number; // seconds
+    fileSize: string;
+    status: 'recording' | 'completed' | 'archived';
 }
 
 interface LiveProjectMapViewProps
@@ -79,6 +110,23 @@ const LiveProjectMapView: React.FC<LiveProjectMapViewProps> = ( { projectId } ) 
     const [ librarySearch, setLibrarySearch ] = useState( '' );
     const [ libraryFilter, setLibraryFilter ] = useState( 'All' );
     const [ selectedProjectFilter, setSelectedProjectFilter ] = useState( 'All Projects' );
+
+    // Camera & Streaming State
+    const [ cameraStreams, setCameraStreams ] = useState<CameraStream[]>( [
+        { id: 'cam1', name: 'Excavation Area', location: 'North Site', streamUrl: 'webrtc://stream1', thumbnailUrl: 'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=500&q=60', isActive: true, connectionQuality: 'excellent', bitrate: 2500, resolution: '1080p', lat: 45, lng: 30, recordingActive: true },
+        { id: 'cam2', name: 'Foundation Pouring', location: 'Central Area', streamUrl: 'webrtc://stream2', thumbnailUrl: 'https://images.unsplash.com/photo-1599708153386-51e2b8895249?auto=format&fit=crop&w=500&q=60', isActive: true, connectionQuality: 'good', bitrate: 1800, resolution: '720p', lat: 60, lng: 65, recordingActive: false },
+        { id: 'cam3', name: 'Steel Framework', location: 'East Wing', streamUrl: 'webrtc://stream3', thumbnailUrl: 'https://images.unsplash.com/photo-1558402347-9539d93d7f0e?auto=format&fit=crop&w=500&q=60', isActive: false, connectionQuality: 'poor', bitrate: 1200, resolution: '480p', lat: 70, lng: 85, recordingActive: false },
+    ] );
+    const [ selectedCamera, setSelectedCamera ] = useState<CameraStream | null>( null );
+    const [ showCameraPanel, setShowCameraPanel ] = useState( false );
+    const [ showRecordings, setShowRecordings ] = useState( false );
+    const [ recordings, setRecordings ] = useState<StreamRecording[]>( [
+        { id: 'rec1', cameraId: 'cam1', cameraName: 'Excavation Area', startTime: '2025-11-20 08:00', endTime: '2025-11-20 10:30', duration: 9000, fileSize: '2.4 GB', status: 'completed' },
+        { id: 'rec2', cameraId: 'cam1', cameraName: 'Excavation Area', startTime: '2025-11-20 10:30', endTime: '2025-11-20 12:00', duration: 5400, fileSize: '1.8 GB', status: 'completed' },
+        { id: 'rec3', cameraId: 'cam2', cameraName: 'Foundation Pouring', startTime: '2025-11-20 09:00', endTime: undefined, duration: 14400, fileSize: '3.2 GB', status: 'recording' },
+    ] );
+    const [ cameraVolume, setCameraVolume ] = useState( 70 );
+    const [ selectedCameraForRecording, setSelectedCameraForRecording ] = useState<string | null>( null );
 
     // User & Filtering State
     const [ roleFilter, setRoleFilter ] = useState<string>( 'All' );
@@ -321,6 +369,57 @@ const LiveProjectMapView: React.FC<LiveProjectMapViewProps> = ( { projectId } ) 
         }
     };
 
+    const getConnectionQualityColor = ( quality: string ) =>
+    {
+        switch ( quality )
+        {
+            case 'excellent': return 'text-green-600 bg-green-50 border-green-200';
+            case 'good': return 'text-blue-600 bg-blue-50 border-blue-200';
+            case 'fair': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+            case 'poor': return 'text-red-600 bg-red-50 border-red-200';
+            default: return 'text-zinc-600 bg-zinc-50 border-zinc-200';
+        }
+    };
+
+    const toggleCameraRecording = ( cameraId: string ) =>
+    {
+        setCameraStreams( prev => prev.map( cam =>
+            cam.id === cameraId
+                ? { ...cam, recordingActive: !cam.recordingActive }
+                : cam
+        ) );
+
+        const camera = cameraStreams.find( c => c.id === cameraId );
+        if ( camera && !camera.recordingActive )
+        {
+            const newRecording: StreamRecording = {
+                id: `rec-${ Date.now() }`,
+                cameraId,
+                cameraName: camera.name,
+                startTime: new Date().toLocaleString(),
+                duration: 0,
+                fileSize: '0 KB',
+                status: 'recording'
+            };
+            setRecordings( prev => [ newRecording, ...prev ] );
+            setSelectedCameraForRecording( cameraId );
+        }
+    };
+
+    const stopCameraRecording = ( cameraId: string ) =>
+    {
+        const recording = recordings.find( r => r.cameraId === cameraId && r.status === 'recording' );
+        if ( recording )
+        {
+            setRecordings( prev => prev.map( r =>
+                r.id === recording.id
+                    ? { ...r, endTime: new Date().toLocaleString(), status: 'completed', duration: Math.floor( Math.random() * 14400 ) + 3600, fileSize: Math.floor( Math.random() * 3 ) + 1.2 + ' GB' }
+                    : r
+            ) );
+        }
+        setSelectedCameraForRecording( null );
+    };
+
     const filteredDrawings = availableDrawings.filter( d =>
     {
         const matchesSearch = d.name.toLowerCase().includes( librarySearch.toLowerCase() ) || d.uploader.toLowerCase().includes( librarySearch.toLowerCase() );
@@ -395,6 +494,18 @@ const LiveProjectMapView: React.FC<LiveProjectMapViewProps> = ( { projectId } ) 
                     </div>
 
                     <div className="flex gap-2">
+                        <button
+                            onClick={ () => setShowRecordings( true ) }
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50 shadow-sm"
+                        >
+                            <Video size={ 16 } /> Recordings ({ recordings.length })
+                        </button>
+                        <button
+                            onClick={ () => setShowCameraPanel( !showCameraPanel ) }
+                            className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50 shadow-sm"
+                        >
+                            <Eye size={ 16 } /> Cameras ({ cameraStreams.filter( c => c.isActive ).length })
+                        </button>
                         <button
                             onClick={ () => setShowLibrary( true ) }
                             className="flex items-center gap-2 px-4 py-2 bg-white border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50 shadow-sm"
@@ -554,6 +665,86 @@ const LiveProjectMapView: React.FC<LiveProjectMapViewProps> = ( { projectId } ) 
                                     >
                                         Create Zone
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) }
+
+                    {/* Camera Panel */ }
+                    { showCameraPanel && (
+                        <div className="absolute left-80 top-20 w-96 bg-white rounded-2xl shadow-2xl border border-zinc-200 z-50 overflow-hidden animate-in slide-in-from-left-4 fade-in">
+                            <div className="p-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
+                                <h3 className="font-bold text-zinc-900 flex items-center gap-2"><Video size={ 18 } /> Live Camera Feeds</h3>
+                                <button onClick={ () => setShowCameraPanel( false ) } className="p-1 hover:bg-zinc-200 rounded text-zinc-500"><X size={ 18 } /></button>
+                            </div>
+                            <div className="max-h-96 overflow-y-auto space-y-3 p-4">
+                                { cameraStreams.map( camera => (
+                                    <div key={ camera.id } className={ `border rounded-xl overflow-hidden transition-all ${ selectedCamera?.id === camera.id ? 'border-[#0f5c82] shadow-md' : 'border-zinc-200 hover:border-zinc-300' }` }>
+                                        <img src={ camera.thumbnailUrl } alt={ camera.name } className="w-full h-32 object-cover" />
+                                        <div className="p-3 bg-zinc-50">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <div className="font-semibold text-sm text-zinc-900">{ camera.name }</div>
+                                                    <div className="text-xs text-zinc-500">{ camera.location }</div>
+                                                </div>
+                                                <div className={ `flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${ camera.isActive ? 'bg-green-50 border-green-200 text-green-700' : 'bg-zinc-100 border-zinc-300 text-zinc-600' }` }>
+                                                    { camera.isActive ? <><Wifi size={ 12 } /> Live</> : <><WifiOff size={ 12 } /> Offline</> }
+                                                </div>
+                                            </div>
+                                            <div className={ `text-xs px-2 py-1 rounded border mb-2 ${ getConnectionQualityColor( camera.connectionQuality ) }` }>
+                                                { camera.connectionQuality.charAt( 0 ).toUpperCase() + camera.connectionQuality.slice( 1 ) } • { camera.bitrate } kbps • { camera.resolution }
+                                            </div>
+                                            <button
+                                                onClick={ () => toggleCameraRecording( camera.id ) }
+                                                className={ `w-full py-1.5 rounded-lg text-xs font-medium transition-all ${ camera.recordingActive ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-zinc-200 text-zinc-700 hover:bg-zinc-300' }` }
+                                            >
+                                                { camera.recordingActive ? <><Square size={ 12 } className="inline mr-1" /> Stop Recording</> : <><Play size={ 12 } className="inline mr-1" /> Start Recording</> }
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) ) }
+                            </div>
+                        </div>
+                    ) }
+
+                    {/* Recordings Modal */ }
+                    { showRecordings && (
+                        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-40 flex items-center justify-center animate-in fade-in">
+                            <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden flex flex-col max-h-[80vh] animate-in zoom-in-95">
+                                <div className="p-6 border-b border-zinc-100 bg-zinc-50 flex justify-between items-center">
+                                    <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2"><Video size={ 24 } /> Stream Recordings</h3>
+                                    <button onClick={ () => setShowRecordings( false ) } className="p-2 hover:bg-zinc-200 rounded-full text-zinc-500"><X size={ 24 } /></button>
+                                </div>
+                                <div className="flex-1 overflow-y-auto p-6">
+                                    <div className="grid gap-4">
+                                        { recordings.length === 0 ? (
+                                            <div className="text-center py-12 text-zinc-400">
+                                                <Video size={ 48 } className="mx-auto mb-4 opacity-30" />
+                                                <p className="text-sm">No recordings yet</p>
+                                            </div>
+                                        ) : (
+                                            recordings.map( rec => (
+                                                <div key={ rec.id } className="border border-zinc-200 rounded-xl p-4 hover:shadow-md transition-all">
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <div>
+                                                            <h4 className="font-semibold text-zinc-900">{ rec.cameraName }</h4>
+                                                            <div className="text-xs text-zinc-500 mt-1">{ rec.startTime } { rec.status === 'recording' ? '(Recording)' : `→ ${ rec.endTime }` }</div>
+                                                        </div>
+                                                        <div className={ `text-xs px-3 py-1 rounded-full font-medium ${ rec.status === 'recording' ? 'bg-red-100 text-red-700 animate-pulse' : rec.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-zinc-100 text-zinc-600' }` }>
+                                                            { rec.status === 'recording' ? 'RECORDING' : rec.status === 'completed' ? 'COMPLETED' : 'ARCHIVED' }
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex justify-between items-center text-sm text-zinc-600">
+                                                        <span>Duration: { Math.floor( rec.duration / 60 ) } min • Size: { rec.fileSize }</span>
+                                                        <div className="flex gap-2">
+                                                            { rec.status !== 'recording' && <button className="p-2 hover:bg-zinc-100 rounded text-[#0f5c82] font-medium text-xs"><Download size={ 16 } /> Export</button> }
+                                                            { rec.status === 'recording' && <button onClick={ () => stopCameraRecording( rec.cameraId ) } className="p-2 hover:bg-red-100 rounded text-red-600 font-medium text-xs"><Square size={ 16 } /> Stop</button> }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ) )
+                                        ) }
+                                    </div>
                                 </div>
                             </div>
                         </div>
