@@ -105,7 +105,7 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ( { onClose, onVie
     const [ complianceChecklist, setComplianceChecklist ] = useState<ComplianceChecklistItem[]>( [] );
     const [ costEstimates, setCostEstimates ] = useState<CostEstimate[]>( [] );
     const [ showComplianceTab, setShowComplianceTab ] = useState( false );
-    const [ showCostBredown, setShowCostBreakdown ] = useState( false );
+    const [ showCostBreakdown, setShowCostBreakdown ] = useState( false );
 
     // Pre-defined Project Templates
     const projectTemplates: ProjectTemplate[] = [
