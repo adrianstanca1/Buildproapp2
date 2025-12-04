@@ -14,7 +14,8 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "leaflet": "1.9.4",
-    "@supabase/supabase-js": "^2.39.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "onnxruntime-web": "^1.19.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
