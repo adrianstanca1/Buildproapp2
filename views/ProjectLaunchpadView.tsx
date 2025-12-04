@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import
 {
     Rocket, Sparkles, ArrowRight, Building, PoundSterling,
-    Calendar, MapPin, Loader2, CheckCircle2, AlertCircle, Edit2, Wand2, ChevronRight, Building2, Briefcase, Home, Factory, Stethoscope, X, Upload, FileText, Image as ImageIcon, Trash2, ScanLine, BrainCircuit, Layers, Info, Zap, Activity, Check, Play, Cpu, Send, User, Bot, Paperclip, MessageSquare, Clock, ShieldAlert
+    Calendar, MapPin, Loader2, CheckCircle2, AlertCircle, Edit2, Wand2, ChevronRight, Building2, Briefcase, Home, Factory, Stethoscope, X, Upload, FileText, Image as ImageIcon, Trash2, ScanLine, BrainCircuit, Layers, Info, Zap, Activity, Check, Play, Cpu, Send, User, Bot, Paperclip, MessageSquare, Clock, ShieldAlert, Shield
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
