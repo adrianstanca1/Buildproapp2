@@ -3,8 +3,9 @@ import { GoogleGenAI, LiveServerMessage, Modality, Content, GenerateContentRespo
 import { Message } from "@/types";
 
 // Initialize the client with the environment key
-const apiKey = process.env.API_KEY || 'placeholder_key';
-if (!process.env.API_KEY) {
+// Initialize the client with the environment key
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'placeholder_key';
+if (!import.meta.env.VITE_GEMINI_API_KEY) {
   console.warn("GEMINI_API_KEY is not set. AI features will not function correctly.");
 }
 const ai = new GoogleGenAI({ apiKey });

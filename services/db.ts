@@ -18,7 +18,7 @@ class DatabaseService {
       if (!res.ok) throw new Error("API Unreachable");
       console.log("Connected to Backend API");
     } catch (e) {
-      console.warn("Backend API unreachable, switching to Mock/Local Mode.");
+      console.warn("Backend API unreachable, switching to Mock/Local Mode. ⚠️ DATA WILL NOT BE SAVED PERMANENTLY ⚠️");
       this.useMock = true;
     }
   }
