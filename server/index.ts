@@ -19,6 +19,101 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to ensure DB is initialized before handling requests (removed)
 
+// --- Companies Routes ---
+app.get('/api/companies', async (req, res) => {
+  try {
+    const db = getDb();
+    const companies = await db.all('SELECT * FROM companies');
+    
+    const parsed = companies.map(c => ({
+      ...c,
+      settings: c.settings ? JSON.parse(c.settings) : {},
+      subscription: c.subscription ? JSON.parse(c.subscription) : {},
+      features: c.features ? JSON.parse(c.features) : []
+    }));
+    
+    res.json(parsed);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+app.post('/api/companies', async (req, res) => {
+  try {
+    const db = getDb();
+    const c = req.body;
+    const id = c.id || uuidv4();
+    const settings = c.settings ? JSON.stringify(c.settings) : '{}';
+    const subscription = c.subscription ? JSON.stringify(c.subscription) : '{}';
+    const features = c.features ? JSON.stringify(c.features) : '[]';
+    
+    // Ensure numeric fields have defaults if missing
+    const users = c.users || 0;
+    const projects = c.projects || 0;
+    const mrr = c.mrr || 0;
+    const maxUsers = c.maxUsers || 10;
+    const maxProjects = c.maxProjects || 5;
+
+    await db.run(
+      `INSERT INTO companies (
+        id, name, plan, status, users, projects, mrr, joinedDate, 
+        description, logo, website, email, phone, address, city, state, zipCode, country,
+        settings, subscription, features, maxUsers, maxProjects, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, c.name, c.plan, c.status, users, projects, mrr, c.joinedDate || new Date().toISOString(),
+        c.description, c.logo, c.website, c.email, c.phone, c.address, c.city, c.state, c.zipCode, c.country,
+        settings, subscription, features, maxUsers, maxProjects, new Date().toISOString(), new Date().toISOString()
+      ]
+    );
+    res.json({ ...c, id });
+  } catch (e) {
+    console.error('Error adding company:', e);
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+app.put('/api/companies/:id', async (req, res) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    const updates = req.body;
+
+    // Handle JSON fields
+    if (updates.settings) updates.settings = JSON.stringify(updates.settings);
+    if (updates.subscription) updates.subscription = JSON.stringify(updates.subscription);
+    if (updates.features) updates.features = JSON.stringify(updates.features);
+    
+    // Always update timestamp
+    updates.updatedAt = new Date().toISOString();
+
+    delete updates.id;
+
+    const keys = Object.keys(updates);
+    const values = Object.values(updates);
+    const setClause = keys.map(k => `${k} = ?`).join(',');
+
+    await db.run(
+      `UPDATE companies SET ${setClause} WHERE id = ?`,
+      [...values, id]
+    );
+    res.json({ ...updates, id });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+app.delete('/api/companies/:id', async (req, res) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+    await db.run('DELETE FROM companies WHERE id = ?', [id]);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
 // --- Projects Routes ---
 app.get('/api/projects', async (req, res) => {
   try {

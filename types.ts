@@ -82,6 +82,11 @@ export interface Tenant {
   maxUsers?: number;
   maxProjects?: number;
   features?: TenantFeature[];
+  // Enhanced stats types
+  users?: number;
+  projects?: number;
+  mrr?: number;
+  joinedDate?: string;
 }
 
 export interface TenantSettings {

@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Channel, TeamMessage } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 
@@ -92,177 +92,86 @@ const initialProjects: Project[] = [
 ];
 
 const initialTasks: Task[] = [
-    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check including scaffolding tags and fall protection systems before concrete pour.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeName: 'Mike T.', assigneeType: 'user', dueDate: '2025-11-12' },
-    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium. Requires pump truck coordination.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', dependencies: ['t1', 't3'] },
-    { id: 't3', title: 'Complete foundation excavation', description: 'Finalize earthworks for the North wing foundation footings.', projectId: 'p1', status: 'In Progress', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-15' },
-    { id: 't4', title: 'Install steel framework', description: 'Erect primary steel columns for sectors 1-4.', projectId: 'p1', status: 'Done', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-08' },
-    { id: 't5', title: 'Quality control inspection', description: 'Verify rebar spacing and cover depth prior to pour.', projectId: 'p3', status: 'To Do', priority: 'High', assigneeName: 'John Anderson', assigneeType: 'user', dueDate: '2025-11-14' },
-    { id: 't6', title: 'Install electrical conduits', projectId: 'p3', status: 'In Progress', priority: 'Medium', assigneeName: 'James W.', assigneeType: 'user', dueDate: '2025-11-18' },
-    { id: 't7', title: 'Plumbing rough-in', projectId: 'p2', status: 'To Do', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-22' },
-    { id: 't8', title: 'HVAC system installation', projectId: 'p2', status: 'In Progress', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-25' },
-    { id: 't9', title: 'Prepare material estimates', projectId: 'p2', status: 'Done', priority: 'Medium', assigneeName: 'Sarah M.', assigneeType: 'user', dueDate: '2025-11-10' },
-    { id: 't10', title: 'Landscaping preparation', projectId: 'p4', status: 'In Progress', priority: 'Low', assigneeName: 'Sam B.', assigneeType: 'user', dueDate: '2025-11-30' },
+  { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check including scaffolding tags and fall protection systems before concrete pour.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeName: 'Mike T.', assigneeType: 'user', dueDate: '2025-11-12' },
+  { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium. Requires pump truck coordination.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', dependencies: ['t1', 't3'] },
+  { id: 't3', title: 'Complete foundation excavation', description: 'Finalize earthworks for the North wing foundation footings.', projectId: 'p1', status: 'In Progress', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-15' },
+  { id: 't4', title: 'Install steel framework', description: 'Erect primary steel columns for sectors 1-4.', projectId: 'p1', status: 'Done', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-08' },
+  { id: 't5', title: 'Quality control inspection', description: 'Verify rebar spacing and cover depth prior to pour.', projectId: 'p3', status: 'To Do', priority: 'High', assigneeName: 'John Anderson', assigneeType: 'user', dueDate: '2025-11-14' },
+  { id: 't6', title: 'Install electrical conduits', projectId: 'p3', status: 'In Progress', priority: 'Medium', assigneeName: 'James W.', assigneeType: 'user', dueDate: '2025-11-18' },
+  { id: 't7', title: 'Plumbing rough-in', projectId: 'p2', status: 'To Do', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-22' },
+  { id: 't8', title: 'HVAC system installation', projectId: 'p2', status: 'In Progress', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-25' },
+  { id: 't9', title: 'Prepare material estimates', projectId: 'p2', status: 'Done', priority: 'Medium', assigneeName: 'Sarah M.', assigneeType: 'user', dueDate: '2025-11-10' },
+  { id: 't10', title: 'Landscaping preparation', projectId: 'p4', status: 'In Progress', priority: 'Low', assigneeName: 'Sam B.', assigneeType: 'user', dueDate: '2025-11-30' },
 ];
 
 const initialRFIs: RFI[] = [
-    { id: 'rfi-1', projectId: 'p1', number: 'RFI-001', subject: 'Clarification on Curtain Wall Anchors', question: 'The specs for anchors on level 4 seem to conflict with structural drawings.', assignedTo: 'Sarah Mitchell', status: 'Open', dueDate: '2025-11-15', createdAt: '2025-11-08' },
-    { id: 'rfi-2', projectId: 'p1', number: 'RFI-002', subject: 'Lobby Flooring Material', question: 'Is the marble finish confirmed for the main entrance?', answer: 'Yes, specs confirmed in Rev 3.', assignedTo: 'John Anderson', status: 'Closed', dueDate: '2025-10-30', createdAt: '2025-10-25' },
+  { id: 'rfi-1', projectId: 'p1', number: 'RFI-001', subject: 'Clarification on Curtain Wall Anchors', question: 'The specs for anchors on level 4 seem to conflict with structural drawings.', assignedTo: 'Sarah Mitchell', status: 'Open', dueDate: '2025-11-15', createdAt: '2025-11-08' },
+  { id: 'rfi-2', projectId: 'p1', number: 'RFI-002', subject: 'Lobby Flooring Material', question: 'Is the marble finish confirmed for the main entrance?', answer: 'Yes, specs confirmed in Rev 3.', assignedTo: 'John Anderson', status: 'Closed', dueDate: '2025-10-30', createdAt: '2025-10-25' },
 ];
 
 const initialPunchList: PunchItem[] = [
-    { id: 'pi-1', projectId: 'p1', title: 'Paint scratch in hallway', location: 'Level 3, Corridor B', description: 'Minor scuff marks on north wall.', status: 'Open', priority: 'Low', assignedTo: 'David Chen', createdAt: '2025-11-09' },
-    { id: 'pi-2', projectId: 'p1', title: 'Loose electrical socket', location: 'Unit 402', description: 'Socket not flush with wall.', status: 'Resolved', priority: 'Medium', assignedTo: 'Robert Garcia', createdAt: '2025-11-05' },
+  { id: 'pi-1', projectId: 'p1', title: 'Paint scratch in hallway', location: 'Level 3, Corridor B', description: 'Minor scuff marks on north wall.', status: 'Open', priority: 'Low', assignedTo: 'David Chen', createdAt: '2025-11-09' },
+  { id: 'pi-2', projectId: 'p1', title: 'Loose electrical socket', location: 'Unit 402', description: 'Socket not flush with wall.', status: 'Resolved', priority: 'Medium', assignedTo: 'Robert Garcia', createdAt: '2025-11-05' },
 ];
 
 const initialDailyLogs: DailyLog[] = [
-    { id: 'dl-1', projectId: 'p1', date: '2025-11-10', weather: 'Sunny, 72°F', notes: 'Site visit by inspectors went well.', workPerformed: 'Concrete pouring on sector 4 completed.', crewCount: 18, author: 'Mike Thompson', createdAt: '2025-11-10' },
-    { id: 'dl-2', projectId: 'p1', date: '2025-11-09', weather: 'Cloudy, 68°F', notes: 'Delay in steel delivery caused 2h downtime.', workPerformed: 'Formwork setup for Level 5.', crewCount: 22, author: 'Mike Thompson', createdAt: '2025-11-09' },
+  { id: 'dl-1', projectId: 'p1', date: '2025-11-10', weather: 'Sunny, 72°F', notes: 'Site visit by inspectors went well.', workPerformed: 'Concrete pouring on sector 4 completed.', crewCount: 18, author: 'Mike Thompson', createdAt: '2025-11-10' },
+  { id: 'dl-2', projectId: 'p1', date: '2025-11-09', weather: 'Cloudy, 68°F', notes: 'Delay in steel delivery caused 2h downtime.', workPerformed: 'Formwork setup for Level 5.', crewCount: 22, author: 'Mike Thompson', createdAt: '2025-11-09' },
 ];
 
 const initialDayworks: Daywork[] = [
-    {
-        id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
-        labor: [{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }],
-        materials: [{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }],
-        attachments: [],
-        totalLaborCost: 360,
-        totalMaterialCost: 275,
-        grandTotal: 635
-    },
-    {
-        id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
-        labor: [{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }],
-        materials: [{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }],
-        attachments: [],
-        totalLaborCost: 360,
-        totalMaterialCost: 160,
-        grandTotal: 520
-    },
-];
-
-// --- Safety Incidents ---
-const initialSafetyIncidents: SafetyIncident[] = [
   {
-    id: 'si1',
-    projectId: 'p1',
-    title: 'Minor Cut Injury',
-    description: 'Worker sustained minor cut while handling rebar',
-    severity: 'Low',
-    date: '2025-11-10',
-    reportedBy: 'Mike T.',
-    status: 'Resolved',
-    actionItems: ['First aid applied', 'Safety briefing conducted']
+    id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
+    labor: [{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }],
+    materials: [{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }],
+    attachments: [],
+    totalLaborCost: 360,
+    totalMaterialCost: 275,
+    grandTotal: 635
   },
   {
-    id: 'si2',
-    projectId: 'p1',
-    title: 'Near Miss - Falling Object',
-    description: 'Tool dropped from scaffolding, no injuries',
-    severity: 'Medium',
-    date: '2025-11-08',
-    reportedBy: 'David Chen',
-    status: 'Under Investigation',
-    actionItems: ['Tool tether system implemented', 'Daily toolbox talks scheduled']
-  }
+    id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
+    labor: [{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }],
+    materials: [{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }],
+    attachments: [],
+    totalLaborCost: 360,
+    totalMaterialCost: 160,
+    grandTotal: 520
+  },
+  },
 ];
 
-// --- Equipment ---
-const initialEquipment: Equipment[] = [
+const initialCompanies: Tenant[] = [
   {
-    id: 'eq1',
-    projectId: 'p1',
-    name: 'Concrete Pump Truck',
-    type: 'Heavy Equipment',
-    status: 'In Use',
-    manufacturer: 'Putzmeister',
-    lastMaintenance: '2025-11-01',
-    nextMaintenance: '2025-12-01',
-    operator: 'Mike T.'
-  },
+    id: 'c1',
+    name: 'BuildCorp International',
+    plan: 'Enterprise',
+    status: 'Active',
+    users: 142,
+    projects: 12,
+    mrr: 4500,
+    joinedDate: '2024-01-15'
+  } as Tenant,
   {
-    id: 'eq2',
-    projectId: 'p1',
-    name: 'Excavator',
-    type: 'Heavy Equipment',
-    status: 'Available',
-    manufacturer: 'Caterpillar',
-    lastMaintenance: '2025-10-15',
-    nextMaintenance: '2025-11-15',
-    operator: 'James W.'
-  }
-];
-
-// --- Timesheets ---
-const initialTimesheets: Timesheet[] = [
+    id: 'c2',
+    name: 'Metro Construct Ltd',
+    plan: 'Business',
+    status: 'Active',
+    users: 45,
+    projects: 4,
+    mrr: 1200,
+    joinedDate: '2024-03-10'
+  } as Tenant,
   {
-    id: 'ts1',
-    employeeId: 'tm1',
-    employeeName: 'Mike Thompson',
-    projectId: 'p1',
-    week: '2025-W45',
-    totalHours: 40,
-    regularHours: 40,
-    overtimeHours: 0,
-    status: 'Approved',
-    approvedBy: 'John Anderson'
-  },
-  {
-    id: 'ts2',
-    employeeId: 'tm2',
-    employeeName: 'David Chen',
-    projectId: 'p1',
-    week: '2025-W45',
-    totalHours: 45,
-    regularHours: 40,
-    overtimeHours: 5,
-    status: 'Pending'
-  }
-];
-
-// --- Channels ---
-const initialChannels: Channel[] = [
-  {
-    id: 'ch1',
-    projectId: 'p1',
-    name: 'General',
-    description: 'General project discussion',
-    createdBy: 'John Anderson',
-    createdAt: '2025-01-15',
-    type: 'public'
-  },
-  {
-    id: 'ch2',
-    projectId: 'p1',
-    name: 'Safety Updates',
-    description: 'Daily safety briefings',
-    createdBy: 'John Anderson',
-    createdAt: '2025-01-15',
-    type: 'public'
-  }
-];
-
-// --- Team Messages ---
-const initialTeamMessages: TeamMessage[] = [
-  {
-    id: 'msg1',
-    channelId: 'ch1',
-    projectId: 'p1',
-    sender: 'John Anderson',
-    senderId: 'u1',
-    content: 'Welcome to City Centre Plaza! Please review the project charter.',
-    timestamp: '2025-11-12T08:00:00Z',
-    type: 'text'
-  },
-  {
-    id: 'msg2',
-    channelId: 'ch2',
-    projectId: 'p1',
-    sender: 'Mike T.',
-    senderId: 'tm1',
-    content: 'Daily safety briefing: Focus on fall protection. Tie off at heights above 6 feet.',
-    timestamp: '2025-11-12T06:30:00Z',
-    type: 'text'
-  }
+    id: 'c3',
+    name: 'Urban Design Studio',
+    plan: 'Starter',
+    status: 'Suspended',
+    users: 5,
+    projects: 1,
+    mrr: 0,
+    joinedDate: '2024-05-22'
+  } as Tenant
 ];
 
 const DB_KEYS = {
@@ -275,12 +184,9 @@ const DB_KEYS = {
   RFIS: 'buildpro_rfis',
   PUNCH_LIST: 'buildpro_punch_list',
   DAILY_LOGS: 'buildpro_daily_logs',
+  DAILY_LOGS: 'buildpro_daily_logs',
   DAYWORKS: 'buildpro_dayworks',
-  SAFETY_INCIDENTS: 'buildpro_safety_incidents',
-  EQUIPMENT: 'buildpro_equipment',
-  TIMESHEETS: 'buildpro_timesheets',
-  CHANNELS: 'buildpro_channels',
-  TEAM_MESSAGES: 'buildpro_team_messages',
+  COMPANIES: 'buildpro_companies',
 };
 
 // Helper
@@ -297,11 +203,7 @@ class MockDatabase {
     if (!localStorage.getItem(DB_KEYS.PUNCH_LIST)) localStorage.setItem(DB_KEYS.PUNCH_LIST, JSON.stringify(initialPunchList));
     if (!localStorage.getItem(DB_KEYS.DAILY_LOGS)) localStorage.setItem(DB_KEYS.DAILY_LOGS, JSON.stringify(initialDailyLogs));
     if (!localStorage.getItem(DB_KEYS.DAYWORKS)) localStorage.setItem(DB_KEYS.DAYWORKS, JSON.stringify(initialDayworks));
-    if (!localStorage.getItem(DB_KEYS.SAFETY_INCIDENTS)) localStorage.setItem(DB_KEYS.SAFETY_INCIDENTS, JSON.stringify(initialSafetyIncidents));
-    if (!localStorage.getItem(DB_KEYS.EQUIPMENT)) localStorage.setItem(DB_KEYS.EQUIPMENT, JSON.stringify(initialEquipment));
-    if (!localStorage.getItem(DB_KEYS.TIMESHEETS)) localStorage.setItem(DB_KEYS.TIMESHEETS, JSON.stringify(initialTimesheets));
-    if (!localStorage.getItem(DB_KEYS.CHANNELS)) localStorage.setItem(DB_KEYS.CHANNELS, JSON.stringify(initialChannels));
-    if (!localStorage.getItem(DB_KEYS.TEAM_MESSAGES)) localStorage.setItem(DB_KEYS.TEAM_MESSAGES, JSON.stringify(initialTeamMessages));
+    if (!localStorage.getItem(DB_KEYS.COMPANIES)) localStorage.setItem(DB_KEYS.COMPANIES, JSON.stringify(initialCompanies));
 
     // Ensure basics exist (simplified check)
     if (!localStorage.getItem(DB_KEYS.PROJECTS)) localStorage.setItem(DB_KEYS.PROJECTS, JSON.stringify(initialProjects));
@@ -378,8 +280,8 @@ class MockDatabase {
     await delay(200);
     const data = localStorage.getItem(DB_KEYS.DOCS);
     return data ? JSON.parse(data) : [
-        { id: 'd1', name: 'City Centre - Structural Plans', type: 'CAD', projectId: 'p1', projectName: 'City Centre Plaza', size: '12.5 MB', date: '2025-10-15', status: 'Approved', linkedTaskIds: ['t4'] },
-        { id: 'd2', name: 'Building Permit - Phase 1', type: 'Document', projectId: 'p1', projectName: 'City Centre Plaza', size: '2.3 MB', date: '2025-09-20', status: 'Approved', linkedTaskIds: [] }
+      { id: 'd1', name: 'City Centre - Structural Plans', type: 'CAD', projectId: 'p1', projectName: 'City Centre Plaza', size: '12.5 MB', date: '2025-10-15', status: 'Approved', linkedTaskIds: ['t4'] },
+      { id: 'd2', name: 'Building Permit - Phase 1', type: 'Document', projectId: 'p1', projectName: 'City Centre Plaza', size: '2.3 MB', date: '2025-09-20', status: 'Approved', linkedTaskIds: [] }
     ];
   }
 
@@ -429,18 +331,18 @@ class MockDatabase {
 
   // --- New Entities ---
   async getRFIs(): Promise<RFI[]> {
-      await delay(200);
-      return this.getItems(DB_KEYS.RFIS);
+    await delay(200);
+    return this.getItems(DB_KEYS.RFIS);
   }
   async addRFI(item: RFI) {
-      await delay(200);
-      const items = this.getItems<RFI>(DB_KEYS.RFIS);
-      this.setItems(DB_KEYS.RFIS, [item, ...items]);
+    await delay(200);
+    const items = this.getItems<RFI>(DB_KEYS.RFIS);
+    this.setItems(DB_KEYS.RFIS, [item, ...items]);
   }
   async updateRFI(id: string, updates: Partial<RFI>) {
-      await delay(200);
-      const items = this.getItems<RFI>(DB_KEYS.RFIS);
-      this.setItems(DB_KEYS.RFIS, items.map(i => i.id === id ? { ...i, ...updates } : i));
+    await delay(200);
+    const items = this.getItems<RFI>(DB_KEYS.RFIS);
+    this.setItems(DB_KEYS.RFIS, items.map(i => i.id === id ? { ...i, ...updates } : i));
   }
 
   async getPunchItems(): Promise<PunchItem[]> { return this.getAll<PunchItem>(DB_KEYS.PUNCH_LIST); }
@@ -452,30 +354,29 @@ class MockDatabase {
   async getDayworks(): Promise<Daywork[]> { return this.getAll<Daywork>(DB_KEYS.DAYWORKS); }
   async addDaywork(item: Daywork) { return this.add(DB_KEYS.DAYWORKS, item); }
 
-  async getSafetyIncidents(): Promise<SafetyIncident[]> { return this.getAll<SafetyIncident>(DB_KEYS.SAFETY_INCIDENTS); }
-  async addSafetyIncident(item: SafetyIncident) { return this.add(DB_KEYS.SAFETY_INCIDENTS, item); }
-
-  async getEquipment(): Promise<Equipment[]> { return this.getAll<Equipment>(DB_KEYS.EQUIPMENT); }
-  async addEquipment(item: Equipment) { return this.add(DB_KEYS.EQUIPMENT, item); }
-
-  async getTimesheets(): Promise<Timesheet[]> { return this.getAll<Timesheet>(DB_KEYS.TIMESHEETS); }
-  async addTimesheet(item: Timesheet) { return this.add(DB_KEYS.TIMESHEETS, item); }
-
-  async getChannels(): Promise<Channel[]> { return this.getAll<Channel>(DB_KEYS.CHANNELS); }
-  async addChannel(item: Channel) { return this.add(DB_KEYS.CHANNELS, item); }
-
-  async getTeamMessages(): Promise<TeamMessage[]> { return this.getAll<TeamMessage>(DB_KEYS.TEAM_MESSAGES); }
-  async addTeamMessage(item: TeamMessage) { return this.add(DB_KEYS.TEAM_MESSAGES, item); }
-
   // Generic Helpers for internal use
   async getAll<T>(key: string): Promise<T[]> {
-      await delay(200);
-      return this.getItems<T>(key);
+    await delay(200);
+    return this.getItems<T>(key);
   }
   async add<T>(key: string, item: T): Promise<void> {
-      await delay(200);
-      const items = this.getItems<T>(key);
-      this.setItems(key, [item, ...items]);
+    await delay(200);
+    const items = this.getItems<T>(key);
+    this.setItems(key, [item, ...items]);
+  }
+
+  // --- Companies ---
+  async getCompanies(): Promise<Tenant[]> { return this.getAll<Tenant>(DB_KEYS.COMPANIES); }
+  async addCompany(item: Tenant) { return this.add(DB_KEYS.COMPANIES, item); }
+  async updateCompany(id: string, updates: Partial<Tenant>) {
+    await delay(200);
+    const items = this.getItems<Tenant>(DB_KEYS.COMPANIES);
+    this.setItems(DB_KEYS.COMPANIES, items.map(c => c.id === id ? { ...c, ...updates } : c));
+  }
+  async deleteCompany(id: string) {
+    await delay(200);
+    const items = this.getItems<Tenant>(DB_KEYS.COMPANIES);
+    this.setItems(DB_KEYS.COMPANIES, items.filter(c => c.id !== id));
   }
 }
 

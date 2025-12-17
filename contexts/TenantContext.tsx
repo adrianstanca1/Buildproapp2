@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { db } from '@/services/db';
 import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings } from '@/types';
 
 interface TenantContextType {
@@ -53,155 +54,60 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Initialize with mock data
+  // Initialize with real data from DB
   useEffect(() => {
-    const mockTenants: Tenant[] = [
-      {
-        id: 't1',
-        companyId: 'c1',
-        name: 'BuildPro Construction',
-        description: 'Main construction management tenant',
-        logo: 'https://via.placeholder.com/100',
-        website: 'https://buildpro.com',
-        email: 'admin@buildpro.com',
-        phone: '+1 (555) 123-4567',
-        address: '123 Construction Ave',
-        city: 'New York',
-        state: 'NY',
-        zipCode: '10001',
-        country: 'USA',
-        plan: 'Enterprise',
-        status: 'Active',
-        settings: {
-          timezone: 'America/New_York',
-          language: 'en',
-          dateFormat: 'MM/DD/YYYY',
-          currency: 'USD',
-          emailNotifications: true,
-          dataRetention: 2555, // 7 years
-          twoFactorAuth: true,
-          sso: true,
-          customBranding: true,
-        },
-        subscription: {
-          id: 'sub-1',
-          planId: 'enterprise',
-          status: 'active',
-          currentPeriodStart: new Date().toISOString(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          billingEmail: 'billing@buildpro.com',
-          billingAddress: '123 Construction Ave, New York, NY 10001',
-          paymentMethod: 'Visa ending in 4242',
-        },
-        createdAt: '2024-01-15',
-        updatedAt: '2024-12-02',
-        maxUsers: 100,
-        maxProjects: 50,
-        features: [
-          { id: 'f1', name: 'Multi-project Management', enabled: true },
-          { id: 'f2', name: 'Team Collaboration', enabled: true },
-          { id: 'f3', name: 'AI Insights', enabled: true },
-          { id: 'f4', name: 'Advanced Reporting', enabled: true },
-          { id: 'f5', name: 'Custom Integrations', enabled: true },
-        ],
-      },
-      {
-        id: 't2',
-        companyId: 'c2',
-        name: 'City Construction Inc',
-        description: 'Regional construction company',
-        email: 'contact@cityconstruction.com',
-        plan: 'Business',
-        status: 'Active',
-        settings: {
-          timezone: 'America/Chicago',
-          language: 'en',
-          dateFormat: 'MM/DD/YYYY',
-          currency: 'USD',
-          emailNotifications: true,
-          dataRetention: 1825, // 5 years
-          twoFactorAuth: false,
-          sso: false,
-          customBranding: false,
-        },
-        subscription: {
-          id: 'sub-2',
-          planId: 'business',
-          status: 'active',
-          currentPeriodStart: new Date().toISOString(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          billingEmail: 'billing@cityconstruction.com',
-        },
-        createdAt: '2024-06-01',
-        updatedAt: '2024-12-01',
-        maxUsers: 25,
-        maxProjects: 10,
-      },
-    ];
-
-    setTenants(mockTenants);
-    setCurrentTenant(mockTenants[0]);
-
-    // Mock tenant members
-    const mockMembers: TenantMember[] = [
-      {
-        id: 'tm1',
-        tenantId: 't1',
-        userId: 'u2',
-        name: 'Sarah Mitchell',
-        email: 'sarah@buildpro.com',
-        role: 'owner',
-        joinedAt: '2024-01-15',
-        lastActive: new Date().toISOString(),
-        isActive: true,
-      },
-      {
-        id: 'tm2',
-        tenantId: 't1',
-        userId: 'u3',
-        name: 'Mike Thompson',
-        email: 'mike@buildpro.com',
-        role: 'admin',
-        joinedAt: '2024-02-01',
-        lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        isActive: true,
-      },
-    ];
-
-    setTenantMembers(mockMembers);
-
-    // Mock usage data
-    const mockUsage: TenantUsage = {
-      tenantId: 't1',
-      currentUsers: 42,
-      currentProjects: 12,
-      currentStorage: 2048,
-      currentApiCalls: 125000,
-      period: '2024-12',
-      limit: {
-        users: 100,
-        projects: 50,
-        storage: 5120,
-        apiCalls: 1000000,
-      },
+    const loadTenants = async () => {
+      try {
+        setIsLoading(true);
+        const fetchedTenants = await db.getCompanies();
+        setTenants(fetchedTenants);
+        if (fetchedTenants.length > 0) {
+          setCurrentTenant(fetchedTenants[0]);
+        }
+      } catch (e) {
+        console.error("Failed to load tenants", e);
+        setError("Failed to load tenants");
+      } finally {
+        setIsLoading(false);
+      }
     };
+    loadTenants();
 
-    setTenantUsage(mockUsage);
+    // Mock other entities for now until backend supports them fully or we expand scope
+    // ... member and usage mocks kept for UI stability if backend doesn't have them yet ...
+    // For now we keep the previous mock side-effects for members/usage below as placeholders
+    // or we can just initialize them empty if we want to be strict.
+    // Let's keep them empty/minimal to avoid confusion with "real" data.
+
+    setTenantMembers([]);
+    setTenantUsage({
+      tenantId: 'c1',
+      currentUsers: 0,
+      currentProjects: 0,
+      currentStorage: 0,
+      currentApiCalls: 0,
+      period: '2025-01',
+      limit: { users: 100, projects: 50, storage: 5000, apiCalls: 10000 }
+    });
+
   }, []);
 
   const addTenant = useCallback(async (tenant: Tenant) => {
     try {
       setIsLoading(true);
       setError(null);
-      setTenants((prev) => [tenant, ...prev]);
+      const tenantWithId = { ...tenant, id: tenant.id || `c-${Date.now()}` };
+      setTenants((prev) => [tenantWithId, ...prev]);
+      await db.addCompany(tenantWithId);
+
       addAuditLog({
         id: `log-${Date.now()}`,
-        tenantId: tenant.id,
+        tenantId: tenantWithId.id,
         userId: 'current-user',
         userName: 'System',
         action: 'create',
         resource: 'tenant',
-        resourceId: tenant.id,
+        resourceId: tenantWithId.id,
         status: 'success',
         timestamp: new Date().toISOString(),
       });
@@ -222,6 +128,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setCurrentTenant((prev) =>
         prev?.id === id ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev
       );
+
+      await db.updateCompany(id, updates);
+
       addAuditLog({
         id: `log-${Date.now()}`,
         tenantId: id,
@@ -249,6 +158,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (currentTenant?.id === id) {
         setCurrentTenant(null);
       }
+
+      await db.deleteCompany(id);
+
       addAuditLog({
         id: `log-${Date.now()}`,
         tenantId: id,
