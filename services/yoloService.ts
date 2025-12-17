@@ -91,15 +91,15 @@ class YOLOService {
       const processedImage = await this.preprocessImage(imageData);
       const { tensor, originalWidth, originalHeight } = processedImage;
 
-      // Run inference
       const feeds = {
         images: tensor
       };
 
       const results = await this.model.session.run(feeds);
 
-      // Get output tensor
-      const output = results[results.keys().next().value];
+      // Get output tensor - use standard object access
+      const outputNames = Object.keys(results);
+      const output = results[outputNames[0]];
 
       if (!output) {
         throw new Error('No output from model');

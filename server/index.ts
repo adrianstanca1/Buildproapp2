@@ -137,7 +137,12 @@ app.get('/api/projects', async (req, res) => {
   try {
     const db = getDb();
     // Filter by tenant if present
-    const whereClause = req.tenantId ? `WHERE companyId = '${req.tenantId}'` : '';
+    let whereClause = '';
+    const params: any[] = [];
+    if (req.tenantId) {
+      whereClause = 'WHERE companyId = ?';
+      params.push(req.tenantId);
+    }
 
     const projects = await db.all(`
       SELECT
@@ -149,7 +154,7 @@ app.get('/api/projects', async (req, res) => {
       LEFT JOIN tasks t ON p.id = t.projectId
       ${whereClause}
       GROUP BY p.id
-    `);
+    `, params);
 
     const parsed = projects.map(p => {
       return {
