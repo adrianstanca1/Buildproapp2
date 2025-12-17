@@ -7,6 +7,7 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '30 1 * * 1'
+  workflow_dispatch:
 
 permissions:
   actions: read
@@ -33,8 +34,10 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
-    - name: Auto-build
-      uses: github/codeql-action/autobuild@v3
+    - name: Install dependencies for analysis
+      run: |
+        npm install
+        cd server && npm install
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3

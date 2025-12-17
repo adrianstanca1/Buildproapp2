@@ -19,6 +19,25 @@ const FinancialsView: React.FC = () => {
     return { totalRev, totalCost, netProfit, margin };
   }, [transactions]);
 
+  const monthlyData = useMemo(() => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const currentYear = new Date().getFullYear();
+
+    return months.map((m, i) => {
+      const monthPrefix = `${currentYear}-${(i + 1).toString().padStart(2, '0')}`;
+      const monthTxns = transactions.filter(t => t.date.startsWith(monthPrefix));
+      const revenue = monthTxns.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+      const expense = monthTxns.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+      // Calculate a "height" percentage for the chart (relative to a max, e.g. 100k)
+      const maxVal = 100000;
+      const revHeight = Math.min(95, Math.max(5, (revenue / maxVal) * 100)) || 5;
+      const expHeight = Math.min(100, (expense / maxVal) * 100) || 5;
+
+      return { month: m, revenue, expense, revHeight, expHeight };
+    });
+  }, [transactions]);
+
   const costCodes = useMemo(() => [
     { code: '03-3000', desc: 'Concrete', budget: 250000, spent: transactions.filter(t => t.category === 'Materials' && t.description.includes('Concrete')).reduce((sum, t) => sum + Math.abs(t.amount), 0) || 210000, var: 16 },
     { code: '05-1200', desc: 'Structural Steel', budget: 400000, spent: 380000, var: 5 },
@@ -120,27 +139,27 @@ const FinancialsView: React.FC = () => {
           </div>
 
           <div className="flex-1 relative w-full flex items-end gap-4 px-4 border-b border-l border-zinc-100">
-            {[65, 72, 68, 84, 76, 92, 88, 95, 82, 78, 85, 90].map((h, i) => (
+            {monthlyData.map((data, i) => (
               <div key={i} className="flex-1 flex flex-col justify-end h-full gap-1 group cursor-pointer">
                 <div
                   className="w-full bg-[#0f5c82] rounded-t opacity-90 group-hover:opacity-100 transition-all relative"
-                  style={{ height: `${h}%` }}
+                  style={{ height: `${data.revHeight}%` }}
                 >
                   <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-zinc-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    Rev: £{h}0k
+                    Rev: £{(data.revenue / 1000).toFixed(0)}k
                   </div>
                 </div>
                 {viewMode === 'CASHFLOW' && (
                   <div
                     className="w-full bg-zinc-300 rounded-b opacity-80"
-                    style={{ height: `${h * 0.6}%` }}
+                    style={{ height: `${data.expHeight * 0.6}%` }}
                   ></div>
                 )}
               </div>
             ))}
           </div>
           <div className="flex justify-between mt-2 text-xs text-zinc-400 px-4">
-            {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(m => <span key={m}>{m}</span>)}
+            {monthlyData.map(d => <span key={d.month}>{d.month}</span>)}
           </div>
         </div>
 
