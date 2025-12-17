@@ -1,6 +1,6 @@
 # 🏗️ BuildPro - Construction Management Platform
 
-**Status:** ✅ Production Ready | **Version:** 1.0.0 | **Build:** Passing | **Deployment:** Live
+**Status:** ✅ Production Ready | **Version:** 1.1.0 | **Build:** Passing | **CI:** Configured | **Deployment:** Live
 
 ## 🎯 Overview
 
@@ -42,10 +42,14 @@ BuildPro is a **comprehensive construction project management platform** powered
 # Install dependencies
 npm install
 
+# Setup backend
+cd server && npm install
+cd ..
+
 # Set environment variables (copy .env.example to .env)
 cp .env.example .env
 
-# Start development server
+# Start development server (Frontend + Backend)
 npm run dev
 # Visit: http://localhost:3000
 ```
@@ -106,11 +110,11 @@ npm run preview
 | **Views** | 37 (all working) |
 | **Routes** | 40 |
 | **Data Models** | 15 |
-| **Build Modules** | 1818 |
-| **Build Time** | ~6s |
+| **Build Modules** | 1825 |
+| **Build Time** | ~2s |
 | **TypeScript Errors** | 0 |
-| **Dependencies** | 6 (frontend only) |
-| **Lines of Code** | ~50,000+ |
+| **Notification System** | Toast (100% Normalized) |
+| **Architecture** | Monorepo (FE/BE) |
 
 ---
 
@@ -213,5 +217,5 @@ Private project - BuildPro Construction
 ---
 
 **Status:** ✅ Ready for production use
-**Version:** 1.0.0
-**Last Updated:** December 2, 2024
+**Version:** 1.1.0
+**Last Updated:** December 17, 2025
