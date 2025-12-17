@@ -134,6 +134,24 @@ async function initSchema(db: IDatabase) {
       timelineOptimizations TEXT -- JSON array
     );
 
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      companyId TEXT,
+      title TEXT,
+      description TEXT,
+      projectId TEXT,
+      status TEXT,
+      priority TEXT,
+      assigneeId TEXT,
+      assigneeName TEXT,
+      assigneeType TEXT,
+      dueDate TEXT,
+      latitude REAL,
+      longitude REAL,
+      dependencies TEXT, -- JSON array string
+      FOREIGN KEY(projectId) REFERENCES projects(id)
+    );
+
     CREATE TABLE IF NOT EXISTS companies (
       id TEXT PRIMARY KEY,
       name TEXT,
@@ -206,6 +224,7 @@ async function initSchema(db: IDatabase) {
       name TEXT,
       type TEXT,
       projectId TEXT,
+      companyId TEXT,
       projectName TEXT,
       size TEXT,
       date TEXT,
@@ -356,6 +375,19 @@ async function initSchema(db: IDatabase) {
       createdAt TEXT,
       FOREIGN KEY(channelId) REFERENCES channels(id)
     );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY,
+      companyId TEXT,
+      projectId TEXT,
+      date TEXT,
+      description TEXT,
+      amount REAL,
+      type TEXT,
+      category TEXT,
+      status TEXT,
+      invoice TEXT
+    );
   `);
 
   // Migration: Add timelineOptimizations if not exists
@@ -399,7 +431,7 @@ async function initSchema(db: IDatabase) {
   }
 
   // Migration: Add companyId to existing tables
-  const tablesToUpdate = ['rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents'];
+  const tablesToUpdate = ['rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents'];
   for (const table of tablesToUpdate) {
     try {
       await db.exec(`ALTER TABLE ${table} ADD COLUMN companyId TEXT`);

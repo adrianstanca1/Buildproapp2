@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant, Transaction } from '@/types';
 import { db as mockDb } from './mockDb';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -256,6 +256,16 @@ class DatabaseService {
   async updateTimesheet(id: string, u: Partial<Timesheet>) {
     if (this.useMock) return;
     await this.put('timesheets', id, u);
+  }
+
+  // --- Transactions ---
+  async getTransactions(): Promise<Transaction[]> {
+    if (this.useMock) return [];
+    return this.fetch<Transaction>('transactions');
+  }
+  async addTransaction(item: Transaction) {
+    if (this.useMock) return;
+    await this.post('transactions', item);
   }
 
   // --- Channels ---

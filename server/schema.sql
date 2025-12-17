@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS companies (
 -- Tasks Table
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
+  companyId TEXT,
   title TEXT,
   description TEXT,
   projectId TEXT,
@@ -100,6 +101,7 @@ CREATE TABLE IF NOT EXISTS documents (
   name TEXT,
   type TEXT,
   projectId TEXT,
+  companyId TEXT,
   projectName TEXT,
   size TEXT,
   date TEXT,
@@ -260,4 +262,18 @@ CREATE TABLE IF NOT EXISTS team_messages (
   content TEXT,
   createdAt TEXT,
   FOREIGN KEY(channelId) REFERENCES channels(id)
+);
+
+-- Transactions Table
+CREATE TABLE IF NOT EXISTS transactions (
+  id TEXT PRIMARY KEY,
+  companyId TEXT,
+  projectId TEXT,
+  date TEXT,
+  description TEXT,
+  amount REAL,
+  type TEXT, -- 'income', 'expense'
+  category TEXT,
+  status TEXT, -- 'completed', 'pending'
+  invoice TEXT
 );

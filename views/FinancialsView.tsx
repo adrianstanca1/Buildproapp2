@@ -1,43 +1,51 @@
 
-import React, { useState } from 'react';
-import { PoundSterling, TrendingUp, PieChart, ArrowUpRight, ArrowDownRight, Download, Filter, Calendar, FileText, DollarSign, AlertCircle, CheckCircle2, Eye } from 'lucide-react';
-
-interface Transaction {
-  id: string;
-  date: string;
-  description: string;
-  amount: number;
-  type: 'income' | 'expense';
-  category: string;
-  status: 'completed' | 'pending';
-  invoice?: string;
-}
+import React, { useState, useMemo } from 'react';
+import { PoundSterling, TrendingUp, PieChart, ArrowUpRight, ArrowDownRight, Download, Filter, Calendar, FileText, DollarSign, AlertCircle, CheckCircle2, Eye, Plus } from 'lucide-react';
+import { useProjects } from '../contexts/ProjectContext';
+import { Transaction } from '@/types';
 
 const FinancialsView: React.FC = () => {
+  const { transactions, projects, addTransaction } = useProjects();
   const [viewMode, setViewMode] = useState<'CASHFLOW' | 'BUDGET' | 'TRANSACTIONS'>('CASHFLOW');
   const [filterMonth, setFilterMonth] = useState('2025-12');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
-  const costCodes = [
-    { code: '03-3000', desc: 'Concrete', budget: 250000, spent: 210000, var: 16 },
+  const stats = useMemo(() => {
+    const totalRev = transactions.reduce((sum, t) => t.type === 'income' ? sum + t.amount : sum, 0);
+    const totalCost = transactions.reduce((sum, t) => t.type === 'expense' ? sum + Math.abs(t.amount) : sum, 0);
+    const netProfit = totalRev - totalCost;
+    const margin = totalRev > 0 ? Math.round((netProfit / totalRev) * 100) : 0;
+    return { totalRev, totalCost, netProfit, margin };
+  }, [transactions]);
+
+  const costCodes = useMemo(() => [
+    { code: '03-3000', desc: 'Concrete', budget: 250000, spent: transactions.filter(t => t.category === 'Materials' && t.description.includes('Concrete')).reduce((sum, t) => sum + Math.abs(t.amount), 0) || 210000, var: 16 },
     { code: '05-1200', desc: 'Structural Steel', budget: 400000, spent: 380000, var: 5 },
     { code: '09-2000', desc: 'Plaster & Gypsum', budget: 120000, spent: 45000, var: -62 },
     { code: '15-4000', desc: 'Plumbing', budget: 180000, spent: 175000, var: 3 },
     { code: '16-1000', desc: 'Electrical', budget: 220000, spent: 235000, var: 7 },
-  ];
-
-  const transactions: Transaction[] = [
-    { id: 'txn_001', date: '2025-12-02', description: 'Client Invoice - Project Milestone', amount: 150000, type: 'income', category: 'Project Revenue', status: 'completed', invoice: 'INV-2025-001' },
-    { id: 'txn_002', date: '2025-12-01', description: 'Structural Steel Supplier', amount: -45000, type: 'expense', category: 'Materials', status: 'completed', invoice: 'PO-2025-856' },
-    { id: 'txn_003', date: '2025-11-29', description: 'Concrete Delivery - Phase 2', amount: -32000, type: 'expense', category: 'Materials', status: 'completed' },
-    { id: 'txn_004', date: '2025-11-28', description: 'Labor - Crew Payment', amount: -28500, type: 'expense', category: 'Labor', status: 'completed' },
-    { id: 'txn_005', date: '2025-11-27', description: 'Equipment Rental - Crane', amount: -12000, type: 'expense', category: 'Equipment', status: 'pending' },
-    { id: 'txn_006', date: '2025-11-25', description: 'Electrical Subcontractor', amount: -35200, type: 'expense', category: 'Subcontractors', status: 'completed' },
-    { id: 'txn_007', date: '2025-11-24', description: 'Change Order Invoice', amount: 25000, type: 'income', category: 'Change Orders', status: 'pending', invoice: 'INV-2025-002' },
-    { id: 'txn_008', date: '2025-11-22', description: 'Safety Equipment', amount: -8500, type: 'expense', category: 'Safety', status: 'completed' },
-  ];
+  ], [transactions]);
 
   const filteredTransactions = transactions.filter(t => t.date.startsWith(filterMonth));
+
+  const handleAddTransaction = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newTxn: Transaction = {
+      id: crypto.randomUUID(),
+      companyId: '', // Added by context
+      date: formData.get('date') as string,
+      description: formData.get('description') as string,
+      amount: parseFloat(formData.get('amount') as string) * (formData.get('type') === 'expense' ? -1 : 1),
+      type: formData.get('type') as ('income' | 'expense'),
+      category: formData.get('category') as string,
+      status: 'completed',
+      projectId: formData.get('projectId') as string,
+    };
+    await addTransaction(newTxn);
+    setShowAddModal(false);
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -75,29 +83,29 @@ const FinancialsView: React.FC = () => {
         <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <div className="text-zinc-500 text-xs font-bold uppercase">Total Revenue</div>
-            <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded font-bold">+15%</span>
+            <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded font-bold">+{(stats.totalRev / 10000).toFixed(0)}%</span>
           </div>
-          <div className="text-3xl font-bold text-zinc-900">£8.5M</div>
+          <div className="text-3xl font-bold text-zinc-900">£{(stats.totalRev / 1000000).toFixed(1)}M</div>
         </div>
         <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <div className="text-zinc-500 text-xs font-bold uppercase">Total Costs</div>
-            <span className="bg-red-100 text-red-700 text-xs px-1.5 py-0.5 rounded font-bold">+8%</span>
+            <span className="bg-red-100 text-red-700 text-xs px-1.5 py-0.5 rounded font-bold">+{(stats.totalCost / 10000).toFixed(0)}%</span>
           </div>
-          <div className="text-3xl font-bold text-zinc-900">£6.2M</div>
+          <div className="text-3xl font-bold text-zinc-900">£{(stats.totalCost / 1000000).toFixed(1)}M</div>
         </div>
         <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <div className="text-zinc-500 text-xs font-bold uppercase">Net Profit</div>
-            <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded font-bold">+22%</span>
+            <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded font-bold">+{(stats.netProfit / 10000).toFixed(0)}%</span>
           </div>
-          <div className="text-3xl font-bold text-[#0f5c82]">£2.3M</div>
+          <div className="text-3xl font-bold text-[#0f5c82]">£{(stats.netProfit / 1000000).toFixed(1)}M</div>
         </div>
         <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <div className="text-zinc-500 text-xs font-bold uppercase">Margin</div>
           </div>
-          <div className="text-3xl font-bold text-zinc-900">27%</div>
+          <div className="text-3xl font-bold text-zinc-900">{stats.margin}%</div>
         </div>
       </div>
 
@@ -176,6 +184,12 @@ const FinancialsView: React.FC = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-zinc-900">Transaction History</h3>
             <div className="flex gap-2">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-[#0f5c82] text-white rounded-lg text-sm font-medium hover:bg-[#0c4a6e] transition-colors"
+              >
+                <Plus size={16} /> Add Transaction
+              </button>
               <input
                 type="month"
                 value={filterMonth}

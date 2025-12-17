@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Briefcase, Shield, List, DollarSign, Users, Wrench, Filter, Calculator, FileDown, Eye, X, Loader2, Download, Mail, Clock } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
 
 interface Report {
   id: string;
@@ -23,6 +24,7 @@ interface ReportTemplate {
 }
 
 const ReportsView = () => {
+  const { addToast } = useToast();
   const [activeModal, setActiveModal] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -129,7 +131,7 @@ const ReportsView = () => {
 
   const handleGenerateReport = async () => {
     if (!reportName || !selectedTemplate) {
-      alert('Please enter a report name and select a template');
+      addToast('Please enter a report name and select a template', 'warning');
       return;
     }
 
@@ -160,9 +162,8 @@ const ReportsView = () => {
     if (!generatedReport) return;
 
     // Simulate file download
-    const filename = `${generatedReport.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${
-      format === 'pdf' ? 'pdf' : format === 'excel' ? 'xlsx' : format === 'csv' ? 'csv' : 'pptx'
-    }`;
+    const filename = `${generatedReport.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : format === 'excel' ? 'xlsx' : format === 'csv' ? 'csv' : 'pptx'
+      }`;
 
     const element = document.createElement('a');
     element.href = '#';
@@ -171,12 +172,12 @@ const ReportsView = () => {
     element.click();
     document.body.removeChild(element);
 
-    alert(`Report exported as ${filename}`);
+    addToast(`Report exported as ${filename}`, 'success');
   };
 
   const handleEmailReport = () => {
     if (!generatedReport) return;
-    alert(`Report "${generatedReport.name}" will be emailed to:\n${generatedReport.recipients.join('\n')}`);
+    addToast(`Report "${generatedReport.name}" queued for email.`, 'success');
   };
 
   return (
@@ -196,12 +197,10 @@ const ReportsView = () => {
               setReportName('');
               setActiveModal('create');
             }}
-            className={`bg-white border-2 p-6 rounded-xl hover:shadow-md transition-all cursor-pointer ${
-              selectedTemplate === t.id ? 'border-[#0f5c82] bg-[#f0f9ff]' : 'border-zinc-200'
-            }`}>
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${
-              selectedTemplate === t.id ? 'bg-[#0f5c82] text-white' : 'bg-zinc-100 text-zinc-700'
-            }`}>
+            className={`bg-white border-2 p-6 rounded-xl hover:shadow-md transition-all cursor-pointer ${selectedTemplate === t.id ? 'border-[#0f5c82] bg-[#f0f9ff]' : 'border-zinc-200'
+              }`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${selectedTemplate === t.id ? 'bg-[#0f5c82] text-white' : 'bg-zinc-100 text-zinc-700'
+              }`}>
               <t.icon size={20} />
             </div>
             <h3 className="font-semibold text-zinc-900 mb-1">{t.title}</h3>
@@ -342,11 +341,10 @@ const ReportsView = () => {
                     <button
                       key={fmt}
                       onClick={() => setReportFormat(fmt as any)}
-                      className={`px-4 py-2 rounded-lg border-2 font-medium capitalize text-sm transition-all ${
-                        reportFormat === fmt
-                          ? 'border-[#0f5c82] bg-[#f0f9ff] text-[#0f5c82]'
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
+                      className={`px-4 py-2 rounded-lg border-2 font-medium capitalize text-sm transition-all ${reportFormat === fmt
+                        ? 'border-[#0f5c82] bg-[#f0f9ff] text-[#0f5c82]'
+                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                        }`}
                     >
                       {fmt === 'powerpoint' ? 'PPT' : fmt.toUpperCase()}
                     </button>
@@ -367,11 +365,10 @@ const ReportsView = () => {
                             : [...selectedFilters, filter]
                         )
                       }
-                      className={`px-3 py-2 rounded-lg border-2 text-sm transition-all ${
-                        selectedFilters.includes(filter)
-                          ? 'border-[#0f5c82] bg-[#f0f9ff] text-[#0f5c82]'
-                          : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                      }`}
+                      className={`px-3 py-2 rounded-lg border-2 text-sm transition-all ${selectedFilters.includes(filter)
+                        ? 'border-[#0f5c82] bg-[#f0f9ff] text-[#0f5c82]'
+                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                        }`}
                     >
                       {filter}
                     </button>

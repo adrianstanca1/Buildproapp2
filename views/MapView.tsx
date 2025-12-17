@@ -1,25 +1,10 @@
 import React, { useState } from 'react';
 import { MapPin, Navigation, Layers, ZoomIn, ZoomOut, Filter, Clock, DollarSign, Users, AlertCircle, Eye, EyeOff, Search, X } from 'lucide-react';
-
-interface Project {
-  id: string;
-  name: string;
-  lat: number;
-  lng: number;
-  address: string;
-  status: 'Active' | 'Completed' | 'Delayed' | 'Planning';
-  color: string;
-  manager: string;
-  progress: number;
-  budget: number;
-  spent: number;
-  team: number;
-  startDate: string;
-  endDate: string;
-  risk: 'Low' | 'Medium' | 'High';
-}
+import { Project, Page } from '@/types';
+import { useProjects } from '@/contexts/ProjectContext';
 
 const MapView: React.FC = () => {
+  const { projects: realProjects } = useProjects();
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [mapType, setMapType] = useState<'standard' | 'satellite'>('standard');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -28,117 +13,23 @@ const MapView: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [zoom, setZoom] = useState(1);
 
-  const projects: Project[] = [
-    {
-      id: 'p1',
-      name: 'City Centre Plaza',
-      lat: 40.7128,
-      lng: -74.0060,
-      address: '250 Park Avenue, New York, NY 10169',
-      status: 'Active',
-      color: 'text-[#0f5c82]',
-      manager: 'Mike Thompson',
-      progress: 74,
-      budget: 2500000,
-      spent: 1850000,
-      team: 24,
-      startDate: '2024-01-15',
-      endDate: '2025-08-30',
-      risk: 'Low'
-    },
-    {
-      id: 'p2',
-      name: 'Residential Complex',
-      lat: 40.7580,
-      lng: -73.9855,
-      address: '100 Central Park South, New York, NY 10019',
-      status: 'Active',
-      color: 'text-green-600',
-      manager: 'Sarah Mitchell',
-      progress: 92,
-      budget: 4200000,
-      spent: 3864000,
-      team: 38,
-      startDate: '2023-06-01',
-      endDate: '2025-03-15',
-      risk: 'Low'
-    },
-    {
-      id: 'p3',
-      name: 'Highway Bridge Extension',
-      lat: 40.6892,
-      lng: -73.9760,
-      address: 'Brooklyn-Queens Expressway, Brooklyn, NY',
-      status: 'Delayed',
-      color: 'text-orange-500',
-      manager: 'David Chen',
-      progress: 45,
-      budget: 5800000,
-      spent: 2610000,
-      team: 42,
-      startDate: '2024-03-01',
-      endDate: '2026-02-28',
-      risk: 'High'
-    },
-    {
-      id: 'p4',
-      name: 'Logistics Hub',
-      lat: 40.7282,
-      lng: -74.0076,
-      address: '789 Industrial Boulevard, Jersey City, NJ 07310',
-      status: 'Planning',
-      color: 'text-zinc-500',
-      manager: 'John Anderson',
-      progress: 10,
-      budget: 3200000,
-      spent: 320000,
-      team: 8,
-      startDate: '2025-01-15',
-      endDate: '2026-12-15',
-      risk: 'Medium'
-    },
-    {
-      id: 'p5',
-      name: 'Retail Shopping Center',
-      lat: 40.7489,
-      lng: -73.9680,
-      address: '555 Fifth Avenue, New York, NY 10017',
-      status: 'Active',
-      color: 'text-blue-600',
-      manager: 'Emma Wilson',
-      progress: 58,
-      budget: 1800000,
-      spent: 1044000,
-      team: 16,
-      startDate: '2024-05-01',
-      endDate: '2025-10-30',
-      risk: 'Low'
-    },
-    {
-      id: 'p6',
-      name: 'Office Building Renovation',
-      lat: 40.7614,
-      lng: -73.9776,
-      address: '350 Hudson Street, New York, NY 10014',
-      status: 'Completed',
-      color: 'text-emerald-600',
-      manager: 'Robert Martinez',
-      progress: 100,
-      budget: 2100000,
-      spent: 2100000,
-      team: 20,
-      startDate: '2023-08-01',
-      endDate: '2024-11-30',
-      risk: 'Low'
-    }
-  ];
+  // Map real projects to include visual properties needed for the map
+  const projects = realProjects.map((p, i) => ({
+    ...p,
+    lat: 40.7128 + (i * 0.01), // Distribution for visualization
+    lng: -74.0060 + (i * 0.02),
+    address: p.location || 'Site Location',
+    risk: (p.health === 'Critical' ? 'High' : p.health === 'At Risk' ? 'Medium' : 'Low') as 'High' | 'Medium' | 'Low',
+    color: p.status === 'Active' ? 'text-[#0f5c82]' : p.status === 'Delayed' ? 'text-orange-500' : 'text-zinc-500',
+    team: p.teamSize || 0
+  }));
 
   const filteredProjects = projects.filter(p => {
     const matchesStatus = filterStatus.includes(p.status);
     const matchesRisk = filterRisk.includes(p.risk);
     const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         p.manager.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         p.address.toLowerCase().includes(searchTerm.toLowerCase());
+      p.manager.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.address.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesRisk && matchesSearch;
   });
 
@@ -268,11 +159,10 @@ const MapView: React.FC = () => {
                   <button
                     key={p.id}
                     onClick={() => setSelectedProject(p.id)}
-                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${
-                      selectedProject === p.id
-                        ? 'border-[#0f5c82] bg-[#f0f9ff]'
-                        : 'border-zinc-200 hover:border-zinc-300'
-                    }`}>
+                    className={`w-full text-left p-3 rounded-lg border-2 transition-all ${selectedProject === p.id
+                      ? 'border-[#0f5c82] bg-[#f0f9ff]'
+                      : 'border-zinc-200 hover:border-zinc-300'
+                      }`}>
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-medium text-zinc-900 text-sm">{p.name}</p>
@@ -305,11 +195,10 @@ const MapView: React.FC = () => {
         <div className="flex-1 relative overflow-hidden">
           {/* Map Background */}
           <div
-            className={`absolute inset-0 ${
-              mapType === 'satellite'
-                ? 'bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500'
-                : 'bg-gradient-to-br from-blue-50 to-cyan-50'
-            }`}
+            className={`absolute inset-0 ${mapType === 'satellite'
+              ? 'bg-gradient-to-br from-gray-400 via-gray-300 to-gray-500'
+              : 'bg-gradient-to-br from-blue-50 to-cyan-50'
+              }`}
             style={{
               backgroundImage:
                 mapType === 'satellite'
@@ -433,9 +322,8 @@ const MapView: React.FC = () => {
                         </div>
                         <div className="w-full bg-zinc-200 h-2 rounded-full">
                           <div
-                            className={`h-full rounded-full ${
-                              p.status === 'Delayed' ? 'bg-red-500' : 'bg-[#0f5c82]'
-                            }`}
+                            className={`h-full rounded-full ${p.status === 'Delayed' ? 'bg-red-500' : 'bg-[#0f5c82]'
+                              }`}
                             style={{ width: `${p.progress}%` }}
                           ></div>
                         </div>

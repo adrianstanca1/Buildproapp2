@@ -1,12 +1,12 @@
 
 import React, { useMemo, useState } from 'react';
 import {
-ArrowRight, AlertCircle, Sparkles, MapPin, Clock,
-TrendingUp, CheckCircle2, Calendar, Activity,
-MoreHorizontal, Shield, DollarSign, Users, Briefcase, HardHat, CheckSquare, Map as MapIcon,
-FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
-Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
-Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key
+    ArrowRight, AlertCircle, Sparkles, MapPin, Clock,
+    TrendingUp, CheckCircle2, Calendar, Activity,
+    MoreHorizontal, Shield, DollarSign, Users, Briefcase, HardHat, CheckSquare, Map as MapIcon,
+    FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
+    Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
+    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
@@ -462,90 +462,109 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 };
 
 // --- 2. COMPANY ADMIN DASHBOARD ---
-const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-        <div className="flex justify-between items-end mb-4">
-            <div>
-                <h1 className="text-2xl font-bold text-zinc-900">Company Overview</h1>
-                <p className="text-zinc-500">Financial health, project portfolio status, and resource allocation.</p>
+const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
+    const { projects } = useProjects();
+
+    const totalRevenue = useMemo(() => projects.reduce((sum, p) => sum + (p.budget || 0), 0), [projects]);
+    const activeProjectsCount = projects.length;
+    const healthyProjects = projects.filter(p => (p.health || '').toLowerCase() === 'good').length;
+    const healthPercentage = activeProjectsCount > 0 ? Math.round((healthyProjects / activeProjectsCount) * 100) : 100;
+
+    return (
+        <div className="p-8 max-w-7xl mx-auto space-y-8">
+            <div className="flex justify-between items-end mb-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-zinc-900">Company Overview</h1>
+                    <p className="text-zinc-500">Financial health, project portfolio status, and resource allocation.</p>
+                </div>
+                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase border border-blue-200">Admin View</span>
             </div>
-            <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase border border-blue-200">Admin View</span>
-        </div>
 
-        {/* Quick Actions - Enhanced */}
-        <QuickActionsGrid setPage={setPage} />
+            {/* Quick Actions - Enhanced */}
+            <QuickActionsGrid setPage={setPage} />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="col-span-2 bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                <div className="relative z-10">
-                    <h3 className="text-blue-200 font-medium text-sm uppercase tracking-wider mb-1">Total Revenue (YTD)</h3>
-                    <div className="text-4xl font-bold mb-4">£24.5 Million</div>
-                    <div className="flex gap-4">
-                        <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
-                            <div className="text-xs text-blue-200">Active Projects</div>
-                            <div className="font-bold text-xl">12</div>
-                        </div>
-                        <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
-                            <div className="text-xs text-blue-200">Win Rate</div>
-                            <div className="font-bold text-xl">64%</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="col-span-2 bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                    <div className="relative z-10">
+                        <h3 className="text-blue-200 font-medium text-sm uppercase tracking-wider mb-1">Total Budget (YTD)</h3>
+                        <div className="text-4xl font-bold mb-4">£{(totalRevenue / 1000000).toFixed(1)} Million</div>
+                        <div className="flex gap-4">
+                            <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                                <div className="text-xs text-blue-200">Active Projects</div>
+                                <div className="font-bold text-xl">{activeProjectsCount}</div>
+                            </div>
+                            <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
+                                <div className="text-xs text-blue-200">Win Rate</div>
+                                <div className="font-bold text-xl">64%</div> {/* Keeping mock win rate for now as no data exists */}
+                            </div>
                         </div>
                     </div>
+                    <Sparkles className="absolute top-0 right-0 text-white/10 w-64 h-64 -mr-10 -mt-10" />
                 </div>
-                <Sparkles className="absolute top-0 right-0 text-white/10 w-64 h-64 -mr-10 -mt-10" />
-            </div>
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6">
-                <h3 className="font-bold text-zinc-900 mb-4">Project Health</h3>
-                <div className="flex items-center justify-center h-40 relative">
-                    <div className="text-center">
-                        <div className="text-3xl font-bold text-green-600">85%</div>
-                        <div className="text-xs text-zinc-500">On Track</div>
+                <div className="bg-white border border-zinc-200 rounded-2xl p-6">
+                    <h3 className="font-bold text-zinc-900 mb-4">Project Health</h3>
+                    <div className="flex items-center justify-center h-40 relative">
+                        <div className="text-center">
+                            <div className={`text-3xl font-bold ${healthPercentage >= 70 ? 'text-green-600' : 'text-orange-600'}`}>{healthPercentage}%</div>
+                            <div className="text-xs text-zinc-500">On Track</div>
+                        </div>
+                        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#e4e4e7" strokeWidth="8" />
+                            <circle
+                                cx="50"
+                                cy="50"
+                                r="40"
+                                fill="none"
+                                stroke={healthPercentage >= 70 ? "#16a34a" : "#f97316"}
+                                strokeWidth="8"
+                                strokeDasharray="251"
+                                strokeDashoffset={251 - (251 * healthPercentage) / 100}
+                                strokeLinecap="round"
+                            />
+                        </svg>
                     </div>
-                    <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="#e4e4e7" strokeWidth="8" />
-                        <circle cx="50" cy="50" r="40" fill="none" stroke="#16a34a" strokeWidth="8" strokeDasharray="251" strokeDashoffset="40" strokeLinecap="round" />
-                    </svg>
                 </div>
             </div>
-        </div>
 
-        <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
-            <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
-                <h3 className="font-bold text-zinc-900">Active Projects</h3>
-                <button onClick={() => setPage(Page.PROJECTS)} className="text-sm text-[#0f5c82] font-medium hover:underline">View All</button>
-            </div>
-            <table className="w-full text-left text-sm">
-                <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs">
-                    <tr>
-                        <th className="px-6 py-3">Project Name</th>
-                        <th className="px-6 py-3">Budget</th>
-                        <th className="px-6 py-3">Progress</th>
-                        <th className="px-6 py-3">Status</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                    {[
-                        { name: 'City Centre Plaza', budget: '£12M', progress: 74, status: 'Good' },
-                        { name: 'Westside Heights', budget: '£8.5M', progress: 45, status: 'At Risk' },
-                        { name: 'Infrastructure Upgrade', budget: '£3.2M', progress: 12, status: 'Good' },
-                    ].map((p, i) => (
-                        <tr key={i} className="hover:bg-zinc-50">
-                            <td className="px-6 py-4 font-medium text-zinc-900">{p.name}</td>
-                            <td className="px-6 py-4 text-zinc-600">{p.budget}</td>
-                            <td className="px-6 py-4">
-                                <div className="w-24 bg-zinc-200 h-1.5 rounded-full">
-                                    <div className={`h-full rounded-full ${p.status === 'Good' ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${p.progress}%` }}></div>
-                                </div>
-                            </td>
-                            <td className="px-6 py-4">
-                                <span className={`px-2 py-1 rounded text-xs font-bold ${p.status === 'Good' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{p.status}</span>
-                            </td>
+            <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
+                <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
+                    <h3 className="font-bold text-zinc-900">Active Projects</h3>
+                    <button onClick={() => setPage(Page.PROJECTS)} className="text-sm text-[#0f5c82] font-medium hover:underline">View All</button>
+                </div>
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs">
+                        <tr>
+                            <th className="px-6 py-3">Project Name</th>
+                            <th className="px-6 py-3">Budget</th>
+                            <th className="px-6 py-3">Progress</th>
+                            <th className="px-6 py-3">Status</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-100">
+                        {projects.length > 0 ? projects.map((p, i) => (
+                            <tr key={i} className="hover:bg-zinc-50">
+                                <td className="px-6 py-4 font-medium text-zinc-900">{p.name}</td>
+                                <td className="px-6 py-4 text-zinc-600">£{(p.budget / 1000000).toFixed(1)}M</td>
+                                <td className="px-6 py-4">
+                                    <div className="w-24 bg-zinc-200 h-1.5 rounded-full">
+                                        <div className={`h-full rounded-full ${(p.health || '').toLowerCase() === 'good' ? 'bg-green-500' : 'bg-orange-500'}`} style={{ width: `${p.progress}%` }}></div>
+                                    </div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 py-1 rounded text-xs font-bold ${(p.health || '').toLowerCase() === 'good' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>{p.health || 'Neutral'}</span>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={4} className="px-6 py-10 text-center text-zinc-500">No active projects found.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 // --- 3. SUPERVISOR DASHBOARD (FIELD VIEW) ---
 const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {

@@ -500,3 +500,16 @@ export interface TeamMessage {
   content: string;
   createdAt: string;
 }
+
+export interface Transaction {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  category: string;
+  status: 'completed' | 'pending';
+  invoice?: string;
+}
