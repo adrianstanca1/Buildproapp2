@@ -372,8 +372,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         // daily_logs -> NO companyId (has projectId)
         // safe_incidents -> projectId (no companyId in schema?)
 
-        // We will just try valid ones for now.
-        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels'];
+        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents'];
         if (tenantTables.includes(tableName)) {
           sql += ` WHERE companyId = ?`;
           params.push(req.tenantId);
@@ -411,7 +410,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
 
       if (req.tenantId) {
         // Inject companyId if missing and valid table
-        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels'];
+        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents'];
         if (tenantTables.includes(tableName)) {
           // If item doesn't have companyId, add it from header
           if (!item.companyId) {

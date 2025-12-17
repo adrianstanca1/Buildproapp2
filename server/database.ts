@@ -245,6 +245,7 @@ async function initSchema(db: IDatabase) {
     CREATE TABLE IF NOT EXISTS rfis (
       id TEXT PRIMARY KEY,
       projectId TEXT,
+      companyId TEXT,
       number TEXT,
       subject TEXT,
       question TEXT,
@@ -258,6 +259,7 @@ async function initSchema(db: IDatabase) {
     CREATE TABLE IF NOT EXISTS punch_items (
       id TEXT PRIMARY KEY,
       projectId TEXT,
+      companyId TEXT,
       title TEXT,
       location TEXT,
       description TEXT,
@@ -270,6 +272,7 @@ async function initSchema(db: IDatabase) {
     CREATE TABLE IF NOT EXISTS daily_logs (
       id TEXT PRIMARY KEY,
       projectId TEXT,
+      companyId TEXT,
       date TEXT,
       weather TEXT,
       notes TEXT,
@@ -282,6 +285,7 @@ async function initSchema(db: IDatabase) {
     CREATE TABLE IF NOT EXISTS dayworks (
       id TEXT PRIMARY KEY,
       projectId TEXT,
+      companyId TEXT,
       date TEXT,
       description TEXT,
       status TEXT,
@@ -299,6 +303,7 @@ async function initSchema(db: IDatabase) {
       title TEXT,
       project TEXT,
       projectId TEXT,
+      companyId TEXT,
       severity TEXT,
       status TEXT,
       date TEXT,
@@ -391,5 +396,15 @@ async function initSchema(db: IDatabase) {
     await db.exec('ALTER TABLE tasks ADD COLUMN assigneeId TEXT');
   } catch (e) {
     // Column likely exists
+  }
+
+  // Migration: Add companyId to existing tables
+  const tablesToUpdate = ['rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents'];
+  for (const table of tablesToUpdate) {
+    try {
+      await db.exec(`ALTER TABLE ${table} ADD COLUMN companyId TEXT`);
+    } catch (e) {
+      // Column likely exists
+    }
   }
 }

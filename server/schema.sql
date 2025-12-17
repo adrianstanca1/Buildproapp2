@@ -142,6 +142,7 @@ CREATE TABLE IF NOT EXISTS inventory (
 CREATE TABLE IF NOT EXISTS rfis (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   number TEXT,
   subject TEXT,
   question TEXT,
@@ -156,6 +157,7 @@ CREATE TABLE IF NOT EXISTS rfis (
 CREATE TABLE IF NOT EXISTS punch_items (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   title TEXT,
   location TEXT,
   description TEXT,
@@ -169,6 +171,7 @@ CREATE TABLE IF NOT EXISTS punch_items (
 CREATE TABLE IF NOT EXISTS daily_logs (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   date TEXT,
   weather TEXT,
   notes TEXT,
@@ -182,6 +185,7 @@ CREATE TABLE IF NOT EXISTS daily_logs (
 CREATE TABLE IF NOT EXISTS dayworks (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   date TEXT,
   description TEXT,
   status TEXT,
@@ -200,6 +204,7 @@ CREATE TABLE IF NOT EXISTS safety_incidents (
   title TEXT,
   project TEXT,
   projectId TEXT,
+  companyId TEXT,
   severity TEXT,
   status TEXT,
   date TEXT,
