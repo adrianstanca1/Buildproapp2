@@ -5,7 +5,7 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "start": "NODE_TLS_REJECT_UNAUTHORIZED=0 node --loader ts-node/esm --experimental-specifier-resolution=node index.ts",
+    "start": "node --loader ts-node/esm --experimental-specifier-resolution=node index.ts",
     "dev": "nodemon --exec 'node --loader ts-node/esm --experimental-specifier-resolution=node index.ts'"
   },
   "dependencies": {
