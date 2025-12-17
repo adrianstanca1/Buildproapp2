@@ -9,7 +9,7 @@ import {
     Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProjects } from '../contexts/ProjectContext';
+import { useProjects } from '@/contexts/ProjectContext';
 import { useTenant } from '@/contexts/TenantContext'; // Added TenantContext
 import { UserRole, Task, Page, Tenant } from '@/types'; // Switched Company to Tenant
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
@@ -189,47 +189,42 @@ const QuickActionCard: React.FC<QuickActionProps> = ({ icon: Icon, title, desc, 
     </button>
 );
 
-const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => (
-    <div className="space-y-4">
-        <div className="flex items-center gap-2 text-zinc-700 font-semibold">
-            <Settings size={18} className="text-[#0f5c82]" />
-            <span>Quick Actions</span>
+const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
+    const { checkFeature } = useTenant();
+
+    const actions = [
+        { icon: FileText, title: "Create Invoice", desc: "Generate a new invoice", page: Page.FINANCIALS, feature: 'FINANCIALS' },
+        { icon: PlusSquare, title: "New Quote", desc: "Create project quote", page: Page.PROJECT_LAUNCHPAD, feature: 'PROJECTS' },
+        { icon: Users, title: "Team Management", desc: "Manage team & resources", page: Page.TEAM, feature: 'TEAM', color: "text-purple-600" },
+        { icon: Calendar, title: "Schedule", desc: "View project timeline", page: Page.SCHEDULE, feature: 'SCHEDULE', color: "text-orange-600" },
+        { icon: Briefcase, title: "CRM", desc: "Customer relationship", page: Page.CLIENTS, feature: 'CLIENTS' },
+        { icon: Sparkles, title: "AI Tools", desc: "Deep intelligent analysis", page: Page.AI_TOOLS, feature: 'AI_TOOLS', color: "text-blue-600" },
+        { icon: FileBarChart, title: "Reports", desc: "Business intelligence", page: Page.REPORTS, feature: 'REPORTS' }
+    ];
+
+    return (
+        <div className="space-y-4">
+            <div className="flex items-center gap-2 text-zinc-700 font-semibold">
+                <Settings size={18} className="text-[#0f5c82]" />
+                <span>Quick Actions</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {actions.filter(a => !a.feature || checkFeature(a.feature)).map((action, i) => (
+                    <QuickActionCard
+                        key={i}
+                        icon={action.icon}
+                        title={action.title}
+                        desc={action.desc}
+                        onClick={() => setPage(action.page)}
+                        color={action.color}
+                    />
+                ))}
+            </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <QuickActionCard
-                icon={FileText}
-                title="Create Invoice"
-                desc="Generate a new invoice"
-                onClick={() => setPage(Page.FINANCIALS)}
-            />
-            <QuickActionCard
-                icon={PlusSquare}
-                title="New Quote"
-                desc="Create project quote"
-                onClick={() => setPage(Page.PROJECT_LAUNCHPAD)}
-                color="text-green-600"
-            />
-            <QuickActionCard
-                icon={Users}
-                title="Team Management"
-                desc="Manage team & resources"
-                onClick={() => setPage(Page.TEAM)}
-                color="text-purple-600"
-            />
-            <QuickActionCard
-                icon={Calendar}
-                title="Schedule"
-                desc="View project timeline"
-                onClick={() => setPage(Page.SCHEDULE)}
-                color="text-orange-600"
-            />
-            <QuickActionCard
-                icon={Briefcase}
-                title="CRM"
-                desc="Customer relationship"
-                onClick={() => setPage(Page.CLIENTS)}
-                color="text-blue-600"
-            />
+    );
+};
+color = "text-blue-600"
+    />
             <QuickActionCard
                 icon={RotateCcw}
                 title="Variations"
@@ -251,8 +246,8 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
                 onClick={() => setPage(Page.REPORTS)}
                 color="text-teal-600"
             />
-        </div>
-    </div>
+        </div >
+    </div >
 );
 
 // --- 1. SUPER ADMIN DASHBOARD (ENHANCED) ---
