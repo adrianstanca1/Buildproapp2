@@ -1,13 +1,13 @@
 
 import React, { useState } from 'react';
 import {
-FileSearch, FileText, Box, AlertTriangle, FileDigit, Search,
-MessageSquare, Calculator, Calendar, ShieldAlert, FileBarChart, Activity,
-Lightbulb, Upload, BrainCircuit, X, Loader2, CheckCircle2, AlertCircle,
-DollarSign, TrendingUp, Users, Clock, Camera, Eye
+  FileSearch, FileText, Box, AlertTriangle, FileDigit, Search,
+  MessageSquare, Calculator, Calendar, ShieldAlert, FileBarChart, Activity,
+  Lightbulb, Upload, BrainCircuit, X, Loader2, CheckCircle2, AlertCircle,
+  DollarSign, TrendingUp, Users, Clock, Camera, Eye
 } from 'lucide-react';
 import { Page } from '@/types';
-import { runRawPrompt } from '@/services/geminiService';
+import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { yoloService, DetectionResult } from '@/services/yoloService';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -69,9 +69,17 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
 
         try {
           const response = await runRawPrompt(prompt);
+          // Try to parse if it's supposed to be JSON, otherwise keep as text for the generic analysis
+          let parsedData: any;
+          try {
+            parsedData = parseAIJSON(response);
+          } catch (e) {
+            parsedData = { analysis: response };
+          }
+
           setResults({
             title: `${tool.charAt(0).toUpperCase() + tool.slice(1)} Analysis`,
-            data: { analysis: response },
+            data: parsedData,
             timestamp: new Date().toLocaleString(),
           });
         } catch (error) {
@@ -97,7 +105,7 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
     try {
       const prompt = `Generate a realistic construction cost estimate with: 1) Labor costs by trade, 2) Material costs, 3) Equipment rental, 4) Contingency (15%), 5) Total project cost. Provide JSON with cost breakdown. Use realistic 2024 construction pricing for a mid-sized commercial project (~10,000 sqft).`;
       const response = await runRawPrompt(prompt);
-      setCostEstimate({ data: response, timestamp: new Date().toLocaleString() });
+      setCostEstimate({ data: parseAIJSON(response), timestamp: new Date().toLocaleString() });
     } catch (error) {
       console.error('Cost estimate error:', error);
     }
@@ -109,7 +117,7 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
     try {
       const prompt = `Generate an optimized construction project schedule with: 1) 8-10 major phases, 2) Duration in days for each, 3) Critical path, 4) Resource leveling recommendations, 5) Milestone dates. Format as JSON with phase names, durations, and dependencies.`;
       const response = await runRawPrompt(prompt);
-      setScheduleOpt({ data: response, timestamp: new Date().toLocaleString() });
+      setScheduleOpt({ data: parseAIJSON(response), timestamp: new Date().toLocaleString() });
     } catch (error) {
       console.error('Schedule optimization error:', error);
     }
@@ -121,7 +129,7 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
     try {
       const prompt = `Analyze potential safety risks for a construction project and predict: 1) High-risk activities, 2) Weather-related hazards, 3) Worker incident probabilities, 4) Equipment failure risks, 5) Preventive measures. Provide JSON with risk scores (1-10) and recommendations.`;
       const response = await runRawPrompt(prompt);
-      setSafetyRisks({ data: response, timestamp: new Date().toLocaleString() });
+      setSafetyRisks({ data: parseAIJSON(response), timestamp: new Date().toLocaleString() });
     } catch (error) {
       console.error('Safety prediction error:', error);
     }
@@ -530,8 +538,8 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
                                   >
                                     <div className="flex items-center gap-2">
                                       <div className={`w-3 h-3 rounded-full ${detection.className === 'person' ? 'bg-red-500' :
-                                          detection.className === 'helmet' ? 'bg-green-500' :
-                                            detection.className === 'truck' ? 'bg-blue-500' : 'bg-gray-500'
+                                        detection.className === 'helmet' ? 'bg-green-500' :
+                                          detection.className === 'truck' ? 'bg-blue-500' : 'bg-gray-500'
                                         }`} />
                                       <span className="font-medium text-zinc-900">
                                         {detection.className}

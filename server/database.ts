@@ -180,22 +180,6 @@ async function initSchema(db: IDatabase) {
       updatedAt TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS tasks (
-      id TEXT PRIMARY KEY,
-      title TEXT,
-      description TEXT,
-      projectId TEXT,
-      status TEXT,
-      priority TEXT,
-      assigneeId TEXT,
-      assigneeName TEXT,
-      assigneeType TEXT,
-      dueDate TEXT,
-      latitude REAL,
-      longitude REAL,
-      dependencies TEXT, -- JSON array string
-      FOREIGN KEY(projectId) REFERENCES projects(id)
-    );
 
     CREATE TABLE IF NOT EXISTS team (
       id TEXT PRIMARY KEY,

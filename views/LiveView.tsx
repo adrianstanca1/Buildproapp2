@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, PhoneOff, Video, VideoOff, X, Volume2, Zap, Camera, Settings2, MessageSquare, Aperture, AlertTriangle, ShieldAlert, Eye, Shield, Play, ChevronRight, Activity, Radio, ScanLine } from 'lucide-react';
-import { getLiveClient, runRawPrompt } from '@/services/geminiService';
+import { getLiveClient, runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { createPcmBlob, decodeAudioData, base64ToUint8Array } from '@/utils/audio';
 import { LiveServerMessage, Modality } from '@google/genai';
 import { Page, SafetyHazard, Project } from '@/types';
@@ -232,7 +232,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                 temperature: 0.4
             }, base64Data);
 
-            const hazards = JSON.parse(result);
+            const hazards = parseAIJSON(result);
             if (Array.isArray(hazards)) {
                 setDetectedHazards(hazards.map((h: any) => ({ ...h, id: Math.random().toString(), timestamp: Date.now() })));
             }
@@ -293,8 +293,8 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                                     <div
                                         key={hazard.id || i}
                                         className={`absolute border - 2 transition - all duration - 300 ease - out ${hazard.severity === 'High' ? 'border-red-500 bg-red-500/10' :
-                                                hazard.severity === 'Medium' ? 'border-orange-500 bg-orange-500/10' :
-                                                    'border-blue-500 bg-blue-500/10'
+                                            hazard.severity === 'Medium' ? 'border-orange-500 bg-orange-500/10' :
+                                                'border-blue-500 bg-blue-500/10'
                                             } `}
                                         style={{
                                             top: `${ymin / 10}% `,
@@ -304,8 +304,8 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                                         }}
                                     >
                                         <div className={`absolute - top - 6 left - 0 text - [10px] font - bold px - 2 py - 1 rounded text - white flex items - center gap - 1 shadow - sm backdrop - blur - md ${hazard.severity === 'High' ? 'bg-red-500' :
-                                                hazard.severity === 'Medium' ? 'bg-orange-500' :
-                                                    'bg-blue-500'
+                                            hazard.severity === 'Medium' ? 'bg-orange-500' :
+                                                'bg-blue-500'
                                             } `}>
                                             <AlertTriangle size={10} fill="currentColor" />
                                             {hazard.type}
@@ -381,13 +381,13 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                                 <div
                                     key={hazard.id || i}
                                     className={`p - 4 rounded - xl backdrop - blur - xl border shadow - xl animate -in slide -in -from - right - 8 duration - 500 relative overflow - hidden ${hazard.severity === 'High' ? 'bg-red-950/80 border-red-500/50 text-white' :
-                                            hazard.severity === 'Medium' ? 'bg-orange-950/80 border-orange-500/50 text-white' :
-                                                'bg-blue-950/80 border-blue-500/50 text-white'
+                                        hazard.severity === 'Medium' ? 'bg-orange-950/80 border-orange-500/50 text-white' :
+                                            'bg-blue-950/80 border-blue-500/50 text-white'
                                         } `}
                                 >
                                     {/* Severity Stripe */}
                                     <div className={`absolute left - 0 top - 0 bottom - 0 w - 1.5 ${hazard.severity === 'High' ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' :
-                                            hazard.severity === 'Medium' ? 'bg-orange-500' : 'bg-blue-500'
+                                        hazard.severity === 'Medium' ? 'bg-orange-500' : 'bg-blue-500'
                                         } `} />
 
                                     <div className="flex items-center justify-between mb-2 pl-2">
@@ -480,8 +480,8 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                                         <button
                                             onClick={toggleSafetyScan}
                                             className={`flex items - center gap - 3 px - 6 py - 3.5 rounded - full transition - all duration - 200 border hover: scale - 105 active: scale - 95 ${safetyScanActive
-                                                    ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]'
-                                                    : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
+                                                ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]'
+                                                : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
                                                 } `}
                                         >
                                             <ScanLine size={20} />

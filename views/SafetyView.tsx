@@ -26,6 +26,9 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     const [scanImage, setScanImage] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [detectedHazards, setDetectedHazards] = useState<SafetyHazard[]>([]);
+    const [selectedHazard, setSelectedHazard] = useState<SafetyHazard | null>(null);
+    const [complianceReport, setComplianceReport] = useState<string | null>(null);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Live Camera State
@@ -76,7 +79,7 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
             }
         } catch (e) {
             console.error("Camera access failed", e);
-            alert("Could not access camera. Please check permissions.");
+            addToast("Could not access camera. Please check permissions.", "error");
             setIsCameraActive(false);
         }
     };
@@ -199,6 +202,36 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
         };
         await addSafetyIncident(newIncident);
         addToast("Incident Logged.", 'success');
+    };
+
+    const generateComplianceReport = async () => {
+        if (detectedHazards.length === 0 || isGeneratingReport) return;
+        setIsGeneratingReport(true);
+        try {
+            const hazardsStr = JSON.stringify(detectedHazards);
+            const prompt = `
+                Act as a Senior OSHA Compliance Officer. Analyze these detected hazards: ${hazardsStr}.
+                Provide a comprehensive Safety Compliance and Risk Mitigation Report.
+                Include:
+                1. Executive Summary
+                2. Immediate Corrective Actions
+                3. Long-term Prevention Strategies
+                4. Relevant Legal/OSHA References
+                
+                Format in clean Markdown.
+            `;
+            const report = await runRawPrompt(prompt, {
+                model: 'gemini-3-pro-preview',
+                temperature: 0.4,
+                thinkingConfig: { thinkingBudget: 1024 }
+            });
+            setComplianceReport(report);
+            setViewMode('SCANNER'); // Ensure we stay in scanner mode to show results
+        } catch (e) {
+            addToast("Failed to generate report.", "error");
+        } finally {
+            setIsGeneratingReport(false);
+        }
     };
 
     const handleResolveIncident = async (id: string) => {
@@ -423,16 +456,42 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
                                 <Shield size={20} className="text-[#0f5c82]" /> Assessment Results
                             </h2>
                             {detectedHazards.length > 0 && (
-                                <button className="text-xs font-bold text-[#0f5c82] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1">
-                                    <FileBarChart size={14} /> Generate Report
+                                <button
+                                    onClick={generateComplianceReport}
+                                    disabled={isGeneratingReport}
+                                    className="text-xs font-bold text-[#0f5c82] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100"
+                                >
+                                    {isGeneratingReport ? <Loader2 size={14} className="animate-spin" /> : <FileBarChart size={14} />}
+                                    {isGeneratingReport ? 'Generating Advisor...' : 'Safety Advisor'}
                                 </button>
                             )}
                         </div>
 
                         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                            {detectedHazards.length > 0 ? (
+                            {complianceReport ? (
+                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-6 mb-6 animate-in fade-in slide-in-from-right-4">
+                                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-blue-100">
+                                        <h3 className="font-bold text-[#0f5c82] flex items-center gap-2">
+                                            <Shield size={18} /> AI Compliance Advisor
+                                        </h3>
+                                        <button onClick={() => setComplianceReport(null)} className="text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
+                                    </div>
+                                    <div className="prose prose-sm prose-blue max-w-none text-zinc-700 leading-relaxed whitespace-pre-wrap">
+                                        {complianceReport}
+                                    </div>
+                                    <div className="mt-6 pt-4 border-t border-blue-100 flex gap-2">
+                                        <button className="flex-1 py-2 bg-[#0f5c82] text-white rounded-lg text-xs font-bold hover:bg-[#0c4a6e]">Download PDF Report</button>
+                                        <button className="flex-1 py-2 border border-blue-200 text-[#0f5c82] rounded-lg text-xs font-bold hover:bg-blue-50">Share with Team</button>
+                                    </div>
+                                </div>
+                            ) : detectedHazards.length > 0 ? (
                                 detectedHazards.map((hazard, i) => (
-                                    <div key={i} className="border border-zinc-200 rounded-xl p-4 hover:shadow-md transition-all group bg-white hover:border-blue-300">
+                                    <div
+                                        key={i}
+                                        onMouseEnter={() => setSelectedHazard(hazard)}
+                                        onMouseLeave={() => setSelectedHazard(null)}
+                                        className={`border border-zinc-200 rounded-xl p-4 hover:shadow-md transition-all group bg-white hover:border-blue-300 ${selectedHazard === hazard ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
+                                    >
                                         <div className="flex justify-between items-start mb-3">
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg shadow-sm ${getRiskColor(hazard.riskScore)}`}>

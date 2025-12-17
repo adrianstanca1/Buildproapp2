@@ -1,17 +1,19 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
     ArrowRight, AlertCircle, Sparkles, MapPin, Clock,
     TrendingUp, CheckCircle2, Calendar, Activity,
     MoreHorizontal, Shield, DollarSign, Users, Briefcase, HardHat, CheckSquare, Map as MapIcon,
     FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
     Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
-    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key
+    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '../contexts/ProjectContext';
 import { useTenant } from '@/contexts/TenantContext'; // Added TenantContext
 import { UserRole, Task, Page, Tenant } from '@/types'; // Switched Company to Tenant
+import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
+import { useToast } from '@/contexts/ToastContext';
 
 interface DashboardViewProps {
     setPage: (page: Page) => void;
@@ -34,6 +36,134 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setPage }) => {
         default:
             return <OperativeDashboard setPage={setPage} />;
     }
+};
+
+// --- AI Daily Briefing Component ---
+
+const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
+    const { projects } = useProjects();
+    const { user } = useAuth();
+    const [briefing, setBriefing] = useState<any>(null);
+    const [loading, setLoading] = useState(false);
+
+    const generateBriefing = async () => {
+        setLoading(true);
+        try {
+            const context = {
+                role,
+                userName: user?.name,
+                projectCount: projects.length,
+                topProjects: projects.slice(0, 3).map(p => ({ name: p.name, health: p.health, progress: p.progress })),
+                date: new Date().toLocaleDateString()
+            };
+
+            const prompt = `
+                Act as a Chief of Staff AI for a Construction Executive. 
+                Generate a personalized "Daily Briefing" for ${user?.name} in the role of ${role}.
+                
+                Data context: ${JSON.stringify(context)}
+                
+                Return JSON:
+                {
+                    "greeting": "Personalized morning greeting",
+                    "agenda": ["Item 1", "Item 2", "Item 3"],
+                    "risks": ["Risk 1", "Risk 2"],
+                    "wins": ["Recent win or positive trend"],
+                    "quote": "Motivational construction/leadership quote"
+                }
+            `;
+
+            const res = await runRawPrompt(prompt, {
+                model: 'gemini-3-pro-preview',
+                temperature: 0.7,
+                responseMimeType: 'application/json'
+            });
+            setBriefing(parseAIJSON(res));
+        } catch (e) {
+            console.error("Briefing failed", e);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        generateBriefing();
+    }, [role]);
+
+    if (loading) return (
+        <div className="bg-white/40 backdrop-blur-md border border-white/20 rounded-[2rem] p-8 animate-pulse flex items-center justify-center gap-4 min-h-[160px]">
+            <Loader2 className="animate-spin text-[#0f5c82]" />
+            <span className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Assembling your daily briefing...</span>
+        </div>
+    );
+
+    if (!briefing) return null;
+
+    return (
+        <div className="relative group overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-[#0f5c82]/10 to-blue-400/5 rounded-[2.5rem] -z-10 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+            <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-[2.5rem] p-8 shadow-2xl shadow-[#0f5c82]/5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                    <Sparkles size={120} />
+                </div>
+
+                <div className="flex flex-col md:flex-row gap-10 items-start">
+                    <div className="flex-1 space-y-6">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="p-2 bg-[#0f5c82] text-white rounded-xl shadow-lg shadow-[#0f5c82]/20">
+                                    <Sparkles size={18} />
+                                </div>
+                                <h3 className="text-sm font-black text-[#0f5c82] uppercase tracking-[0.2em]">AI Intelligence Briefing</h3>
+                            </div>
+                            <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{briefing.greeting}</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Clock size={12} className="text-blue-500" /> Focus for Today
+                                </h4>
+                                <ul className="space-y-2">
+                                    {briefing.agenda?.map((item: string, i: number) => (
+                                        <li key={i} className="flex items-start gap-3 text-sm font-bold text-zinc-700">
+                                            <div className="mt-1 w-1.5 h-1.5 bg-blue-400 rounded-full" />
+                                            {item}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                            <div className="space-y-4">
+                                <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+                                    <AlertCircle size={12} className="text-orange-500" /> Critical Risks
+                                </h4>
+                                <ul className="space-y-2">
+                                    {briefing.risks?.map((risk: string, i: number) => (
+                                        <li key={i} className="flex items-start gap-3 text-sm font-bold text-zinc-700">
+                                            <div className="mt-1 w-1.5 h-1.5 bg-orange-400 rounded-full" />
+                                            {risk}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="w-full md:w-64 space-y-6">
+                        <div className="p-6 bg-zinc-900 rounded-3xl text-white shadow-xl shadow-zinc-900/10">
+                            <TrendingUp size={24} className="text-green-400 mb-4" />
+                            <p className="text-[10px] font-black text-zinc-500 uppercase mb-2">Key Win</p>
+                            <p className="text-sm font-bold italic">"{briefing.wins?.[0]}"</p>
+                        </div>
+                        <div className="px-6 border-l-4 border-[#0f5c82]/20 py-2">
+                            <p className="text-[10px] text-zinc-400 font-bold mb-1 uppercase tracking-tighter">Daily Wisdom</p>
+                            <p className="text-xs text-zinc-500 font-medium italic">"{briefing.quote}"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 // --- Quick Actions Components ---
@@ -199,7 +329,6 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 
     return (
         <div className="p-8 max-w-[1600px] mx-auto space-y-8">
-            {/* Top Header & Global Stats */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-3">
@@ -213,11 +342,10 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                         <span className="text-xs font-bold text-zinc-600">System Operational</span>
                         <span className="text-xs text-zinc-400 border-l border-zinc-200 pl-2">24ms latency</span>
                     </div>
-                    <span className="bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold uppercase border border-purple-200 tracking-wider">
-                        Super Admin
-                    </span>
                 </div>
             </div>
+
+            <AIDailyBriefing role={UserRole.SUPER_ADMIN} />
 
             {/* Infrastructure Health */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -471,14 +599,18 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
     const healthPercentage = activeProjectsCount > 0 ? Math.round((healthyProjects / activeProjectsCount) * 100) : 100;
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-8">
-            <div className="flex justify-between items-end mb-4">
+        <div className="p-8 max-w-7xl mx-auto space-y-10">
+            <div className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-2xl font-bold text-zinc-900">Company Overview</h1>
-                    <p className="text-zinc-500">Financial health, project portfolio status, and resource allocation.</p>
+                    <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Portfolio Engine</h1>
+                    <p className="text-zinc-500 font-medium text-lg">Strategic financial visibility and high-level project trajectory.</p>
                 </div>
-                <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold uppercase border border-blue-200">Admin View</span>
+                <div className="p-2 bg-blue-50 text-[#0f5c82] rounded-2xl border border-blue-100 font-black text-[10px] uppercase px-4 tracking-widest">
+                    Corporate Admin
+                </div>
             </div>
+
+            <AIDailyBriefing role={UserRole.COMPANY_ADMIN} />
 
             {/* Quick Actions - Enhanced */}
             <QuickActionsGrid setPage={setPage} />
@@ -608,6 +740,8 @@ const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                 </button>
             </div>
 
+            <AIDailyBriefing role={UserRole.SUPERVISOR} />
+
             {/* HERO: LIVE FIELD MODE */}
             <div
                 onClick={() => setPage(Page.LIVE)}
@@ -689,6 +823,8 @@ const OperativeDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPa
                 <h1 className="text-xl font-bold text-zinc-900">My Work Portal</h1>
                 <p className="text-zinc-500">Welcome back, {user?.name.split(' ')[0]}.</p>
             </div>
+
+            <AIDailyBriefing role={UserRole.OPERATIVE} />
 
             {/* Time Clock Card */}
             <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col items-center text-center">

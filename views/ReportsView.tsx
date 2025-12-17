@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
-import { Briefcase, Shield, List, DollarSign, Users, Wrench, Filter, Calculator, FileDown, Eye, X, Loader2, Download, Mail, Clock } from 'lucide-react';
+import { Briefcase, Shield, List, DollarSign, Users, Wrench, Filter, Calculator, FileDown, Eye, X, Loader2, Download, Mail, Clock, Plus, GripVertical, Settings, Trash2, Layout, BarChart, Table as TableIcon, Type, PlusCircle, CheckCircle2, AlertTriangle, TrendingUp, Calendar, Zap, Info, ChevronRight, Share2 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+
+interface ReportElement {
+  id: string;
+  title: string;
+  desc: string;
+  metrics: string[];
+  type: 'chart' | 'table' | 'kpi' | 'text';
+  icon: React.ComponentType<any>;
+}
 
 interface Report {
   id: string;
@@ -13,6 +22,7 @@ interface Report {
   schedule?: string;
   lastRun?: string;
   nextRun?: string;
+  elements?: ReportElement[];
 }
 
 interface ReportTemplate {
@@ -21,6 +31,7 @@ interface ReportTemplate {
   desc: string;
   id: string;
   metrics: string[];
+  defaultElements?: ReportElement[];
 }
 
 const ReportsView = () => {
@@ -35,59 +46,72 @@ const ReportsView = () => {
   const [scheduleFrequency, setScheduleFrequency] = useState<string>('');
   const [generatedReport, setGeneratedReport] = useState<Report | null>(null);
 
+  // Designer State
+  const [isDesigning, setIsDesigning] = useState(false);
+  const [activeElements, setActiveElements] = useState<ReportElement[]>([]);
+
+  const availableElements: ReportElement[] = [
+    { id: 'kpi-1', title: 'Revenue Total', desc: 'Real-time revenue summation', metrics: ['$2.4M'], type: 'kpi', icon: DollarSign },
+    { id: 'chart-1', title: 'Budget vs Actual', desc: 'Variance analytics over time', metrics: ['+12% Trend'], type: 'chart', icon: BarChart },
+    { id: 'table-1', title: 'Transaction Log', desc: 'Detailed line-item audit', metrics: ['500 Rows'], type: 'table', icon: TableIcon },
+    { id: 'txt-1', title: 'Executive Summary', desc: 'Editable AI-generated summary', metrics: ['Text block'], type: 'text', icon: Type },
+    { id: 'safety-1', title: 'TRIFR Metric', desc: 'Total Recordable Injury Frequency Rate', metrics: ['4.2 Rate'], type: 'kpi', icon: Shield },
+    { id: 'equ-1', title: 'Asset Utilization', desc: 'Fleet uptime and ROI', metrics: ['87% Active'], type: 'chart', icon: Wrench },
+  ];
+
   const templates: ReportTemplate[] = [
     {
       icon: Briefcase,
       title: 'Executive Summary',
       desc: 'Portfolio overview, KPIs, forecast',
       id: 'executive',
-      metrics: ['Revenue', 'Profit Margin', 'Projects Active', 'Team Utilization', 'Budget Variance']
+      metrics: ['Revenue', 'Profit Margin', 'Projects Active'],
     },
     {
       icon: Shield,
       title: 'Safety Report',
       desc: 'Incidents, TRIFR, compliance status',
       id: 'safety',
-      metrics: ['Total Incidents', 'TRIFR Rate', 'Near Misses', 'Safety Training Hours', 'Compliance Score']
+      metrics: ['Total Incidents', 'TRIFR Rate', 'Compliance Score'],
     },
     {
       icon: List,
       title: 'Project Progress',
       desc: 'Timeline, budget, milestones',
       id: 'progress',
-      metrics: ['On-Time Rate', 'Budget Variance', 'Milestones Completed', 'Critical Path', 'Resource Allocation']
+      metrics: ['On-Time Rate', 'Budget Variance', 'Milestones'],
     },
     {
       icon: DollarSign,
       title: 'Financial Closeout',
       desc: 'Cost breakdown, profit, variance',
       id: 'financial',
-      metrics: ['Total Cost', 'Revenue', 'Gross Profit', 'Cost Variance', 'Unbilled Amount']
+      metrics: ['Total Cost', 'Gross Profit', 'Cost Variance'],
     },
     {
       icon: Users,
       title: 'Team Performance',
       desc: 'KPIs, utilization, productivity',
       id: 'team',
-      metrics: ['Utilization Rate', 'Productivity Score', 'Training Completion', 'Turnover Rate', 'Certification Status']
+      metrics: ['Utilization Rate', 'Productivity Score', 'Churn'],
     },
     {
       icon: Wrench,
       title: 'Equipment Utilization',
       desc: 'ROI, maintenance, availability',
       id: 'equipment',
-      metrics: ['Availability', 'Utilization Rate', 'Maintenance Cost', 'Equipment ROI', 'Downtime']
+      metrics: ['Availability', 'Maintenance Cost', 'ROI'],
     },
   ];
 
-  const reports: Report[] = [
+  const [savedReports, setSavedReports] = useState<Report[]>([
     {
       id: 'r1',
       name: 'Weekly Safety Summary',
       type: 'Safety Report',
       createdAt: '2025-11-01',
       lastModified: '2025-12-01',
-      recipients: ['safety@buildpro.com', 'compliance@buildpro.com', 'ceo@buildpro.com'],
+      recipients: ['safety@buildpro.com'],
       format: 'pdf',
       schedule: 'Every Monday 8AM',
       lastRun: '2025-12-01',
@@ -99,35 +123,15 @@ const ReportsView = () => {
       type: 'Financial Closeout',
       createdAt: '2025-10-01',
       lastModified: '2025-12-01',
-      recipients: ['finance@buildpro.com', 'accounting@buildpro.com', 'cfo@buildpro.com', 'ceo@buildpro.com', 'investors@buildpro.com'],
+      recipients: ['finance@buildpro.com'],
       format: 'excel',
       schedule: '1st of month at 9AM',
       lastRun: '2025-12-01',
       nextRun: '2026-01-01'
-    },
-    {
-      id: 'r3',
-      name: 'Executive Dashboard',
-      type: 'Executive Summary',
-      createdAt: '2025-09-15',
-      lastModified: '2025-11-28',
-      recipients: ['ceo@buildpro.com', 'cfo@buildpro.com', 'coo@buildpro.com'],
-      format: 'pdf',
-      schedule: 'Weekly on Friday 5PM',
-      lastRun: '2025-11-28',
-      nextRun: '2025-12-05'
     }
-  ];
+  ]);
 
-  const filters = [
-    'Date Range',
-    'Project Type',
-    'Location',
-    'Team Member',
-    'Budget Range',
-    'Status',
-    'Completion Percentage'
-  ];
+  const filters = ['Date Range', 'Project Type', 'Location', 'Team Member', 'Budget Range', 'Status'];
 
   const handleGenerateReport = async () => {
     if (!reportName || !selectedTemplate) {
@@ -136,293 +140,405 @@ const ReportsView = () => {
     }
 
     setGenerating(true);
-
-    // Simulate report generation
     setTimeout(() => {
       const newReport: Report = {
         id: `r${Date.now()}`,
         name: reportName,
-        type: templates.find(t => t.id === selectedTemplate)?.title || 'Report',
-        createdAt: new Date().toLocaleString(),
-        lastModified: new Date().toLocaleString(),
+        type: templates.find(t => t.id === selectedTemplate)?.title || 'Custom Report',
+        createdAt: new Date().toLocaleDateString(),
+        lastModified: new Date().toLocaleDateString(),
         recipients: recipients.split(',').map(r => r.trim()).filter(r => r),
         format: reportFormat,
         schedule: scheduleFrequency || undefined,
-        lastRun: scheduleFrequency ? new Date().toLocaleString() : undefined,
-        nextRun: scheduleFrequency ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleString() : undefined
+        lastRun: scheduleFrequency ? new Date().toLocaleDateString() : undefined,
+        nextRun: scheduleFrequency ? 'Future' : undefined,
+        elements: [...activeElements]
       };
 
       setGeneratedReport(newReport);
+      setSavedReports([newReport, ...savedReports]);
       setGenerating(false);
       setActiveModal('preview');
-    }, 2500);
+      setIsDesigning(false);
+    }, 2000);
   };
 
-  const handleExportReport = (format: 'pdf' | 'excel' | 'csv' | 'powerpoint') => {
-    if (!generatedReport) return;
-
-    // Simulate file download
-    const filename = `${generatedReport.name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${format === 'pdf' ? 'pdf' : format === 'excel' ? 'xlsx' : format === 'csv' ? 'csv' : 'pptx'
-      }`;
-
-    const element = document.createElement('a');
-    element.href = '#';
-    element.download = filename;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
-
-    addToast(`Report exported as ${filename}`, 'success');
+  const startNewCustomReport = () => {
+    setReportName('New Custom Report');
+    setSelectedTemplate('custom');
+    setActiveElements([]);
+    setIsDesigning(true);
   };
 
-  const handleEmailReport = () => {
-    if (!generatedReport) return;
-    addToast(`Report "${generatedReport.name}" queued for email.`, 'success');
+  const addElementToReport = (element: ReportElement) => {
+    const newElement = { ...element, id: `${element.id}-${Date.now()}` };
+    setActiveElements([...activeElements, newElement]);
+    addToast(`${element.title} added to report`, 'success');
+  };
+
+  const removeElementFromReport = (id: string) => {
+    setActiveElements(activeElements.filter(el => el.id !== id));
   };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-zinc-900 mb-1">Custom Report Builder</h1>
-        <p className="text-zinc-500">Generate professional reports, schedule delivery, export to multiple formats</p>
+    <div className="p-8 max-w-7xl mx-auto min-h-screen bg-zinc-50/30">
+      <div className="mb-8 flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-black text-zinc-900 mb-2 tracking-tight">Report Intelligence</h1>
+          <p className="text-zinc-500 font-medium">Design, automate, and deliver professional construction insights.</p>
+        </div>
+        <div className="flex gap-3">
+          {!isDesigning && (
+            <button
+              onClick={startNewCustomReport}
+              className="px-5 py-3 bg-[#0f5c82] text-white rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-[#0c4a6e] transition-all shadow-xl shadow-[#0f5c82]/20 group"
+            >
+              <PlusCircle size={18} className="group-hover:rotate-90 transition-transform duration-300" />
+              Custom Builder
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Report Templates */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {templates.map((t) => (
-          <div
-            key={t.id}
-            onClick={() => {
-              setSelectedTemplate(t.id);
-              setReportName('');
-              setActiveModal('create');
-            }}
-            className={`bg-white border-2 p-6 rounded-xl hover:shadow-md transition-all cursor-pointer ${selectedTemplate === t.id ? 'border-[#0f5c82] bg-[#f0f9ff]' : 'border-zinc-200'
-              }`}>
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${selectedTemplate === t.id ? 'bg-[#0f5c82] text-white' : 'bg-zinc-100 text-zinc-700'
-              }`}>
-              <t.icon size={20} />
-            </div>
-            <h3 className="font-semibold text-zinc-900 mb-1">{t.title}</h3>
-            <p className="text-sm text-zinc-500 mb-3">{t.desc}</p>
-            <div className="text-xs text-zinc-600 space-y-1">
-              {t.metrics.slice(0, 3).map((metric) => (
-                <div key={metric} className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 bg-[#0f5c82] rounded-full"></div>
-                  {metric}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Generated Report Preview */}
-      {generatedReport && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
+      {isDesigning ? (
+        <div className="flex gap-8 h-[calc(100vh-280px)] animate-in fade-in slide-in-from-bottom-6 duration-500">
+          {/* Designer Sidebar */}
+          <div className="w-80 bg-white border border-zinc-200 rounded-[2rem] p-8 shadow-2xl shadow-zinc-200/50 flex flex-col gap-8 relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#0f5c82] to-blue-400"></div>
             <div>
-              <h3 className="text-lg font-semibold text-zinc-900">{generatedReport.name}</h3>
-              <p className="text-sm text-zinc-600">Generated: {generatedReport.createdAt}</p>
-            </div>
-            <button
-              onClick={() => setGeneratedReport(null)}
-              className="p-2 hover:bg-white rounded-lg transition-colors">
-              <X size={20} />
-            </button>
-          </div>
-
-          <div className="bg-white rounded-lg p-4 mb-4 border border-green-100">
-            <div className="grid grid-cols-4 gap-4 text-center">
-              <div>
-                <p className="text-2xl font-bold text-[#0f5c82]">1,245</p>
-                <p className="text-xs text-zinc-600 mt-1">Records Processed</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-600">$2.4M</p>
-                <p className="text-xs text-zinc-600 mt-1">Total Value</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-orange-600">87%</p>
-                <p className="text-xs text-zinc-600 mt-1">Completion Rate</p>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-600">24</p>
-                <p className="text-xs text-zinc-600 mt-1">Pages</p>
+              <h3 className="font-black text-zinc-900 flex items-center gap-2 mb-6 uppercase text-xs tracking-widest">
+                <Layout size={16} className="text-[#0f5c82]" /> Dashboard Tools
+              </h3>
+              <div className="space-y-3">
+                {availableElements.map(el => (
+                  <div
+                    key={el.id}
+                    onClick={() => addElementToReport(el)}
+                    className="bg-zinc-50 border border-zinc-100 p-4 rounded-2xl hover:border-[#0f5c82] hover:bg-blue-50/30 cursor-pointer transition-all group flex items-center gap-4"
+                  >
+                    <div className="p-2.5 bg-white rounded-xl text-zinc-600 group-hover:bg-[#0f5c82] group-hover:text-white transition-all shadow-sm">
+                      <el.icon size={18} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-bold text-zinc-800">{el.title}</p>
+                      <p className="text-[9px] text-zinc-400 font-black uppercase tracking-tighter">{el.type}</p>
+                    </div>
+                    <Plus size={14} className="text-zinc-300 group-hover:text-[#0f5c82] transition-colors" />
+                  </div>
+                ))}
               </div>
             </div>
+
+            <div className="mt-auto space-y-4">
+              <div className="p-5 bg-zinc-900 rounded-[1.5rem] border border-zinc-800 shadow-xl">
+                <h4 className="text-[10px] font-black text-zinc-500 uppercase mb-3 flex items-center gap-2">
+                  <Calculator size={12} className="text-blue-400" /> Calculations
+                </h4>
+                <button className="w-full py-2 bg-zinc-800 border border-zinc-700 rounded-xl text-[10px] font-bold text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2">
+                  <Plus size={10} /> Add Calculated Field
+                </button>
+              </div>
+              <button
+                onClick={() => {
+                  if (activeElements.length === 0) return addToast('Design your report first!', 'warning');
+                  setActiveModal('create');
+                }}
+                className="w-full py-4 bg-[#0f5c82] text-white rounded-2xl font-black text-sm shadow-2xl shadow-blue-900/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                Assemble & Schedule <ChevronRight size={16} />
+              </button>
+              <button
+                onClick={() => setIsDesigning(false)}
+                className="w-full py-2 text-zinc-400 font-bold text-xs hover:text-red-500 transition-colors"
+              >
+                Discard Draft
+              </button>
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={() => handleExportReport('pdf')}
-              className="flex items-center gap-2 flex-1 px-4 py-2 bg-[#1f7d98] hover:bg-[#166ba1] text-white rounded-lg text-sm font-medium transition-colors">
-              <FileDown size={16} /> Export as PDF
-            </button>
-            <button
-              onClick={() => handleExportReport('excel')}
-              className="flex items-center gap-2 flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors">
-              <Download size={16} /> Export as Excel
-            </button>
-            <button
-              onClick={handleEmailReport}
-              className="flex items-center gap-2 flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors">
-              <Mail size={16} /> Email Report
-            </button>
+          {/* Designer Workspace */}
+          <div className="flex-1 bg-white border border-zinc-200 rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
+            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+              <div className="flex items-center gap-4">
+                <Settings size={18} className="text-[#0f5c82] animate-spin-slow" />
+                <div>
+                  <h2 className="text-sm font-black text-zinc-900 uppercase tracking-widest">Report Canvas</h2>
+                  <p className="text-[10px] text-zinc-400 font-bold uppercase">{reportName}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <span className="px-3 py-1 bg-white border border-zinc-200 rounded-full text-[10px] font-black text-zinc-500 uppercase">Interactive Preview</span>
+              </div>
+            </div>
+
+            <div className="flex-1 p-10 overflow-y-auto custom-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
+              {activeElements.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-zinc-300 gap-6">
+                  <div className="w-24 h-24 bg-zinc-50 rounded-full flex items-center justify-center border-2 border-dashed border-zinc-100">
+                    <Layout size={40} className="opacity-20" />
+                  </div>
+                  <div className="text-center max-w-xs">
+                    <p className="font-black text-zinc-500 text-lg uppercase tracking-tight">Canvas Empty</p>
+                    <p className="text-sm text-zinc-400 font-medium leading-relaxed">Select widgets from the toolbox to build your custom data narrative.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-8 pb-32">
+                  {activeElements.map((el) => (
+                    <div
+                      key={el.id}
+                      className={`relative bg-white rounded-3xl border border-zinc-100 p-8 shadow-sm hover:shadow-xl transition-all group animate-in zoom-in-95 duration-300 ${el.type === 'table' || el.type === 'chart' ? 'col-span-2' : 'col-span-1'}`}
+                    >
+                      <div className="absolute top-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all scale-90 group-hover:scale-100">
+                        <button className="p-2 bg-zinc-50 text-zinc-400 hover:text-[#0f5c82] rounded-xl border border-zinc-100 flex items-center justify-center"><GripVertical size={16} /></button>
+                        <button
+                          onClick={() => removeElementFromReport(el.id)}
+                          className="p-2 bg-red-50 text-red-500 hover:bg-red-100 rounded-xl border border-red-100 flex items-center justify-center"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-4 mb-6">
+                        <div className="p-3 bg-blue-50 text-[#0f5c82] rounded-2xl">
+                          <el.icon size={22} />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-zinc-900 text-lg tracking-tight">{el.title}</h3>
+                          <p className="text-[10px] text-zinc-400 font-black uppercase tracking-widest">{el.type}</p>
+                        </div>
+                      </div>
+
+                      {el.type === 'kpi' && (
+                        <div className="flex items-end gap-3">
+                          <div className="text-5xl font-black text-zinc-900">{el.metrics[0]}</div>
+                          <div className="mb-2 text-xs font-bold text-green-500 flex items-center gap-1 bg-green-50 px-2 py-0.5 rounded-full">
+                            <TrendingUp size={12} /> +12%
+                          </div>
+                        </div>
+                      )}
+
+                      {el.type === 'chart' && (
+                        <div className="h-32 flex items-end gap-2 px-2">
+                          {[30, 60, 40, 85, 55, 100, 70, 90, 60, 80].map((h, idx) => (
+                            <div key={idx} className="flex-1 bg-zinc-50 rounded-xl relative group/bar overflow-hidden h-full">
+                              <div className="absolute bottom-0 w-full bg-gradient-to-t from-[#0f5c82] to-blue-400 rounded-xl transition-all duration-700 ease-out delay-[idx*100]" style={{ height: `${h}%` }}></div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {el.type === 'table' && (
+                        <div className="space-y-4">
+                          {[1, 2, 3].map(row => (
+                            <div key={row} className="grid grid-cols-4 gap-4 items-center">
+                              <div className="h-2 bg-zinc-100 rounded-full"></div>
+                              <div className="col-span-2 h-2 bg-zinc-50 rounded-full"></div>
+                              <div className="h-2 bg-zinc-100 rounded-full"></div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {el.type === 'text' && (
+                        <div className="space-y-3">
+                          <div className="h-2 w-full bg-zinc-50 rounded-full"></div>
+                          <div className="h-2 w-5/6 bg-zinc-50 rounded-full"></div>
+                          <div className="h-2 w-4/6 bg-zinc-50 rounded-full"></div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+            {templates.map((t) => (
+              <div
+                key={t.id}
+                onClick={() => {
+                  setSelectedTemplate(t.id);
+                  setReportName(`${t.title} Audit`);
+                  setActiveModal('create');
+                }}
+                className="group relative bg-white border border-zinc-200 p-8 rounded-[2rem] hover:ring-2 hover:ring-[#0f5c82] hover:ring-offset-4 transition-all cursor-pointer shadow-sm hover:shadow-2xl overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
+                  <t.icon size={120} />
+                </div>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6 bg-zinc-50 text-zinc-700 group-hover:bg-[#0f5c82] group-hover:text-white transition-all shadow-sm">
+                  <t.icon size={24} />
+                </div>
+                <h3 className="text-xl font-black text-zinc-900 mb-2 tracking-tight">{t.title}</h3>
+                <p className="text-sm text-zinc-500 font-medium mb-6 leading-relaxed">{t.desc}</p>
+
+                <div className="grid grid-cols-1 gap-2 border-t border-zinc-50 pt-6">
+                  {t.metrics.map((m) => (
+                    <div key={m} className="flex items-center gap-3 text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+                      <div className="w-1.5 h-1.5 bg-[#0f5c82] rounded-full shadow-[0_0_8px_rgba(15,92,130,0.5)]"></div>
+                      {m}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white border border-zinc-200 rounded-[2.5rem] p-10 shadow-2xl">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-xl font-black text-zinc-900 tracking-tight">Active Automations</h3>
+                <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-1">Scheduled Deliveries & History</p>
+              </div>
+              <div className="p-3 bg-zinc-50 rounded-2xl text-zinc-400">
+                <Clock size={20} />
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-zinc-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-zinc-100">
+                    <th className="pb-6 px-4">Report & Distribution</th>
+                    <th className="pb-6 px-4">Frequency</th>
+                    <th className="pb-6 px-4">Format</th>
+                    <th className="pb-6 px-4">Status</th>
+                    <th className="pb-6 px-4 text-right">Preview</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {savedReports.map((item) => (
+                    <tr key={item.id} className="group hover:bg-zinc-50 transition-colors">
+                      <td className="py-6 px-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-sm font-black text-zinc-800 tracking-tight">{item.name}</span>
+                          <span className="text-[10px] text-zinc-400 font-bold">{item.recipients.join(', ')}</span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar size={14} className="text-[#0f5c82]" />
+                          <span className="text-xs font-bold text-zinc-600">{item.schedule || 'Onetime'}</span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-4">
+                        <span className="px-3 py-1 bg-zinc-100 rounded-lg text-[10px] font-black uppercase text-zinc-500 border border-zinc-200">{item.format}</span>
+                      </td>
+                      <td className="py-6 px-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+                          <span className="text-xs font-bold text-zinc-700">Ready</span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-4 text-right">
+                        <button className="p-3 text-zinc-400 hover:text-[#0f5c82] hover:bg-white rounded-2xl transition-all shadow-sm">
+                          <Share2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
-      {/* Scheduled Reports */}
-      <div className="bg-white border border-zinc-200 rounded-xl p-6">
-        <h3 className="font-semibold text-zinc-800 mb-6">Scheduled Reports & Audit Trail</h3>
-        <table className="w-full text-sm text-left">
-          <thead>
-            <tr className="text-zinc-400 border-b border-zinc-100">
-              <th className="pb-3 font-medium uppercase text-xs">Report Name</th>
-              <th className="pb-3 font-medium uppercase text-xs">Type</th>
-              <th className="pb-3 font-medium uppercase text-xs">Schedule</th>
-              <th className="pb-3 font-medium uppercase text-xs">Recipients</th>
-              <th className="pb-3 font-medium uppercase text-xs">Last Run</th>
-              <th className="pb-3 font-medium uppercase text-xs text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="text-zinc-600">
-            {reports.map((item) => (
-              <tr key={item.id} className="border-b border-zinc-50 hover:bg-zinc-50/50">
-                <td className="py-4 text-zinc-800 font-medium">{item.name}</td>
-                <td className="py-4">{item.type}</td>
-                <td className="py-4 flex items-center gap-1">
-                  <Clock size={14} className="text-amber-600" />
-                  {item.schedule || 'One-time'}
-                </td>
-                <td className="py-4">
-                  <span className="px-2 py-1 bg-zinc-100 rounded text-xs">{item.recipients.length} recipients</span>
-                </td>
-                <td className="py-4 text-xs">{item.lastRun}</td>
-                <td className="py-4 text-right">
-                  <button className="text-zinc-400 hover:text-[#0f5c82] transition-colors">
-                    <Eye size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Create Report Modal */}
-      {activeModal === 'create' && selectedTemplate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-zinc-200 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-zinc-900">Create New Report</h2>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-zinc-100 rounded-lg">
-                <X size={20} />
+      {/* Create / Schedule Modal */}
+      {activeModal === 'create' && (
+        <div className="fixed inset-0 bg-zinc-900/60 backdrop-blur-xl flex items-center justify-center z-[200] p-6 animate-in fade-in duration-300">
+          <div className="bg-white rounded-[3rem] max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-[0_32px_128px_-16px_rgba(0,0,0,0.3)] border border-white/20 flex flex-col">
+            <div className="p-10 border-b border-zinc-100 flex items-center justify-between bg-zinc-50/30">
+              <div>
+                <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Finalize Delivery</h2>
+                <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mt-1">Configure format and automated schedule</p>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-4 bg-white hover:bg-zinc-100 rounded-3xl transition-colors shadow-sm">
+                <X size={24} />
               </button>
             </div>
 
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-zinc-900 mb-2">Report Name</label>
+            <div className="p-10 space-y-8 overflow-y-auto custom-scrollbar">
+              <div className="space-y-3">
+                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest ml-1">Report Identity</label>
                 <input
                   type="text"
                   value={reportName}
                   onChange={(e) => setReportName(e.target.value)}
-                  placeholder="e.g., Q4 Executive Summary"
-                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f5c82]"
+                  placeholder="Official Report Title"
+                  className="w-full px-6 py-4 bg-zinc-50 border border-zinc-200 rounded-[1.5rem] focus:outline-none focus:ring-4 focus:ring-blue-100 transition-all font-bold text-zinc-800"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-900 mb-2">Export Format</label>
+              <div className="space-y-3">
+                <label className="text-xs font-black text-zinc-400 uppercase tracking-widest ml-1">Output Format</label>
                 <div className="grid grid-cols-4 gap-3">
                   {['pdf', 'excel', 'csv', 'powerpoint'].map((fmt) => (
                     <button
                       key={fmt}
                       onClick={() => setReportFormat(fmt as any)}
-                      className={`px-4 py-2 rounded-lg border-2 font-medium capitalize text-sm transition-all ${reportFormat === fmt
-                        ? 'border-[#0f5c82] bg-[#f0f9ff] text-[#0f5c82]'
-                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
+                      className={`py-4 rounded-[1.25rem] border-2 font-black uppercase text-[10px] tracking-widest transition-all ${reportFormat === fmt
+                        ? 'border-[#0f5c82] bg-blue-50 text-[#0f5c82] shadow-lg shadow-blue-100'
+                        : 'border-zinc-100 bg-white text-zinc-400 hover:border-zinc-200'
                         }`}
                     >
-                      {fmt === 'powerpoint' ? 'PPT' : fmt.toUpperCase()}
+                      {fmt === 'powerpoint' ? 'PPTX' : fmt}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-900 mb-2">Add Filters</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {filters.map((filter) => (
-                    <button
-                      key={filter}
-                      onClick={() =>
-                        setSelectedFilters(
-                          selectedFilters.includes(filter)
-                            ? selectedFilters.filter((f) => f !== filter)
-                            : [...selectedFilters, filter]
-                        )
-                      }
-                      className={`px-3 py-2 rounded-lg border-2 text-sm transition-all ${selectedFilters.includes(filter)
-                        ? 'border-[#0f5c82] bg-[#f0f9ff] text-[#0f5c82]'
-                        : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300'
-                        }`}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 ml-1">
+                  <Zap size={14} className="text-amber-500" />
+                  <label className="text-xs font-black text-zinc-400 uppercase tracking-widest">Growth Automation</label>
+                </div>
+                <div className="p-6 bg-zinc-50 rounded-[2rem] border border-zinc-200 space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase">Scheduling Frequency</label>
+                    <select
+                      value={scheduleFrequency}
+                      onChange={(e) => setScheduleFrequency(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-zinc-700 outline-none"
                     >
-                      {filter}
-                    </button>
-                  ))}
+                      <option value="">Manual Run (No Automation)</option>
+                      <option value="Daily @ 8:00 AM">Daily @ 8:00 AM</option>
+                      <option value="Weekly (Mon) @ 9:00 AM">Weekly (Mon) @ 9:00 AM</option>
+                      <option value="Monthly (1st) @ 9:00 AM">Monthly (1st) @ 9:00 AM</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase">Distribution List</label>
+                    <input
+                      type="text"
+                      value={recipients}
+                      onChange={(e) => setRecipients(e.target.value)}
+                      placeholder="execs@buildpro.com, board@buildpro.com"
+                      className="w-full px-4 py-3 bg-white border border-zinc-200 rounded-xl font-bold text-zinc-700 outline-none"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-900 mb-2">Email Recipients (comma-separated)</label>
-                <input
-                  type="text"
-                  value={recipients}
-                  onChange={(e) => setRecipients(e.target.value)}
-                  placeholder="e.g., ceo@buildpro.com, finance@buildpro.com"
-                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f5c82]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-900 mb-2">Schedule (Optional)</label>
-                <select
-                  value={scheduleFrequency}
-                  onChange={(e) => setScheduleFrequency(e.target.value)}
-                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0f5c82]"
-                >
-                  <option value="">No Schedule (One-time)</option>
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="quarterly">Quarterly</option>
-                </select>
-              </div>
-
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-4 pt-6">
                 <button
                   onClick={handleGenerateReport}
                   disabled={generating}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#1f7d98] hover:bg-[#166ba1] disabled:opacity-50 text-white rounded-lg font-medium transition-colors"
+                  className="flex-1 flex items-center justify-center gap-3 py-5 bg-[#0f5c82] hover:bg-[#0c4a6e] disabled:opacity-50 text-white rounded-[1.5rem] font-black text-sm transition-all shadow-2xl shadow-blue-900/20"
                 >
                   {generating ? (
                     <>
-                      <Loader2 size={16} className="animate-spin" /> Generating...
+                      <Loader2 size={20} className="animate-spin" /> Finalizing...
                     </>
                   ) : (
                     <>
-                      <FileDown size={16} /> Generate Report
+                      <FileDown size={20} /> Deploy & Generate
                     </>
                   )}
-                </button>
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="flex-1 px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 rounded-lg font-medium transition-colors"
-                >
-                  Cancel
                 </button>
               </div>
             </div>
@@ -432,69 +548,77 @@ const ReportsView = () => {
 
       {/* Preview Modal */}
       {activeModal === 'preview' && generatedReport && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-zinc-200 p-6 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-zinc-900">Report Preview: {generatedReport.name}</h2>
-              <button onClick={() => setActiveModal(null)} className="p-2 hover:bg-zinc-100 rounded-lg">
-                <X size={20} />
+        <div className="fixed inset-0 bg-zinc-900/90 backdrop-blur-2xl flex items-center justify-center z-[250] p-10 animate-in zoom-in-95 duration-300">
+          <div className="bg-white rounded-[4rem] max-w-5xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col border border-zinc-100">
+            <div className="p-12 border-b border-zinc-100 flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{generatedReport.name}</h2>
+                <div className="flex items-center gap-4 mt-2">
+                  <span className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                    <Calendar size={14} /> Created {generatedReport.createdAt}
+                  </span>
+                  <span className="w-1 h-1 bg-zinc-200 rounded-full"></span>
+                  <span className="text-xs font-black text-[#0f5c82] uppercase tracking-widest">{generatedReport.format}</span>
+                </div>
+              </div>
+              <button onClick={() => setActiveModal(null)} className="p-5 bg-zinc-50 hover:bg-zinc-100 rounded-full transition-colors">
+                <X size={32} className="text-zinc-900" />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              <div className="border-b-2 border-zinc-200 pb-4">
-                <h1 className="text-3xl font-bold text-zinc-900 mb-1">{generatedReport.name}</h1>
-                <p className="text-zinc-600">Report Type: {generatedReport.type}</p>
-                <p className="text-zinc-600">Generated: {generatedReport.createdAt}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-6">
-                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <p className="text-sm text-blue-600 font-medium">Total Revenue</p>
-                  <p className="text-3xl font-bold text-blue-900 mt-2">$2,450,000</p>
-                  <p className="text-xs text-blue-600 mt-2">↑ 12% from last period</p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                  <p className="text-sm text-green-600 font-medium">Gross Profit</p>
-                  <p className="text-3xl font-bold text-green-900 mt-2">$612,500</p>
-                  <p className="text-xs text-green-600 mt-2">25% margin</p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-zinc-50 rounded-lg border border-zinc-200">
-                <h3 className="font-semibold text-zinc-900 mb-3">Key Metrics</h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">Projects Completed</span>
-                    <span className="text-lg font-semibold text-zinc-900">24</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">On-Time Delivery Rate</span>
-                    <span className="text-lg font-semibold text-green-600">94%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">Budget Variance</span>
-                    <span className="text-lg font-semibold text-amber-600">2.3%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-zinc-600">Team Utilization</span>
-                    <span className="text-lg font-semibold text-blue-600">87%</span>
+            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar bg-zinc-50/50">
+              <div className="bg-white rounded-[3rem] p-12 shadow-sm border border-zinc-100 min-h-[600px] flex flex-col gap-12">
+                <div className="flex items-center justify-between pb-8 border-b-2 border-zinc-50">
+                  <div className="h-12 w-48 bg-zinc-900 rounded-2xl flex items-center justify-center text-white font-black text-xl italic tracking-tighter">BUILDPRO</div>
+                  <div className="text-right">
+                    <p className="text-sm font-black text-zinc-900">Official Report</p>
+                    <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest">Verified Content</p>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={() => handleExportReport('pdf')}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#1f7d98] hover:bg-[#166ba1] text-white rounded-lg font-medium transition-colors">
-                  <FileDown size={16} /> Download PDF
-                </button>
-                <button
-                  onClick={() => setActiveModal(null)}
-                  className="flex-1 px-4 py-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-900 rounded-lg font-medium transition-colors">
-                  Close
-                </button>
+                <div className="grid grid-cols-3 gap-8">
+                  <div className="bg-[#0f5c82] p-8 rounded-[2.5rem] text-white shadow-xl shadow-blue-900/20">
+                    <p className="text-xs font-black uppercase tracking-widest opacity-80 mb-2">Record Count</p>
+                    <p className="text-4xl font-black">1.4k</p>
+                  </div>
+                  <div className="bg-zinc-900 p-8 rounded-[2.5rem] text-white shadow-xl">
+                    <p className="text-xs font-black uppercase tracking-widest opacity-80 mb-2">Performance</p>
+                    <p className="text-4xl font-black">98.2%</p>
+                  </div>
+                  <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-100">
+                    <p className="text-xs font-black uppercase tracking-widest text-zinc-400 mb-2">Status</p>
+                    <p className="text-4xl font-black text-zinc-900">PASS</p>
+                  </div>
+                </div>
+
+                <div className="flex-1 border-t border-zinc-100 pt-12">
+                  <div className="flex items-center gap-4 mb-8">
+                    <Info size={24} className="text-[#0f5c82]" />
+                    <h3 className="text-2xl font-black text-zinc-900 tracking-tight italic">Executive Notes</h3>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="h-4 w-full bg-zinc-50 rounded-full"></div>
+                    <div className="h-4 w-full bg-zinc-50 rounded-full"></div>
+                    <div className="h-4 w-4/5 bg-zinc-50 rounded-full"></div>
+                  </div>
+                </div>
+
+                <div className="mt-auto pt-8 border-t border-zinc-50 text-center">
+                  <p className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.5em]">This report was AI-generated via BuildPro Intelligence Engine</p>
+                </div>
               </div>
+            </div>
+
+            <div className="p-12 border-t border-zinc-100 bg-white flex gap-6">
+              <button className="flex-1 py-5 bg-[#0f5c82] text-white rounded-[2rem] font-black text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-2xl shadow-blue-900/20 flex items-center justify-center gap-3">
+                <Download size={24} /> Download Final Draft
+              </button>
+              <button
+                onClick={() => setActiveModal(null)}
+                className="px-12 py-5 bg-zinc-100 text-zinc-900 rounded-[2rem] font-black text-lg hover:bg-zinc-200 transition-all"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

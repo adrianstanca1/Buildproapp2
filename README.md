@@ -10,11 +10,12 @@ BuildPro is a **comprehensive construction project management platform** powered
 
 ## ✨ Key Features
 
-🤖 **AI-Powered**
-- Project creation with Gemini 3 Pro
-- Automatic timeline generation
-- Risk assessment & analysis
-- Smart budget estimation
+🤖 **Advanced AI Intelligence (Gemini 3 Pro)**
+- **AI Project Launchpad**: Grounded project architecture & site analysis.
+- **AI Safety Center**: Real-time hazard detection & compliance advisor.
+- **AI Predictive Fleet**: IoT telemetry simulation & predictive maintenance.
+- **AI Financial Command**: Smart budget forecasting & risk mitigation insights.
+- **AI Workforce Analytics**: Skill gap analysis & automated training plans.
 
 📊 **Comprehensive**
 - 37 fully functional views

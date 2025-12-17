@@ -282,4 +282,19 @@ export async function seedDatabase() {
       [m.id, m.channelId, m.senderId, m.senderName, m.senderRole, m.senderAvatar, m.content, m.createdAt]
     );
   }
+
+  // --- Transactions ---
+  const transactions = [
+    { id: 'tx1', companyId: 'c1', projectId: 'p1', date: '2025-12-01', description: 'Monthly Retainer - Phase 1', amount: 150000, type: 'income', category: 'Project Fee', status: 'completed' },
+    { id: 'tx2', companyId: 'c1', projectId: 'p1', date: '2025-12-05', description: 'Concrete Supply - Level 4', amount: -45000, type: 'expense', category: 'Materials', status: 'completed' },
+    { id: 'tx3', companyId: 'c1', projectId: 'p1', date: '2025-12-08', description: 'Site Security Services', amount: -12000, type: 'expense', category: 'Services', status: 'completed' },
+    { id: 'tx4', companyId: 'c1', projectId: 'p2', date: '2025-12-02', description: 'Initial Mobilization Fee', amount: 85000, type: 'income', category: 'Project Fee', status: 'completed' }
+  ];
+  for (const t of transactions) {
+    await db.run(
+      `INSERT INTO transactions (id, companyId, projectId, date, description, amount, type, category, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.companyId, t.projectId, t.date, t.description, t.amount, t.type, t.category, t.status]
+    );
+  }
 }

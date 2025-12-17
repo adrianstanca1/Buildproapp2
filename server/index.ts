@@ -483,6 +483,7 @@ createCrudRoutes('equipment');
 createCrudRoutes('timesheets');
 createCrudRoutes('channels');
 createCrudRoutes('team_messages');
+createCrudRoutes('transactions');
 
 
 // Serve static files from the React app

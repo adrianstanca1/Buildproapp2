@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { AlertTriangle, Award, Calendar, CheckCircle2, Briefcase, Loader2, Sparkles, RefreshCw, Brain, BookOpen, GraduationCap, TrendingUp, Target, Users, Clock, Zap, Shield, TrendingDown } from 'lucide-react';
-import { runRawPrompt } from '@/services/geminiService';
+import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';
 
 interface TeamMemberProfile {
@@ -195,7 +195,7 @@ const WorkforceView: React.FC = () => {
             Return JSON: [{ "course": "string", "provider": "string", "targetSkill": "string" }]
           `;
             const res = await runRawPrompt(prompt, { model: 'gemini-2.5-flash', responseMimeType: 'application/json' });
-            setTrainingPlan(JSON.parse(res));
+            setTrainingPlan(parseAIJSON(res));
         } catch (e) {
             console.error("Training plan failed", e);
         } finally {
