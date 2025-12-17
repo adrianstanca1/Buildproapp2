@@ -63,6 +63,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTenants(fetchedTenants);
         if (fetchedTenants.length > 0) {
           setCurrentTenant(fetchedTenants[0]);
+          db.setTenantId(fetchedTenants[0].id);
         }
       } catch (e) {
         console.error("Failed to load tenants", e);
@@ -125,8 +126,15 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setTenants((prev) =>
         prev.map((t) => (t.id === id ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t))
       );
-      setCurrentTenant((prev) =>
-        prev?.id === id ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev
+      setCurrentTenant((prev) => {
+        const updated = prev?.id === id ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev;
+        if (updated && updated.id === id) {
+          // If we updated the current tenant, ensure the ID didn't change (unlikely) or just re-sync if needed, 
+          // but mainly we just need to keep `currentTenant` state fresh.
+          // If ID changes (it shouldn't), we'd need to update db.setTenantId.
+        }
+        return updated;
+      }
       );
 
       await db.updateCompany(id, updates);
@@ -341,7 +349,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     <TenantContext.Provider
       value={{
         currentTenant,
-        setCurrentTenant,
+        setCurrentTenant: (t) => {
+          setCurrentTenant(t);
+          db.setTenantId(t?.id || null);
+        },
         tenants,
         setTenants,
         addTenant,

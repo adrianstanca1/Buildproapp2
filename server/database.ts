@@ -134,6 +134,34 @@ async function initSchema(db: IDatabase) {
       timelineOptimizations TEXT -- JSON array
     );
 
+    CREATE TABLE IF NOT EXISTS companies (
+      id TEXT PRIMARY KEY,
+      name TEXT,
+      plan TEXT,
+      status TEXT,
+      users INTEGER DEFAULT 0,
+      projects INTEGER DEFAULT 0,
+      mrr REAL DEFAULT 0,
+      joinedDate TEXT,
+      description TEXT,
+      logo TEXT,
+      website TEXT,
+      email TEXT,
+      phone TEXT,
+      address TEXT,
+      city TEXT,
+      state TEXT,
+      zipCode TEXT,
+      country TEXT,
+      settings TEXT, -- JSON string
+      subscription TEXT, -- JSON string
+      features TEXT, -- JSON array
+      maxUsers INTEGER,
+      maxProjects INTEGER,
+      createdAt TEXT,
+      updatedAt TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
       title TEXT,

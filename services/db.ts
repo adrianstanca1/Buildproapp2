@@ -6,10 +6,15 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 class DatabaseService {
   private useMock = false;
+  private tenantId: string | null = null;
 
   constructor() {
     // Simple health check on init
     this.checkHealth();
+  }
+
+  setTenantId(id: string | null) {
+    this.tenantId = id;
   }
 
   private async checkHealth() {
@@ -27,7 +32,10 @@ class DatabaseService {
   private async fetch<T>(endpoint: string): Promise<T[]> {
     if (this.useMock) return []; // Or delegate to mockDb generic if implemented
     try {
-      const res = await fetch(`${API_URL}/${endpoint}`);
+      const headers: Record<string, string> = {};
+      if (this.tenantId) headers['x-company-id'] = this.tenantId;
+
+      const res = await fetch(`${API_URL}/${endpoint}`, { headers });
       if (!res.ok) throw new Error(`Failed to fetch ${endpoint}`);
       return await res.json();
     } catch (e) {
@@ -40,9 +48,12 @@ class DatabaseService {
   private async post<T>(endpoint: string, data: T): Promise<T | null> {
     if (this.useMock) return null;
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (this.tenantId) headers['x-company-id'] = this.tenantId;
+
       const res = await fetch(`${API_URL}/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error(`Failed to post to ${endpoint}`);
@@ -56,9 +67,12 @@ class DatabaseService {
   private async put<T>(endpoint: string, id: string, data: Partial<T>): Promise<void> {
     if (this.useMock) return;
     try {
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (this.tenantId) headers['x-company-id'] = this.tenantId;
+
       const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error(`Failed to update ${endpoint}/${id}`);
@@ -70,8 +84,12 @@ class DatabaseService {
   private async delete(endpoint: string, id: string): Promise<void> {
     if (this.useMock) return;
     try {
+      const headers: Record<string, string> = {};
+      if (this.tenantId) headers['x-company-id'] = this.tenantId;
+
       const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers
       });
       if (!res.ok) throw new Error(`Failed to delete ${endpoint}/${id}`);
     } catch (e) {

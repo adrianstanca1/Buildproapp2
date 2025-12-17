@@ -14,6 +14,30 @@ export async function seedDatabase() {
 
   console.log('Seeding database...');
 
+  // --- Companies ---
+  const companies = [
+    {
+      id: 'c1',
+      name: 'BuildCorp Solutions',
+      plan: 'Enterprise',
+      status: 'Active',
+      joinedDate: '2025-01-01',
+      description: 'A global leader in sustainable construction.',
+      city: 'London',
+      country: 'UK',
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  for (const c of companies) {
+    await db.run(
+      `INSERT INTO companies (id, name, plan, status, joinedDate, description, city, country, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [c.id, c.name, c.plan, c.status, c.joinedDate, c.description, c.city, c.country, c.createdAt]
+    );
+  }
+
+
   const projects = [
     {
       id: 'p1',
@@ -122,22 +146,22 @@ export async function seedDatabase() {
 
   const dayworks = [
     {
-        id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
-        labor: JSON.stringify([{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }]),
-        materials: JSON.stringify([{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }]),
-        attachments: '[]',
-        totalLaborCost: 360,
-        totalMaterialCost: 275,
-        grandTotal: 635
+      id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
+      labor: JSON.stringify([{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }]),
+      materials: JSON.stringify([{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }]),
+      attachments: '[]',
+      totalLaborCost: 360,
+      totalMaterialCost: 275,
+      grandTotal: 635
     },
     {
-        id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
-        labor: JSON.stringify([{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }]),
-        materials: JSON.stringify([{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }]),
-        attachments: '[]',
-        totalLaborCost: 360,
-        totalMaterialCost: 160,
-        grandTotal: 520
+      id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
+      labor: JSON.stringify([{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }]),
+      materials: JSON.stringify([{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }]),
+      attachments: '[]',
+      totalLaborCost: 360,
+      totalMaterialCost: 160,
+      grandTotal: 520
     },
   ];
 

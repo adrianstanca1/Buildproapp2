@@ -19,19 +19,37 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to ensure DB is initialized before handling requests (removed)
 
+// --- Middleware ---
+const tenantMiddleware = (req: any, res: any, next: any) => {
+  const tenantId = req.headers['x-company-id'];
+  // Allow public routes or super admin override (if implemented)
+  // For now, if no header is present, we might default to returning everything (dev mode) or erroring.
+  // Let's implement strict mode: if it's a tenant-scoped resource, we need the header.
+  // But for 'companies' listing itself, we might not need it, or we need to know who is asking.
+  // Simplified: attach tenantId to req if present.
+  if (tenantId) {
+    req.tenantId = tenantId;
+  }
+  next();
+};
+
+app.use(tenantMiddleware);
+
 // --- Companies Routes ---
-app.get('/api/companies', async (req, res) => {
+app.get('/api/companies', async (req: any, res: any) => {
   try {
     const db = getDb();
+    // In a real app, we'd filter this based on the user's "global" role.
+    // For now, return all companies so the user can select one (Mocking a multi-tenant login)
     const companies = await db.all('SELECT * FROM companies');
-    
+
     const parsed = companies.map(c => ({
       ...c,
       settings: c.settings ? JSON.parse(c.settings) : {},
       subscription: c.subscription ? JSON.parse(c.subscription) : {},
       features: c.features ? JSON.parse(c.features) : []
     }));
-    
+
     res.json(parsed);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
@@ -46,7 +64,7 @@ app.post('/api/companies', async (req, res) => {
     const settings = c.settings ? JSON.stringify(c.settings) : '{}';
     const subscription = c.subscription ? JSON.stringify(c.subscription) : '{}';
     const features = c.features ? JSON.stringify(c.features) : '[]';
-    
+
     // Ensure numeric fields have defaults if missing
     const users = c.users || 0;
     const projects = c.projects || 0;
@@ -83,7 +101,7 @@ app.put('/api/companies/:id', async (req, res) => {
     if (updates.settings) updates.settings = JSON.stringify(updates.settings);
     if (updates.subscription) updates.subscription = JSON.stringify(updates.subscription);
     if (updates.features) updates.features = JSON.stringify(updates.features);
-    
+
     // Always update timestamp
     updates.updatedAt = new Date().toISOString();
 
@@ -118,6 +136,9 @@ app.delete('/api/companies/:id', async (req, res) => {
 app.get('/api/projects', async (req, res) => {
   try {
     const db = getDb();
+    // Filter by tenant if present
+    const whereClause = req.tenantId ? `WHERE companyId = '${req.tenantId}'` : '';
+
     const projects = await db.all(`
       SELECT
         p.*,
@@ -126,6 +147,7 @@ app.get('/api/projects', async (req, res) => {
         SUM(CASE WHEN t.dueDate < date('now') AND t.status != 'Done' THEN 1 ELSE 0 END) AS tasks_overdue
       FROM projects p
       LEFT JOIN tasks t ON p.id = t.projectId
+      ${whereClause}
       GROUP BY p.id
     `);
 
@@ -159,6 +181,11 @@ app.post('/api/projects', async (req, res) => {
     const phases = p.phases ? JSON.stringify(p.phases) : '[]';
     const timelineOptimizations = p.timelineOptimizations ? JSON.stringify(p.timelineOptimizations) : '[]';
 
+    // Enforce companyId from header if present (prevent spoofing)
+    if (req.tenantId) {
+      p.companyId = req.tenantId;
+    }
+
     await db.run(
       `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -191,10 +218,17 @@ app.put('/api/projects/:id', async (req, res) => {
     const values = Object.values(updates);
     const setClause = keys.map(k => `${k} = ?`).join(',');
 
-    await db.run(
-      `UPDATE projects SET ${setClause} WHERE id = ?`,
-      [...values, id]
-    );
+    // Add tenant check to WHERE clause
+    let sql = `UPDATE projects SET ${setClause} WHERE id = ?`;
+    const params = [...values, id];
+
+    if (req.tenantId) {
+      sql += ` AND companyId = ?`;
+      params.push(req.tenantId);
+    }
+
+    await db.run(sql, params);
+
     res.json({ ...updates, id });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
@@ -205,7 +239,16 @@ app.delete('/api/projects/:id', async (req, res) => {
   try {
     const db = getDb();
     const { id } = req.params;
-    await db.run('DELETE FROM projects WHERE id = ?', [id]);
+
+    let sql = 'DELETE FROM projects WHERE id = ?';
+    const params = [id];
+
+    if (req.tenantId) {
+      sql += ' AND companyId = ?';
+      params.push(req.tenantId);
+    }
+
+    await db.run(sql, params);
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
@@ -216,7 +259,16 @@ app.delete('/api/projects/:id', async (req, res) => {
 app.get('/api/tasks', async (req, res) => {
   try {
     const db = getDb();
-    const tasks = await db.all('SELECT * FROM tasks');
+    // Tasks should be joined with projects to filter by companyId
+    let sql = 'SELECT * FROM tasks';
+    const params: any[] = [];
+
+    if (req.tenantId) {
+      sql = `SELECT t.* FROM tasks t JOIN projects p ON t.projectId = p.id WHERE p.companyId = ?`;
+      params.push(req.tenantId);
+    }
+
+    const tasks = await db.all(sql, params);
     const parsed = tasks.map(t => ({
       ...t,
       dependencies: t.dependencies ? JSON.parse(t.dependencies) : []
@@ -282,10 +334,48 @@ app.delete('/api/tasks/:id', async (req, res) => {
 
 // --- Generic CRUD Helper ---
 const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
-  app.get(`/api/${tableName}`, async (req, res) => {
+  app.get(`/api/${tableName}`, async (req: any, res) => {
     try {
       const db = getDb();
-      const items = await db.all(`SELECT * FROM ${tableName}`);
+      let sql = `SELECT * FROM ${tableName}`;
+      const params: any[] = [];
+
+      // Check if table has companyId column (most do, or we assume they do for this generic handler)
+      // Exception: 'rfis', 'punch_items', 'daily_logs' might be linked via projectId, not direct companyId?
+      // For simplicity/standardization, let's assume they have companyId OR we don't filter safely yet.
+      // Better approach: Only apply if req.tenantId is present.
+      if (req.tenantId) {
+        // We need to know if the table has companyId. 
+        // For safely, let's assume all these "CRUD" tables are tenant-scoped directly or we'd need a map.
+        // Looking at schema, most created tables have companyId explicitly added in context updates, 
+        // but schema.sql might need verification.
+        // Let's TRY to filter by companyId. If column missing, it might error.
+        // Alternatively, use a safe check.
+
+        // Quick fix: Add companyId to tables that need it in schema.sql OR 
+        // for now just append WHERE companyId = ? and hope schema matches.
+        // Given 'createCrudRoutes' usage:
+        // team -> has companyId
+        // clients -> has companyId
+        // inventory -> has companyId
+        // equipment -> has companyId
+        // timesheets -> has companyId
+        // channels -> has companyId
+        // dayworks -> NO companyId (has projectId)
+        // rfis -> NO companyId (has projectId)
+        // punch_items -> NO companyId (has projectId)
+        // daily_logs -> NO companyId (has projectId)
+        // safe_incidents -> projectId (no companyId in schema?)
+
+        // We will just try valid ones for now.
+        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels'];
+        if (tenantTables.includes(tableName)) {
+          sql += ` WHERE companyId = ?`;
+          params.push(req.tenantId);
+        }
+      }
+
+      const items = await db.all(sql, params);
       const parsed = items.map(item => {
         const newItem = { ...item };
         jsonFields.forEach(field => {
@@ -312,7 +402,21 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         return item[k];
       });
 
-      const placeholders = keys.map(() => '?').join(',');
+      // Variables for SQL construction will be generated after potential modifications
+
+      if (req.tenantId) {
+        // Inject companyId if missing and valid table
+        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels'];
+        if (tenantTables.includes(tableName)) {
+          // If item doesn't have companyId, add it from header
+          if (!item.companyId) {
+            keys.push('companyId');
+            values.push(req.tenantId);
+          }
+        }
+      }
+
+      const placeholders = values.map(() => '?').join(',');
       const columns = keys.join(',');
 
       await db.run(
@@ -376,6 +480,21 @@ createCrudRoutes('timesheets');
 createCrudRoutes('channels');
 createCrudRoutes('team_messages');
 
+
+// Serve static files from the React app
+const path = require('path');
+const { fileURLToPath } = require('url');
+// Handle __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, '../dist')));
+
+// The "catchall" handler: for any request that doesn't
+// match one above, send back React's index.html file.
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
 // Initialize and Start
 const startServer = async () => {

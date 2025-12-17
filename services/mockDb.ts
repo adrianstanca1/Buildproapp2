@@ -138,7 +138,7 @@ const initialDayworks: Daywork[] = [
     totalMaterialCost: 160,
     grandTotal: 520
   },
-  },
+
 ];
 
 const initialCompanies: Tenant[] = [
@@ -183,7 +183,6 @@ const DB_KEYS = {
   INVENTORY: 'buildpro_inventory',
   RFIS: 'buildpro_rfis',
   PUNCH_LIST: 'buildpro_punch_list',
-  DAILY_LOGS: 'buildpro_daily_logs',
   DAILY_LOGS: 'buildpro_daily_logs',
   DAYWORKS: 'buildpro_dayworks',
   COMPANIES: 'buildpro_companies',
