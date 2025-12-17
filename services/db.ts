@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant, Transaction } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog } from '@/types';
 import { db as mockDb } from './mockDb';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -305,6 +305,19 @@ class DatabaseService {
   async deleteCompany(id: string) {
     if (this.useMock) return mockDb.deleteCompany(id);
     await this.delete('companies', id);
+  }
+
+  // --- Tenant Analytics & Security ---
+  async getTenantUsage(tenantId: string): Promise<TenantUsage> {
+    const res = await fetch(`${API_URL}/tenants/${tenantId}/usage`, {
+      headers: this.tenantId ? { 'x-company-id': this.tenantId } : {}
+    });
+    if (!res.ok) throw new Error("Failed to fetch usage");
+    return await res.json();
+  }
+
+  async getAuditLogs(tenantId: string): Promise<TenantAuditLog[]> {
+    return this.fetch<TenantAuditLog>(`audit_logs?tenantId=${tenantId}`);
   }
 }
 

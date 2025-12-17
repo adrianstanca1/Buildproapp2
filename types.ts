@@ -100,6 +100,8 @@ export interface TenantSettings {
   ipWhitelist?: string[];
   sso: boolean;
   customBranding: boolean;
+  primaryColor?: string;
+  accentColor?: string;
 }
 
 export interface TenantSubscription {

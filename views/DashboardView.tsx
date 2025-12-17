@@ -257,7 +257,7 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
 
 // --- 1. SUPER ADMIN DASHBOARD (ENHANCED) ---
 const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
-    const { tenants, addTenant, updateTenant } = useTenant();
+    const { tenants, addTenant, updateTenant, impersonateTenant, isImpersonating, stopImpersonating, currentTenant } = useTenant();
 
     // Handler for adding a new tenant
     const handleAddTenant = async () => {
@@ -345,6 +345,24 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                 </div>
             </div>
 
+            {isImpersonating && (
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                    <div className="flex items-center gap-3 text-amber-800">
+                        <UserCheck size={20} />
+                        <div>
+                            <p className="text-sm font-bold">Impersonation Mode Active</p>
+                            <p className="text-xs">You are currently viewing BuildPro as <strong>{currentTenant?.name}</strong>.</p>
+                        </div>
+                    </div>
+                    <button
+                        onClick={stopImpersonating}
+                        className="px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 transition-colors"
+                    >
+                        Stop Impersonating
+                    </button>
+                </div>
+            )}
+
             <AIDailyBriefing role={UserRole.SUPER_ADMIN} />
 
             {/* Infrastructure Health */}
@@ -425,8 +443,34 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                                                     'bg-zinc-100 text-zinc-600 border-zinc-200'
                                                 }`}>{company.plan}</span>
                                         </td>
-                                        <td className="px-6 py-4 text-center text-zinc-600">{company.users}</td>
-                                        <td className="px-6 py-4 text-center text-zinc-600">{company.projects}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-[10px] text-zinc-400 font-bold">
+                                                    <span>{company.users} / {company.maxUsers || 10}</span>
+                                                    <span>{Math.round(((company.users || 0) / (company.maxUsers || 10)) * 100)}%</span>
+                                                </div>
+                                                <div className="h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${((company.users || 0) / (company.maxUsers || 10)) > 0.9 ? 'bg-red-500' : 'bg-blue-500'}`}
+                                                        style={{ width: `${Math.min(100, ((company.users || 0) / (company.maxUsers || 10)) * 100)}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-[10px] text-zinc-400 font-bold">
+                                                    <span>{company.projects} / {company.maxProjects || 5}</span>
+                                                    <span>{Math.round(((company.projects || 0) / (company.maxProjects || 5)) * 100)}%</span>
+                                                </div>
+                                                <div className="h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full ${((company.projects || 0) / (company.maxProjects || 5)) > 0.9 ? 'bg-red-500' : 'bg-green-500'}`}
+                                                        style={{ width: `${Math.min(100, ((company.projects || 0) / (company.maxProjects || 5)) * 100)}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <span className={`flex items-center gap-1.5 text-xs font-medium ${company.status === 'Active' ? 'text-green-600' :
                                                 company.status === 'Suspended' ? 'text-red-600' :
@@ -442,7 +486,13 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                                         <td className="px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button className="p-1.5 hover:bg-zinc-200 rounded text-zinc-500" title="Manage"><Settings size={14} /></button>
-                                                <button className="p-1.5 hover:bg-blue-100 text-blue-600 rounded" title="Login As"><UserCheck size={14} /></button>
+                                                <button
+                                                    onClick={() => impersonateTenant(company.id)}
+                                                    className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"
+                                                    title="Login As"
+                                                >
+                                                    <UserCheck size={14} />
+                                                </button>
                                                 {company.status !== 'Suspended' && <button onClick={() => handleSuspend(company.id, company.status)} className="p-1.5 hover:bg-red-100 text-red-600 rounded" title="Suspend"><Lock size={14} /></button>}
                                                 {company.status === 'Suspended' && <button onClick={() => handleSuspend(company.id, company.status)} className="p-1.5 hover:bg-green-100 text-green-600 rounded" title="Activate"><Unlock size={14} /></button>}
                                             </div>
@@ -592,6 +642,7 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 // --- 2. COMPANY ADMIN DASHBOARD ---
 const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
     const { projects } = useProjects();
+    const { canAddResource, currentTenant, checkFeature } = useTenant();
 
     const totalRevenue = useMemo(() => projects.reduce((sum, p) => sum + (p.budget || 0), 0), [projects]);
     const activeProjectsCount = projects.length;
@@ -609,6 +660,16 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
                     Corporate Admin
                 </div>
             </div>
+
+            {!canAddResource('projects') && (
+                <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3 text-red-800 shadow-sm animate-pulse">
+                    <AlertCircle size={20} />
+                    <div>
+                        <p className="text-sm font-bold">Project Limit Reached</p>
+                        <p className="text-xs">Your current plan ({currentTenant?.plan}) allows max {currentTenant?.maxProjects || 5} projects. Upgrade to Enterprise for unlimited.</p>
+                    </div>
+                </div>
+            )}
 
             <AIDailyBriefing role={UserRole.COMPANY_ADMIN} />
 

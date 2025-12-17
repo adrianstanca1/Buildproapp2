@@ -22,15 +22,44 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // --- Middleware ---
 const tenantMiddleware = (req: any, res: any, next: any) => {
   const tenantId = req.headers['x-company-id'];
-  // Allow public routes or super admin override (if implemented)
-  // For now, if no header is present, we might default to returning everything (dev mode) or erroring.
-  // Let's implement strict mode: if it's a tenant-scoped resource, we need the header.
-  // But for 'companies' listing itself, we might not need it, or we need to know who is asking.
-  // Simplified: attach tenantId to req if present.
+  const userId = req.headers['x-user-id']; // For audit logging
+  const userName = req.headers['x-user-name'];
+
   if (tenantId) {
     req.tenantId = tenantId;
   }
+
+  req.userId = userId || 'anonymous';
+  req.userName = userName || 'Guest';
   next();
+};
+
+// Helper for audit logging
+const logAction = async (req: any, action: string, resource: string, resourceId: string, changes: any = null, status: string = 'success') => {
+  try {
+    const db = getDb();
+    const id = uuidv4();
+    await db.run(
+      `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        req.tenantId || 'system',
+        req.userId,
+        req.userName,
+        action,
+        resource,
+        resourceId,
+        changes ? JSON.stringify(changes) : null,
+        status,
+        new Date().toISOString(),
+        req.ip,
+        req.headers['user-agent']
+      ]
+    );
+  } catch (e) {
+    console.error('Audit log failed:', e);
+  }
 };
 
 app.use(tenantMiddleware);
@@ -127,6 +156,61 @@ app.delete('/api/companies/:id', async (req, res) => {
     const { id } = req.params;
     await db.run('DELETE FROM companies WHERE id = ?', [id]);
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// --- Tenant Analytics Routes ---
+app.get('/api/tenants/:id/usage', async (req: any, res: any) => {
+  try {
+    const db = getDb();
+    const { id } = req.params;
+
+    // Query the company record
+    const companies = await db.all('SELECT * FROM companies WHERE id = ?', [id]);
+    if (companies.length === 0) return res.status(404).json({ error: 'Tenant not found' });
+    const company = companies[0];
+
+    // Table counts
+    const projectsCount = await db.all('SELECT COUNT(*) as count FROM projects WHERE companyId = ?', [id]);
+    const usersCount = await db.all('SELECT COUNT(*) as count FROM team WHERE companyId = ?', [id]);
+
+    const usage = {
+      tenantId: id,
+      currentUsers: usersCount[0].count,
+      currentProjects: projectsCount[0].count,
+      currentStorage: 0,
+      currentApiCalls: 0,
+      period: new Date().toISOString().substring(0, 7),
+      limit: {
+        users: company.maxUsers || 10,
+        projects: company.maxProjects || 5,
+        storage: 1024,
+        apiCalls: 10000
+      }
+    };
+
+    res.json(usage);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+app.get('/api/audit_logs', async (req: any, res: any) => {
+  try {
+    const db = getDb();
+    const tenantId = req.query.tenantId || req.tenantId;
+
+    if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
+
+    const logs = await db.all('SELECT * FROM audit_logs WHERE companyId = ? ORDER BY timestamp DESC LIMIT 100', [tenantId]);
+    const parsed = logs.map(l => ({
+      ...l,
+      changes: l.changes ? JSON.parse(l.changes) : null
+    }));
+
+    res.json(parsed);
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
   }
@@ -345,45 +429,29 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
       let sql = `SELECT * FROM ${tableName}`;
       const params: any[] = [];
 
-      // Check if table has companyId column (most do, or we assume they do for this generic handler)
-      // Exception: 'rfis', 'punch_items', 'daily_logs' might be linked via projectId, not direct companyId?
-      // For simplicity/standardization, let's assume they have companyId OR we don't filter safely yet.
-      // Better approach: Only apply if req.tenantId is present.
-      if (req.tenantId) {
-        // We need to know if the table has companyId. 
-        // For safely, let's assume all these "CRUD" tables are tenant-scoped directly or we'd need a map.
-        // Looking at schema, most created tables have companyId explicitly added in context updates, 
-        // but schema.sql might need verification.
-        // Let's TRY to filter by companyId. If column missing, it might error.
-        // Alternatively, use a safe check.
+      const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
 
-        // Quick fix: Add companyId to tables that need it in schema.sql OR 
-        // for now just append WHERE companyId = ? and hope schema matches.
-        // Given 'createCrudRoutes' usage:
-        // team -> has companyId
-        // clients -> has companyId
-        // inventory -> has companyId
-        // equipment -> has companyId
-        // timesheets -> has companyId
-        // channels -> has companyId
-        // dayworks -> NO companyId (has projectId)
-        // rfis -> NO companyId (has projectId)
-        // punch_items -> NO companyId (has projectId)
-        // daily_logs -> NO companyId (has projectId)
-        // safe_incidents -> projectId (no companyId in schema?)
-
-        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
-        if (tenantTables.includes(tableName)) {
-          sql += ` WHERE companyId = ?`;
-          params.push(req.tenantId);
-        }
+      if (req.tenantId && tenantTables.includes(tableName)) {
+        sql += ` WHERE companyId = ?`;
+        params.push(req.tenantId);
+      } else if (!req.tenantId && tenantTables.includes(tableName) && tableName !== 'companies') {
+        // Strict isolation: if it's a tenant table but no header, return empty or error
+        // For dev flexibility we return all, but for prod we'd error.
+        // Let's stick with the current logic but add a warning.
+        console.warn(`Accessing tenant table ${tableName} without companyId header!`);
       }
 
       const items = await db.all(sql, params);
       const parsed = items.map(item => {
         const newItem = { ...item };
         jsonFields.forEach(field => {
-          if (newItem[field]) newItem[field] = JSON.parse(newItem[field]);
+          if (newItem[field]) {
+            try {
+              newItem[field] = JSON.parse(newItem[field]);
+            } catch (e) {
+              console.error(`Failed to parse JSON field ${field} in ${tableName}`, e);
+            }
+          }
         });
         return newItem;
       });
@@ -393,30 +461,24 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
     }
   });
 
-  app.post(`/api/${tableName}`, async (req, res) => {
+  app.post(`/api/${tableName}`, async (req: any, res) => {
     try {
       const db = getDb();
       const item = req.body;
       const id = item.id || uuidv4();
 
-      // Prepare fields
       const keys = Object.keys(item).filter(k => k !== 'id');
       const values = keys.map(k => {
         if (jsonFields.includes(k)) return JSON.stringify(item[k]);
         return item[k];
       });
 
-      // Variables for SQL construction will be generated after potential modifications
+      const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
 
-      if (req.tenantId) {
-        // Inject companyId if missing and valid table
-        const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
-        if (tenantTables.includes(tableName)) {
-          // If item doesn't have companyId, add it from header
-          if (!item.companyId) {
-            keys.push('companyId');
-            values.push(req.tenantId);
-          }
+      if (req.tenantId && tenantTables.includes(tableName)) {
+        if (!item.companyId) {
+          keys.push('companyId');
+          values.push(req.tenantId);
         }
       }
 
@@ -427,13 +489,15 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         `INSERT INTO ${tableName} (id, ${columns}) VALUES (?, ${placeholders})`,
         [id, ...values]
       );
+
+      await logAction(req, 'CREATE', tableName, id, item);
       res.json({ ...item, id });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
   });
 
-  app.put(`/api/${tableName}/:id`, async (req, res) => {
+  app.put(`/api/${tableName}/:id`, async (req: any, res) => {
     try {
       const db = getDb();
       const { id } = req.params;
@@ -446,22 +510,47 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
       });
 
       const setClause = keys.map(k => `${k} = ?`).join(',');
+      let sql = `UPDATE ${tableName} SET ${setClause} WHERE id = ?`;
+      const params = [...values, id];
 
-      await db.run(
-        `UPDATE ${tableName} SET ${setClause} WHERE id = ?`,
-        [...values, id]
-      );
+      const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
+      if (req.tenantId && tenantTables.includes(tableName)) {
+        sql += ` AND companyId = ?`;
+        params.push(req.tenantId);
+      }
+
+      const result = await db.run(sql, params);
+      if (result.changes === 0) {
+        return res.status(403).json({ error: 'Unauthorized or resource not found' });
+      }
+
+      await logAction(req, 'UPDATE', tableName, id, updates);
       res.json({ ...updates, id });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });
     }
   });
 
-  app.delete(`/api/${tableName}/:id`, async (req, res) => {
+  app.delete(`/api/${tableName}/:id`, async (req: any, res) => {
     try {
       const db = getDb();
       const { id } = req.params;
-      await db.run(`DELETE FROM ${tableName} WHERE id = ?`, [id]);
+
+      let sql = `DELETE FROM ${tableName} WHERE id = ?`;
+      const params = [id];
+
+      const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
+      if (req.tenantId && tenantTables.includes(tableName)) {
+        sql += ` AND companyId = ?`;
+        params.push(req.tenantId);
+      }
+
+      const result = await db.run(sql, params);
+      if (result.changes === 0) {
+        return res.status(403).json({ error: 'Unauthorized or resource not found' });
+      }
+
+      await logAction(req, 'DELETE', tableName, id);
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: (e as Error).message });

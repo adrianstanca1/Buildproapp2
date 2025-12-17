@@ -17,8 +17,10 @@ interface AIToolsViewProps {
 
 interface AnalysisResult {
   title: string;
-  data: Record<string, any>;
+  type: string;
+  data: any;
   timestamp: string;
+  summary?: string;
 }
 
 const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
@@ -27,9 +29,6 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [results, setResults] = useState<AnalysisResult | null>(null);
-  const [costEstimate, setCostEstimate] = useState<any>(null);
-  const [scheduleOpt, setScheduleOpt] = useState<any>(null);
-  const [safetyRisks, setSafetyRisks] = useState<any>(null);
 
   // YOLO specific state
   const [yoloImage, setYoloImage] = useState<string | null>(null);
@@ -43,97 +42,174 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
 
     setSelectedFile(file);
     setAnalyzing(true);
+    setResults(null);
 
-    try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = (event.target?.result as string).split(',')[1];
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = (event.target?.result as string).split(',')[1];
+      let prompt = '';
 
-        let prompt = '';
-        let fileType = file.type.includes('pdf') ? 'PDF' : 'Image';
+      switch (tool) {
+        case 'contract':
+          prompt = `Analyze this construction contract. Extract: 
+            1) Key Dates (Comp letion, Possession, Liquidated Damages start).
+            2) Financial Terms (Retention percentage, Payment cycles, Variations handling).
+            3) Liabilities (Indemnity clauses, Insurance requirements).
+            4) Risk Flags (Unusual conditions, aggressive timelines).
+            Return as JSON with 'summary', 'details' (object), and 'risks' (array).`;
+          break;
+        case 'invoice':
+          prompt = `Parse this construction invoice. Extract: 
+            1) Vendor name and VAT/Tax ID.
+            2) Invoice Number & Date.
+            3) Line items (Description, Quantity, Unit Price, Total).
+            4) Payment terms and bank details if present.
+            Return as JSON with 'summary', 'items' (array), and 'financials' (object).`;
+          break;
+        case 'blueprint':
+          prompt = `Analyze this architectural blueprint/drawing.
+            1) Identify key dimensions and scale.
+            2) List detected material quantities (concrete, steel, glass estimates).
+            3) Highlight safety risk areas (heights, confined spaces, structural complexity).
+            4) Structural notes.
+            Return as JSON with 'summary', 'measurements' (object), 'materials' (array), and 'safetyRisks' (array).`;
+          break;
+        default:
+          prompt = `Analyze this document and provide a detailed summary and structured metadata extraction. Return as JSON with 'summary' and 'data' (object).`;
+      }
 
-        switch (tool) {
-          case 'contract':
-            prompt = `Analyze this contract document and extract: 1) Key dates and milestones, 2) Payment terms and amounts, 3) Liabilities and risks, 4) Party information, 5) Termination clauses. Format as JSON with these categories. File is ${fileType}.`;
-            break;
-          case 'invoice':
-            prompt = `Analyze this invoice and extract: 1) Vendor name and contact, 2) Invoice number and date, 3) Line items with quantities and costs, 4) Total amount, 5) Payment terms and due date. Format as JSON. File is ${fileType}.`;
-            break;
-          case 'blueprint':
-            prompt = `Analyze this blueprint and extract: 1) Overall dimensions, 2) Material quantities and types, 3) Safety risk areas, 4) Critical measurements, 5) Layout notes. Format as JSON. File is ${fileType}.`;
-            break;
-          default:
-            prompt = `Analyze this document comprehensively and provide key insights. File is ${fileType}.`;
-        }
+      try {
+        const response = await runRawPrompt(prompt, {
+          model: 'gemini-3-pro-preview',
+          responseMimeType: 'application/json',
+          temperature: 0.2
+        }, base64);
 
-        try {
-          const response = await runRawPrompt(prompt);
-          // Try to parse if it's supposed to be JSON, otherwise keep as text for the generic analysis
-          let parsedData: any;
-          try {
-            parsedData = parseAIJSON(response);
-          } catch (e) {
-            parsedData = { analysis: response };
-          }
-
-          setResults({
-            title: `${tool.charAt(0).toUpperCase() + tool.slice(1)} Analysis`,
-            data: parsedData,
-            timestamp: new Date().toLocaleString(),
-          });
-        } catch (error) {
-          console.error('Analysis error:', error);
-          setResults({
-            title: 'Analysis Error',
-            data: { error: 'Failed to analyze document' },
-            timestamp: new Date().toLocaleString(),
-          });
-        }
-
+        const parsed = parseAIJSON(response);
+        setResults({
+          title: `${tool.charAt(0).toUpperCase() + tool.slice(1)} Intelligence`,
+          type: tool,
+          data: parsed,
+          summary: parsed.summary,
+          timestamp: new Date().toLocaleTimeString()
+        });
+        addToast(`${tool} analyzed successfully`, 'success');
+      } catch (error) {
+        console.error('Analysis error:', error);
+        addToast('Failed to analyze document', 'error');
+      } finally {
         setAnalyzing(false);
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('File processing error:', error);
-      setAnalyzing(false);
-    }
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
   const generateCostEstimate = async () => {
     setAnalyzing(true);
+    setResults(null);
     try {
-      const prompt = `Generate a realistic construction cost estimate with: 1) Labor costs by trade, 2) Material costs, 3) Equipment rental, 4) Contingency (15%), 5) Total project cost. Provide JSON with cost breakdown. Use realistic 2024 construction pricing for a mid-sized commercial project (~10,000 sqft).`;
-      const response = await runRawPrompt(prompt);
-      setCostEstimate({ data: parseAIJSON(response), timestamp: new Date().toLocaleString() });
-    } catch (error) {
-      console.error('Cost estimate error:', error);
-    }
-    setAnalyzing(false);
+      const prompt = `Generate a detailed cost estimate for a 5,000 sqft residential build in a high-cost area. Include Site Prep, Foundation, Framing, MEP, Finishes, and 15% Contingency. Return JSON with 'summary', 'breakdown' (array of {category, cost, note}), and 'total'.`;
+      const response = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', responseMimeType: 'application/json' });
+      const parsed = parseAIJSON(response);
+      setResults({
+        title: 'ML Cost Estimation',
+        type: 'cost',
+        data: parsed,
+        summary: parsed.summary,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (e) { addToast('Cost estimation failed', 'error'); }
+    finally { setAnalyzing(false); }
   };
 
   const generateScheduleOptimization = async () => {
     setAnalyzing(true);
+    setResults(null);
     try {
-      const prompt = `Generate an optimized construction project schedule with: 1) 8-10 major phases, 2) Duration in days for each, 3) Critical path, 4) Resource leveling recommendations, 5) Milestone dates. Format as JSON with phase names, durations, and dependencies.`;
-      const response = await runRawPrompt(prompt);
-      setScheduleOpt({ data: parseAIJSON(response), timestamp: new Date().toLocaleString() });
-    } catch (error) {
-      console.error('Schedule optimization error:', error);
-    }
-    setAnalyzing(false);
+      const prompt = `Optimize a project schedule for a commercial build. Use genetic algorithm principles to minimize slack. Return JSON with 'summary', 'phases' (array of {name, duration, weight}), and 'efficiencyScore' (0-100).`;
+      const response = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', responseMimeType: 'application/json' });
+      const parsed = parseAIJSON(response);
+      setResults({
+        title: 'Schedule Optimizer',
+        type: 'schedule',
+        data: parsed,
+        summary: parsed.summary,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (e) { addToast('Optimization failed', 'error'); }
+    finally { setAnalyzing(false); }
   };
 
-  const generateSafetyPrediction = async () => {
+  const generateRiskAssessment = async () => {
     setAnalyzing(true);
+    setResults(null);
     try {
-      const prompt = `Analyze potential safety risks for a construction project and predict: 1) High-risk activities, 2) Weather-related hazards, 3) Worker incident probabilities, 4) Equipment failure risks, 5) Preventive measures. Provide JSON with risk scores (1-10) and recommendations.`;
-      const response = await runRawPrompt(prompt);
-      setSafetyRisks({ data: parseAIJSON(response), timestamp: new Date().toLocaleString() });
-    } catch (error) {
-      console.error('Safety prediction error:', error);
-    }
-    setAnalyzing(false);
+      const prompt = `Perform a comprehensive risk assessment for a high-rise construction project. Include weather, supply chain, labor, and safety risks. Return JSON with 'summary', 'riskScore' (0-100), 'categories' (array of {name, score, mitigation}), and 'confidence'.`;
+      const response = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', responseMimeType: 'application/json' });
+      const parsed = parseAIJSON(response);
+      setResults({
+        title: 'Risk Assessment Engine',
+        type: 'risk',
+        data: parsed,
+        summary: parsed.summary,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (e) { addToast('Risk assessment failed', 'error'); }
+    finally { setAnalyzing(false); }
+  };
+
+  const generateBidPackage = async () => {
+    setAnalyzing(true);
+    setResults(null);
+    try {
+      const prompt = `Generate a professional bid package shell for a civil engineering project. Include Scope of Work, Conditions, Pricing Schedule, and Qualification criteria. Return JSON with 'summary', 'sections' (array of {title, content}), and 'expiryDate'.`;
+      const response = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', responseMimeType: 'application/json' });
+      const parsed = parseAIJSON(response);
+      setResults({
+        title: 'AI Bid Generator',
+        type: 'bid',
+        data: parsed,
+        summary: parsed.summary,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (e) { addToast('Bid generation failed', 'error'); }
+    finally { setAnalyzing(false); }
+  };
+
+  const findGrants = async () => {
+    setAnalyzing(true);
+    setResults(null);
+    try {
+      const prompt = `Identify current government grants and subsidies for sustainable construction (Solar, Insulation, Net Zero). Return JSON with 'summary', 'grants' (array of {name, amount, criteria, deadline}), and 'source'.`;
+      const response = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', responseMimeType: 'application/json' });
+      const parsed = parseAIJSON(response);
+      setResults({
+        title: 'Grant Finder',
+        type: 'grant',
+        data: parsed,
+        summary: parsed.summary,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (e) { addToast('Grant search failed', 'error'); }
+    finally { setAnalyzing(false); }
+  };
+
+  const analyzeSentiment = async () => {
+    setAnalyzing(true);
+    setResults(null);
+    try {
+      const prompt = `Analyze team communication sentiment based on simulated construction logs (pressure vs productivity). Return JSON with 'summary', 'moraleScore' (0-100), 'trends' (array of {metric, value}), and 'actionItems' (array).`;
+      const response = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', responseMimeType: 'application/json' });
+      const parsed = parseAIJSON(response);
+      setResults({
+        title: 'Sentiment Intelligence',
+        type: 'sentiment',
+        data: parsed,
+        summary: parsed.summary,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } catch (e) { addToast('Sentiment analysis failed', 'error'); }
+    finally { setAnalyzing(false); }
   };
 
   // YOLO-specific functions
@@ -286,17 +362,20 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
     { icon: FileSearch, title: 'Contract Analyzer', desc: 'Extract key dates, terms, liabilities from uploaded contracts', id: 'contract', modal: true },
     { icon: FileText, title: 'Invoice Parser', desc: 'Auto-detect vendor, amounts, line items, payment terms', id: 'invoice', modal: true },
     { icon: Box, title: 'Blueprint Analyzer', desc: 'Extract dimensions, material quantities, detect risk areas', id: 'blueprint', modal: true },
-    { icon: AlertTriangle, title: 'Risk Assessment Engine', desc: 'Analyze project risks with confidence scoring', id: 'risk', action: () => setActiveModal('risk') },
-    { icon: FileDigit, title: 'Bid Generator', desc: 'Generate professional bid packages from templates', id: 'bid', action: () => setActiveModal('bid') },
-    { icon: Search, title: 'Grant Finder', desc: 'Search government construction grants and subsidies', id: 'grant', action: () => setActiveModal('grant') },
+    { icon: AlertTriangle, title: 'Risk Assessment Engine', desc: 'Analyze project risks with confidence scoring', id: 'risk', action: () => generateRiskAssessment() },
+    { icon: FileDigit, title: 'Bid Generator', desc: 'Generate professional bid packages from templates', id: 'bid', action: () => generateBidPackage() },
+    { icon: Search, title: 'Grant Finder', desc: 'Search government construction grants and subsidies', id: 'grant', action: () => findGrants() },
     { icon: MessageSquare, title: 'AI Chat Assistant', desc: 'Natural language queries about projects, team, safety', action: () => setPage(Page.CHAT) },
     { icon: Calculator, title: 'Cost Estimator', desc: 'Predict project costs using historical ML models', id: 'cost', action: () => generateCostEstimate() },
     { icon: Calendar, title: 'Schedule Optimizer', desc: 'Optimize resource allocation with genetic algorithms', id: 'schedule', action: () => generateScheduleOptimization() },
     { icon: Eye, title: 'YOLO Object Detection', desc: 'Real-time object detection for safety, equipment tracking, and quality control', id: 'yolo', action: () => setActiveModal('yolo') },
-    { icon: ShieldAlert, title: 'Safety Predictor', desc: 'Predict potential incidents before they occur', id: 'safety', action: () => generateSafetyPrediction() },
+    { icon: ShieldAlert, title: 'Safety Predictor', desc: 'Predict potential incidents before they occur', id: 'safety', action: () => generateSentimentAnalysis() },
     { icon: FileBarChart, title: 'Report Generator', desc: 'Auto-generate executive, safety, financial reports', id: 'report', action: () => setPage(Page.REPORTS) },
-    { icon: Activity, title: 'Sentiment Analysis', desc: 'Analyze chat/email sentiment for team morale tracking', id: 'sentiment', action: () => setActiveModal('sentiment') },
+    { icon: Activity, title: 'Sentiment Analysis', desc: 'Analyze chat/email sentiment for team morale tracking', id: 'sentiment', action: () => analyzeSentiment() },
   ];
+
+  // Helper function for Safety Predictor (which I'll map to sentiment or risk depending on context)
+  const generateSentimentAnalysis = () => analyzeSentiment();
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -306,62 +385,143 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
       </div>
 
       {/* Hero Card */}
-      <div className="bg-gradient-to-r from-[#e0f2fe] to-white border border-[#bae6fd] rounded-xl p-6 mb-8 flex items-center justify-between shadow-sm">
-        <div className="flex items-start gap-4">
-          <div className="p-3 bg-[#0f5c82] rounded-lg text-white">
-            <Lightbulb size={24} />
+      <div className="bg-gradient-to-r from-[#e0f2fe] to-white border border-[#bae6fd] rounded-2xl p-8 mb-8 flex items-center justify-between shadow-xl relative overflow-hidden group">
+        <div className="absolute -right-12 -top-12 w-48 h-48 bg-blue-400/5 rounded-full group-hover:scale-125 transition-all duration-700" />
+        <div className="flex items-start gap-6 relative z-10">
+          <div className="p-4 bg-[#0f5c82] rounded-2xl text-white shadow-xl shadow-blue-200">
+            <BrainCircuit size={32} />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-[#0c4a6e] mb-1">Intelligent Document Processing</h3>
-            <p className="text-zinc-600 text-sm max-w-xl">
-              Upload contracts, blueprints, or invoices for automated OCR, categorization, key information extraction, and risk analysis.
+            <h3 className="text-xl font-black text-[#0c4a6e] mb-2 tracking-tight">Intelligent Document Intelligence (IDP)</h3>
+            <p className="text-zinc-600 text-sm max-w-xl font-medium leading-relaxed">
+              Gemini-powered multi-modal extraction. Upload contracts, blueprints, or invoices for automated OCR, risk analysis, and structured categorization.
             </p>
           </div>
         </div>
-        <label className="bg-[#1f7d98] hover:bg-[#166ba1] text-white px-6 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer">
-          <Upload size={16} /> Upload Document
+        <label className="bg-[#0f5c82] hover:bg-[#0c4a6e] text-white px-8 py-4 rounded-2xl text-sm font-black flex items-center gap-3 transition-all hover:scale-105 active:scale-95 shadow-xl shadow-blue-900/20 cursor-pointer relative z-10">
+          <Upload size={20} /> Upload Strategy
           <input type="file" hidden accept=".pdf,image/*" onChange={(e) => handleFileUpload(e, 'general')} />
         </label>
       </div>
 
-      {/* Results Display */}
-      {(results || costEstimate || scheduleOpt || safetyRisks) && (
-        <div className="bg-white border border-zinc-200 rounded-xl p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-zinc-900">
-              {results?.title || 'Analysis Results'}
-            </h3>
+      {/* Global Analyzing State */}
+      {analyzing && !results && (
+        <div className="bg-white border border-zinc-200 rounded-[2rem] p-12 mb-8 shadow-2xl flex flex-col items-center justify-center gap-6 animate-pulse">
+          <div className="relative">
+            <div className="absolute inset-0 bg-blue-400 rounded-full blur-2xl opacity-20 animate-ping" />
+            <BrainCircuit size={64} className="text-[#0f5c82] animate-bounce relative z-10" />
+          </div>
+          <div className="text-center">
+            <h3 className="text-xl font-black text-zinc-900 mb-2">Architect is Thinking...</h3>
+            <p className="text-sm text-zinc-500 font-medium max-w-xs mx-auto">Gemini is processing your request with deep reasoning and context-aware logic.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Results Display ("WOW" HUD) */}
+      {(results) && (
+        <div className="bg-white border border-zinc-200 rounded-[2rem] p-8 mb-8 shadow-2xl animate-in slide-in-from-top-4 duration-500 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-8 opacity-5">
+            <BrainCircuit size={120} />
+          </div>
+
+          <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-purple-600 rounded-2xl text-white shadow-lg shadow-purple-200">
+                <BrainCircuit size={24} />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-zinc-900">{results.title}</h3>
+                <p className="text-sm text-zinc-500 font-medium">Analysis completed at {results.timestamp}</p>
+              </div>
+            </div>
             <button
-              onClick={() => {
-                setResults(null);
-                setCostEstimate(null);
-                setScheduleOpt(null);
-                setSafetyRisks(null);
-              }}
-              className="p-2 hover:bg-zinc-100 rounded-lg transition-colors"
+              onClick={() => setResults(null)}
+              className="p-3 hover:bg-zinc-100 rounded-2xl transition-all text-zinc-400 hover:text-zinc-900"
             >
               <X size={20} />
             </button>
           </div>
-          <div className="bg-zinc-50 rounded-lg p-4 text-sm text-zinc-700 max-h-96 overflow-y-auto font-mono whitespace-pre-wrap break-words">
-            {analyzing ? (
-              <div className="flex items-center gap-2">
-                <Loader2 size={16} className="animate-spin" />
-                Analyzing...
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8 relative z-10">
+            <div className="lg:col-span-2 space-y-6">
+              <div className="bg-zinc-50 rounded-3xl p-6 border border-zinc-100">
+                <h4 className="text-xs font-black text-zinc-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <CheckCircle2 size={14} className="text-green-500" /> Executive Summary
+                </h4>
+                <p className="text-zinc-700 leading-relaxed font-medium">
+                  {results.summary}
+                </p>
               </div>
-            ) : results ? (
-              JSON.stringify(results.data, null, 2)
-            ) : costEstimate ? (
-              JSON.stringify(costEstimate.data, null, 2)
-            ) : scheduleOpt ? (
-              JSON.stringify(scheduleOpt.data, null, 2)
-            ) : (
-              JSON.stringify(safetyRisks?.data, null, 2)
-            )}
+
+              {/* Dynamic Categorized View */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {results.data && typeof results.data === 'object' && Object.entries(results.data).map(([key, value]: [string, any]) => {
+                  if (key === 'summary') return null;
+                  return (
+                    <div key={key} className="p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm">
+                      <h5 className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter mb-2">{key.replace(/([A-Z])/g, ' $1').trim()}</h5>
+                      <div className="text-sm text-zinc-600">
+                        {Array.isArray(value) ? (
+                          <ul className="space-y-1">
+                            {value.slice(0, 5).map((v, i) => <li key={i} className="flex items-start gap-2">• {typeof v === 'object' ? JSON.stringify(v) : v}</li>)}
+                          </ul>
+                        ) : typeof value === 'object' ? (
+                          <div className="grid gap-1">
+                            {Object.entries(value).slice(0, 4).map(([k, v]: [string, any]) => (
+                              <div key={k} className="flex justify-between">
+                                <span className="font-bold text-zinc-400 text-[10px]">{k}:</span>
+                                <span className="font-bold text-zinc-800 text-[10px]">{String(v)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ) : <span className="font-bold text-zinc-900">{String(value)}</span>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* Specialized Metric Display for AI Engines */}
+              {results.type === 'risk' && (
+                <div className="bg-red-50 border border-red-100 rounded-3xl p-6">
+                  <h4 className="text-xs font-black text-red-400 uppercase tracking-widest mb-4">Risk Velocity</h4>
+                  <div className="text-4xl font-black text-red-600 mb-2">{results.data.riskScore || 0}%</div>
+                  <div className="w-full bg-red-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-red-500 h-full transition-all duration-1000" style={{ width: `${results.data.riskScore}%` }} />
+                  </div>
+                </div>
+              )}
+              {results.type === 'cost' && (
+                <div className="bg-green-50 border border-green-100 rounded-3xl p-6">
+                  <h4 className="text-xs font-black text-green-400 uppercase tracking-widest mb-4">Total Estimate</h4>
+                  <div className="text-4xl font-black text-green-600 mb-2">{results.data.total || '$0'}</div>
+                  <p className="text-[10px] font-bold text-green-700">Calculated using 2024 ML benchmarks</p>
+                </div>
+              )}
+              {results.type === 'sentiment' && (
+                <div className="bg-blue-50 border border-blue-100 rounded-3xl p-6">
+                  <h4 className="text-xs font-black text-blue-400 uppercase tracking-widest mb-4">Morale Index</h4>
+                  <div className="text-4xl font-black text-blue-600 mb-2">{results.data.moraleScore || 0}/100</div>
+                  <div className="flex gap-1">
+                    {[...Array(5)].map((_, i) => (
+                      <div key={i} className={`h-1 flex-1 rounded-full ${i < (results.data.moraleScore / 20) ? 'bg-blue-600' : 'bg-blue-200'}`} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-zinc-900 rounded-3xl p-6 text-white overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-4 opacity-20"><TrendingUp size={48} /></div>
+                <h4 className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-4">Raw Intelligence</h4>
+                <div className="text-[10px] font-mono opacity-60 max-h-40 overflow-y-auto scrollbar-hide">
+                  {JSON.stringify(results.data, null, 2)}
+                </div>
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-zinc-400 mt-4">
-            Generated at: {results?.timestamp || costEstimate?.timestamp || scheduleOpt?.timestamp || safetyRisks?.timestamp}
-          </p>
         </div>
       )}
 

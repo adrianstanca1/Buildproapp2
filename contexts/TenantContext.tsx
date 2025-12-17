@@ -41,6 +41,15 @@ interface TenantContextType {
   isLoading: boolean;
   error: string | null;
   clearError: () => void;
+
+  // Impersonation
+  isImpersonating: boolean;
+  impersonateTenant: (tenantId: string) => Promise<void>;
+  stopImpersonating: () => void;
+
+  // Feature Flagging & Limits
+  checkFeature: (featureName: string) => boolean;
+  canAddResource: (resourceType: 'users' | 'projects') => boolean;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -56,42 +65,96 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   // Initialize with real data from DB
   useEffect(() => {
-    const loadTenants = async () => {
+    const initTenantData = async () => {
       try {
         setIsLoading(true);
+        setError(null);
+
+        // 1. Fetch Companies
         const fetchedTenants = await db.getCompanies();
         setTenants(fetchedTenants);
-        if (fetchedTenants.length > 0) {
-          setCurrentTenant(fetchedTenants[0]);
-          db.setTenantId(fetchedTenants[0].id);
+
+        let activeTenant = currentTenant;
+        if (!activeTenant && fetchedTenants.length > 0) {
+          activeTenant = fetchedTenants[0];
+          setCurrentTenant(activeTenant);
+          db.setTenantId(activeTenant.id);
+        }
+
+        if (activeTenant) {
+          // 2. Fetch Usage & Audit Logs for active tenant
+          const [usage, logs] = await Promise.all([
+            db.getTenantUsage(activeTenant.id),
+            db.getAuditLogs(activeTenant.id)
+          ]);
+          setTenantUsage(usage);
+          setAuditLogs(logs);
+
+          // 3. Apply Dynamic Branding
+          applyBranding(activeTenant.settings);
         }
       } catch (e) {
-        console.error("Failed to load tenants", e);
-        setError("Failed to load tenants");
+        console.error("Failed to initialize tenant data", e);
+        setError("Failed to initialize tenant data");
       } finally {
         setIsLoading(false);
       }
     };
-    loadTenants();
+    initTenantData();
+  }, [currentTenant?.id]);
 
-    // Mock other entities for now until backend supports them fully or we expand scope
-    // ... member and usage mocks kept for UI stability if backend doesn't have them yet ...
-    // For now we keep the previous mock side-effects for members/usage below as placeholders
-    // or we can just initialize them empty if we want to be strict.
-    // Let's keep them empty/minimal to avoid confusion with "real" data.
+  const [isImpersonating, setIsImpersonating] = useState(false);
 
-    setTenantMembers([]);
-    setTenantUsage({
-      tenantId: 'c1',
-      currentUsers: 0,
-      currentProjects: 0,
-      currentStorage: 0,
-      currentApiCalls: 0,
-      period: '2025-01',
-      limit: { users: 100, projects: 50, storage: 5000, apiCalls: 10000 }
-    });
+  const impersonateTenant = useCallback(async (tenantId: string) => {
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (tenant) {
+      setCurrentTenant(tenant);
+      db.setTenantId(tenant.id);
+      setIsImpersonating(true);
+      // Re-apply branding
+      applyBranding(tenant.settings);
+    }
+  }, [tenants]);
 
-  }, []);
+  const stopImpersonating = useCallback(() => {
+    // Return to the first tenant (default behavior for now)
+    if (tenants.length > 0) {
+      setCurrentTenant(tenants[0]);
+      db.setTenantId(tenants[0].id);
+      setIsImpersonating(false);
+      applyBranding(tenants[0].settings);
+    }
+  }, [tenants]);
+
+  const applyBranding = (settings?: any) => {
+    if (!settings) return;
+    const root = document.documentElement;
+    // Use loose property check for dynamic branding
+    if (settings.primaryColor) root.style.setProperty('--primary', settings.primaryColor);
+    if (settings.accentColor) root.style.setProperty('--accent', settings.accentColor);
+  };
+
+  const checkFeature = useCallback((featureName: string) => {
+    if (!currentTenant) return false;
+    // Enterprise has EVERYTHING
+    if (currentTenant.plan === 'Enterprise') return true;
+
+    const planFeatures: Record<string, string[]> = {
+      'Starter': ['DASHBOARD', 'TASKS', 'DOCUMENTS'],
+      'Business': ['DASHBOARD', 'TASKS', 'DOCUMENTS', 'AI_TOOLS', 'REPORTS', 'SCHEDULE', 'TEAM', 'FINANCIALS'],
+      'Custom': currentTenant.features?.filter(f => f.enabled).map(f => f.name) || []
+    };
+
+    const allowed = planFeatures[currentTenant.plan] || [];
+    return allowed.includes(featureName);
+  }, [currentTenant]);
+
+  const canAddResource = useCallback((resourceType: 'users' | 'projects') => {
+    if (!currentTenant || !tenantUsage) return true;
+    const limit = resourceType === 'users' ? tenantUsage.limit.users : tenantUsage.limit.projects;
+    const current = resourceType === 'users' ? tenantUsage.currentUsers : tenantUsage.currentProjects;
+    return !limit || current < limit;
+  }, [currentTenant, tenantUsage]);
 
   const addTenant = useCallback(async (tenant: Tenant) => {
     try {
@@ -374,6 +437,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         isLoading,
         error,
         clearError,
+        isImpersonating,
+        impersonateTenant,
+        stopImpersonating,
+        checkFeature,
+        canAddResource,
       }}
     >
       {children}

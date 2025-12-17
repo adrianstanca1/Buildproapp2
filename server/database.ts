@@ -372,6 +372,21 @@ async function initSchema(db: IDatabase) {
       status TEXT,
       invoice TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      companyId TEXT,
+      userId TEXT,
+      userName TEXT,
+      action TEXT,
+      resource TEXT,
+      resourceId TEXT,
+      changes TEXT, -- JSON string
+      status TEXT,
+      timestamp TEXT,
+      ipAddress TEXT,
+      userAgent TEXT
+    );
   `);
 
   // Migration: Add timelineOptimizations if not exists
