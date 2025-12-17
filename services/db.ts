@@ -259,10 +259,7 @@ class DatabaseService {
     if (this.useMock) return;
     await this.post('team_messages', item);
   }
-  async addTeamMessage(item: any) {
-    if (this.useMock) return;
-    await this.post('team_messages', item);
-  }
+
 
   // --- Companies ---
   async getCompanies(): Promise<Tenant[]> {
