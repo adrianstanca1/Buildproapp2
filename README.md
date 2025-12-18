@@ -1,6 +1,6 @@
 # 🏗️ BuildPro - Construction Management Platform
 
-**Status:** ✅ Production Ready | **Version:** 1.1.0 | **Build:** Passing | **CI:** Configured | **Deployment:** Live
+**Status:** ✅ Production Ready | **Version:** 1.2.0 | **Build:** Passing | **CI:** Configured | **Deployment:** Live
 
 ## 🎯 Overview
 
@@ -25,9 +25,10 @@ BuildPro is a **comprehensive construction project management platform** powered
 
 👥 **Collaborative**
 - Team messaging
-- Role-based access control
-- Multi-tenant support
-- Offline capability
+- Role-based access control (RBAC)
+- Full Multi-tenant architecture
+- Resource-limit enforcement (Plan-based)
+- Tenant-specific branding & analytics
 
 ---
 
@@ -218,5 +219,5 @@ Private project - BuildPro Construction
 ---
 
 **Status:** ✅ Ready for production use
-**Version:** 1.1.0
-**Last Updated:** December 17, 2025
+**Version:** 1.2.0
+**Last Updated:** December 18, 2025
