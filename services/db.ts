@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics } from '@/types';
 import { db as mockDb } from './mockDb';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -28,14 +28,22 @@ class DatabaseService {
     }
   }
 
+  private getHeaders(extra: Record<string, string> = {}): Record<string, string> {
+    const headers: Record<string, string> = { ...extra };
+    if (this.tenantId) headers['x-company-id'] = this.tenantId;
+    // Mock user context for now - in real app would come from AuthContext
+    headers['x-user-id'] = 'user-admin-001';
+    headers['x-user-name'] = 'John Anderson';
+    return headers;
+  }
+
   // --- Generic Helpers ---
   private async fetch<T>(endpoint: string): Promise<T[]> {
     if (this.useMock) return []; // Or delegate to mockDb generic if implemented
     try {
-      const headers: Record<string, string> = {};
-      if (this.tenantId) headers['x-company-id'] = this.tenantId;
-
-      const res = await fetch(`${API_URL}/${endpoint}`, { headers });
+      const res = await fetch(`${API_URL}/${endpoint}`, {
+        headers: this.getHeaders()
+      });
       if (!res.ok) throw new Error(`Failed to fetch ${endpoint}`);
       return await res.json();
     } catch (e) {
@@ -48,12 +56,9 @@ class DatabaseService {
   private async post<T>(endpoint: string, data: T): Promise<T | null> {
     if (this.useMock) return null;
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (this.tenantId) headers['x-company-id'] = this.tenantId;
-
       const res = await fetch(`${API_URL}/${endpoint}`, {
         method: 'POST',
-        headers,
+        headers: this.getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error(`Failed to post to ${endpoint}`);
@@ -67,12 +72,9 @@ class DatabaseService {
   private async put<T>(endpoint: string, id: string, data: Partial<T>): Promise<void> {
     if (this.useMock) return;
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (this.tenantId) headers['x-company-id'] = this.tenantId;
-
       const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
         method: 'PUT',
-        headers,
+        headers: this.getHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(data)
       });
       if (!res.ok) throw new Error(`Failed to update ${endpoint}/${id}`);
@@ -84,12 +86,9 @@ class DatabaseService {
   private async delete(endpoint: string, id: string): Promise<void> {
     if (this.useMock) return;
     try {
-      const headers: Record<string, string> = {};
-      if (this.tenantId) headers['x-company-id'] = this.tenantId;
-
       const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
         method: 'DELETE',
-        headers
+        headers: this.getHeaders()
       });
       if (!res.ok) throw new Error(`Failed to delete ${endpoint}/${id}`);
     } catch (e) {
@@ -310,7 +309,7 @@ class DatabaseService {
   // --- Tenant Analytics & Security ---
   async getTenantUsage(tenantId: string): Promise<TenantUsage> {
     const res = await fetch(`${API_URL}/tenants/${tenantId}/usage`, {
-      headers: this.tenantId ? { 'x-company-id': this.tenantId } : {}
+      headers: this.getHeaders()
     });
     if (!res.ok) throw new Error("Failed to fetch usage");
     return await res.json();
@@ -318,6 +317,35 @@ class DatabaseService {
 
   async getAuditLogs(tenantId: string): Promise<TenantAuditLog[]> {
     return this.fetch<TenantAuditLog>(`audit_logs?tenantId=${tenantId}`);
+  }
+
+  // --- Multi-Tenant Intelligence & Roles ---
+  async getTenantAnalytics(tenantId: string): Promise<TenantAnalytics> {
+    const res = await fetch(`${API_URL}/tenants/${tenantId}/analytics`, {
+      headers: this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch analytics");
+    return await res.json();
+  }
+
+  async checkTenantLimits(tenantId: string, resourceType: string): Promise<any> {
+    const res = await fetch(`${API_URL}/tenants/${tenantId}/limits/${resourceType}`, {
+      headers: this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to check limits");
+    return await res.json();
+  }
+
+  async getRoles(): Promise<any[]> {
+    return this.fetch('roles');
+  }
+
+  async getUserRoles(userId: string, companyId: string): Promise<any[]> {
+    const res = await fetch(`${API_URL}/user-roles/${userId}/${companyId}`, {
+      headers: this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch user roles");
+    return await res.json();
   }
 }
 

@@ -1,13 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-Search, Plus, Filter, Calendar, Users, MapPin,
-CheckSquare, Activity, Image as ImageIcon, ArrowRight, MoreVertical,
-LayoutGrid, List as ListIcon, Briefcase
+    Search, Plus, Filter, Calendar, Users, MapPin,
+    CheckSquare, Activity, Image as ImageIcon, ArrowRight, MoreVertical,
+    LayoutGrid, List as ListIcon, Briefcase
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { Project, Page } from '@/types';
+import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
+import { AlertCircle } from 'lucide-react';
 
 interface ProjectsViewProps {
     onProjectSelect?: (projectId: string) => void;
@@ -18,6 +20,7 @@ interface ProjectsViewProps {
 const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, autoLaunch }) => {
     const { projects, documents } = useProjects();
     const { addToast } = useToast();
+    const { canAddResource, currentTenant } = useTenant();
     const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
@@ -83,13 +86,33 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                         </button>
                     </div>
                     <button
-                        onClick={() => setPage && setPage(Page.PROJECT_LAUNCHPAD)}
-                        className="flex items-center gap-2 bg-[#0f5c82] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#0c4a6e] shadow-sm transition-all"
+                        onClick={() => {
+                            if (!canAddResource('projects')) {
+                                addToast(`Project limit reached for ${currentTenant?.plan} plan.`, 'error');
+                                return;
+                            }
+                            setPage && setPage(Page.PROJECT_LAUNCHPAD);
+                        }}
+                        disabled={!canAddResource('projects')}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('projects')
+                                ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
+                                : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
+                            }`}
                     >
                         <Plus size={18} /> New Project
                     </button>
                 </div>
             </div>
+
+            {!canAddResource('projects') && (
+                <div className="mb-6 bg-orange-50 border border-orange-200 p-4 rounded-xl flex items-center gap-3 text-orange-800 shadow-sm">
+                    <AlertCircle size={20} className="flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold">Project limit approaching</p>
+                        <p className="text-xs">You've reached your maximum of {currentTenant?.maxProjects || 5} projects. <button className="underline font-bold">Upgrade your plan</button> to add more.</p>
+                    </div>
+                </div>
+            )}
 
             {/* Filters */}
             <div className="flex flex-col md:flex-row gap-4 mb-6 items-center bg-white p-4 rounded-xl border border-zinc-200 shadow-sm">
@@ -251,16 +274,32 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                             )
                         })}
 
-                        {/* Add New Project Card - Always visible at end of grid */}
+                        {/* Add New Project Card */}
                         <button
-                            onClick={() => setPage && setPage(Page.PROJECT_LAUNCHPAD)}
-                            className="border-2 border-dashed border-zinc-200 rounded-2xl p-6 flex flex-col items-center justify-center text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30 transition-all group min-h-[300px]"
+                            onClick={() => {
+                                if (!canAddResource('projects')) {
+                                    addToast(`Project limit reached.`, 'error');
+                                    return;
+                                }
+                                setPage && setPage(Page.PROJECT_LAUNCHPAD);
+                            }}
+                            className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all group min-h-[300px] ${canAddResource('projects')
+                                    ? 'border-zinc-200 text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30'
+                                    : 'border-zinc-100 text-zinc-300 cursor-not-allowed'
+                                }`}
                         >
-                            <div className="w-16 h-16 bg-zinc-50 rounded-full flex items-center justify-center mb-4 group-hover:bg-white group-hover:shadow-md transition-all">
+                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all ${canAddResource('projects')
+                                    ? 'bg-zinc-50 group-hover:bg-white group-hover:shadow-md'
+                                    : 'bg-zinc-50/50'
+                                }`}>
                                 <Plus size={32} />
                             </div>
                             <h3 className="font-bold text-lg">Create New Project</h3>
-                            <p className="text-sm opacity-70 mt-2 text-center max-w-xs">Launch a new project with AI assistance using Gemini 3 Pro.</p>
+                            <p className="text-sm opacity-70 mt-2 text-center max-w-xs">
+                                {canAddResource('projects')
+                                    ? "Launch a new project with AI assistance using Gemini 3 Pro."
+                                    : `Project limit reached for your ${currentTenant?.plan} plan.`}
+                            </p>
                         </button>
                     </div>
                 ) : (

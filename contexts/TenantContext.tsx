@@ -3,7 +3,13 @@ import { db } from '@/services/db';
 import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings } from '@/types';
 
 interface TenantContextType {
-  // Current tenant
+  // Current tenant (simplified API)
+  tenant: Tenant | null;
+  setTenant: (tenant: Tenant | null) => void;
+  availableTenants: Tenant[];
+  refreshTenantData: () => Promise<void>;
+
+  // Legacy API (for backwards compatibility)
   currentTenant: Tenant | null;
   setCurrentTenant: (tenant: Tenant | null) => void;
 
@@ -74,15 +80,23 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         const fetchedTenants = await db.getCompanies();
         setTenants(fetchedTenants);
 
-        let activeTenant = currentTenant;
+        // 2. Check localStorage for saved tenant
+        const savedTenantId = localStorage.getItem('selectedTenantId');
+        let activeTenant = savedTenantId
+          ? fetchedTenants.find(t => t.id === savedTenantId)
+          : null;
+
+        // 3. Fallback to first tenant if no saved selection
         if (!activeTenant && fetchedTenants.length > 0) {
           activeTenant = fetchedTenants[0];
-          setCurrentTenant(activeTenant);
-          db.setTenantId(activeTenant.id);
         }
 
         if (activeTenant) {
-          // 2. Fetch Usage & Audit Logs for active tenant
+          setCurrentTenant(activeTenant);
+          db.setTenantId(activeTenant.id);
+          localStorage.setItem('selectedTenantId', activeTenant.id);
+
+          // 4. Fetch Usage & Audit Logs for active tenant
           const [usage, logs] = await Promise.all([
             db.getTenantUsage(activeTenant.id),
             db.getAuditLogs(activeTenant.id)
@@ -90,7 +104,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           setTenantUsage(usage);
           setAuditLogs(logs);
 
-          // 3. Apply Dynamic Branding
+          // 5. Apply Dynamic Branding
           applyBranding(activeTenant.settings);
         }
       } catch (e) {
@@ -101,7 +115,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
     initTenantData();
-  }, [currentTenant?.id]);
+  }, []);
 
   const [isImpersonating, setIsImpersonating] = useState(false);
 
@@ -408,9 +422,46 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setError(null);
   }, []);
 
+  // Refresh tenant data
+  const refreshTenantData = useCallback(async () => {
+    if (!currentTenant) return;
+    try {
+      const [usage, logs] = await Promise.all([
+        db.getTenantUsage(currentTenant.id),
+        db.getAuditLogs(currentTenant.id)
+      ]);
+      setTenantUsage(usage);
+      setAuditLogs(logs);
+    } catch (e) {
+      console.error('Failed to refresh tenant data', e);
+    }
+  }, [currentTenant]);
+
+  // Simplified tenant setter with localStorage
+  const setTenantWithPersistence = useCallback((t: Tenant | null) => {
+    setCurrentTenant(t);
+    db.setTenantId(t?.id || null);
+    if (t) {
+      localStorage.setItem('selectedTenantId', t.id);
+      // Refresh usage data for new tenant
+      db.getTenantUsage(t.id).then(setTenantUsage).catch(console.error);
+      db.getAuditLogs(t.id).then(setAuditLogs).catch(console.error);
+      applyBranding(t.settings);
+    } else {
+      localStorage.removeItem('selectedTenantId');
+    }
+  }, []);
+
   return (
     <TenantContext.Provider
       value={{
+        // Simplified API
+        tenant: currentTenant,
+        setTenant: setTenantWithPersistence,
+        availableTenants: tenants,
+        refreshTenantData,
+
+        // Legacy API
         currentTenant,
         setCurrentTenant: (t) => {
           setCurrentTenant(t);

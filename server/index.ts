@@ -9,6 +9,8 @@ const cors = require('cors');
 import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
+import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
+import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tenantService.js';
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -211,6 +213,119 @@ app.get('/api/audit_logs', async (req: any, res: any) => {
     }));
 
     res.json(parsed);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// --- Role Management Routes ---
+app.get('/api/roles', async (req: any, res: any) => {
+  try {
+    const db = getDb();
+    const roles = await db.all('SELECT * FROM roles');
+    const parsed = roles.map(r => ({
+      ...r,
+      permissions: r.permissions ? JSON.parse(r.permissions) : []
+    }));
+    res.json(parsed);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+app.post('/api/roles', async (req: any, res: any) => {
+  try {
+    const db = getDb();
+    const { name, description, permissions } = req.body;
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    await db.run(
+      `INSERT INTO roles (id, name, description, permissions, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, name, description, JSON.stringify(permissions || []), now, now]
+    );
+
+    await logAction(req, 'CREATE', 'roles', id, { name, permissions });
+    res.json({ id, name, description, permissions, createdAt: now, updatedAt: now });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// Assign role to user for a tenant
+app.post('/api/user-roles', async (req: any, res: any) => {
+  try {
+    const db = getDb();
+    const { userId, companyId, roleId } = req.body;
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    await db.run(
+      `INSERT INTO user_roles (id, userId, companyId, roleId, assignedBy, assignedAt)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [id, userId, companyId, roleId, req.userId, now]
+    );
+
+    await logAction(req, 'ASSIGN_ROLE', 'user_roles', id, { userId, companyId, roleId });
+    res.json({ id, userId, companyId, roleId, assignedAt: now });
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// Get user roles for a tenant
+app.get('/api/user-roles/:userId/:companyId', async (req: any, res: any) => {
+  try {
+    const db = getDb();
+    const { userId, companyId } = req.params;
+
+    const userRoles = await db.all(
+      `SELECT ur.*, r.name as roleName, r.description, r.permissions
+       FROM user_roles ur
+       JOIN roles r ON ur.roleId = r.id
+       WHERE ur.userId = ? AND ur.companyId = ?`,
+      [userId, companyId]
+    );
+
+    const parsed = userRoles.map(ur => ({
+      ...ur,
+      permissions: ur.permissions ? JSON.parse(ur.permissions) : []
+    }));
+
+    res.json(parsed);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// --- Enhanced Tenant Analytics ---
+app.get('/api/tenants/:id/analytics', async (req: any, res: any) => {
+  try {
+    const { id } = req.params;
+    const analytics = await getTenantAnalytics(id);
+    res.json(analytics);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+app.get('/api/tenants/:id/limits/:resourceType', async (req: any, res: any) => {
+  try {
+    const { id, resourceType } = req.params;
+    const limits = await checkTenantLimits(id, resourceType as any);
+    res.json(limits);
+  } catch (e) {
+    res.status(500).json({ error: (e as Error).message });
+  }
+});
+
+// Log usage (called by other endpoints)
+app.post('/api/usage-logs', async (req: any, res: any) => {
+  try {
+    const { companyId, resourceType, amount, metadata } = req.body;
+    await logUsage(companyId, resourceType, amount, metadata);
+    res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: (e as Error).message });
   }

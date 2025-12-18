@@ -6,7 +6,7 @@ import {
     MoreHorizontal, Shield, DollarSign, Users, Briefcase, HardHat, CheckSquare, Map as MapIcon,
     FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
     Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
-    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight
+    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight, PieChart
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -14,6 +14,8 @@ import { useTenant } from '@/contexts/TenantContext'; // Added TenantContext
 import { UserRole, Task, Page, Tenant } from '@/types'; // Switched Company to Tenant
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';
+import { TenantUsageWidget } from '@/components/TenantUsageWidget';
+import { db } from '@/services/db';
 
 interface DashboardViewProps {
     setPage: (page: Page) => void;
@@ -645,7 +647,21 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
             <AIDailyBriefing role={UserRole.COMPANY_ADMIN} />
 
             {/* Quick Actions - Enhanced */}
-            <QuickActionsGrid setPage={setPage} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <QuickActionsGrid setPage={setPage} />
+                </div>
+                <div className="lg:col-span-1">
+                    <TenantUsageWidget />
+                    <button
+                        onClick={() => setPage(Page.TENANT_ANALYTICS)}
+                        className="w-full mt-4 p-4 bg-white border border-dashed border-blue-300 rounded-xl text-blue-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
+                    >
+                        <PieChart size={18} />
+                        View Full Tenant Intelligence
+                    </button>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="col-span-2 bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">

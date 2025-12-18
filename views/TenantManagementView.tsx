@@ -15,9 +15,11 @@ import {
   Search,
   Filter,
   ChevronDown,
+  ShieldAlert,
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
-import { Tenant, TenantMember, TenantAuditLog } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { Tenant, TenantMember, TenantAuditLog, UserRole } from '@/types';
 
 interface Tab {
   id: string;
@@ -34,7 +36,8 @@ const tabs: Tab[] = [
 ];
 
 export const TenantManagementView: React.FC = () => {
-  const { currentTenant, tenants, tenantMembers, tenantUsage, getTenantAuditLogs, isLoading } = useTenant();
+  const { currentTenant, tenants, tenantMembers, tenantUsage, getTenantAuditLogs, isLoading, requireRole } = useTenant();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(currentTenant);
@@ -82,6 +85,29 @@ export const TenantManagementView: React.FC = () => {
     }
   };
 
+  if (!requireRole(['company_admin', 'super_admin'])) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[80vh] p-8 text-center">
+        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6">
+          <ShieldAlert size={40} />
+        </div>
+        <h2 className="text-2xl font-black text-zinc-900 mb-2">Access Denied</h2>
+        <p className="text-zinc-500 max-w-md mb-8">
+          You do not have permission to access Organization Management.
+          Please contact your administrator if you need access.
+        </p>
+        <button
+          onClick={() => window.history.back()}
+          className="px-6 py-2 bg-zinc-900 text-white rounded-lg font-bold hover:bg-zinc-800 transition-all"
+        >
+          Go Back
+        </button>
+      </div>
+    );
+  }
+
+  const isSuperAdmin = requireRole(['super_admin']);
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -95,51 +121,52 @@ export const TenantManagementView: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar - Tenant List */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900 mb-3">Tenants</h2>
-                <div className="relative">
-                  <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search tenants..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+          {/* Sidebar - Tenant List (Only for Super Admin) */}
+          {isSuperAdmin && (
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg shadow">
+                <div className="p-4 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-3">Tenants</h2>
+                  <div className="relative">
+                    <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search tenants..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {filteredTenants.map((tenant) => (
-                  <div
-                    key={tenant.id}
-                    onClick={() => setSelectedTenant(tenant)}
-                    className={`p-4 cursor-pointer transition-colors ${
-                      selectedTenant?.id === tenant.id ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                        {tenant.name.charAt(0)}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">{tenant.name}</p>
-                        <span className={`inline-block mt-1 px-2 py-1 text-xs font-semibold rounded ${getStatusColor(tenant.status)}`}>
-                          {tenant.status}
-                        </span>
+                <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
+                  {filteredTenants.map((tenant) => (
+                    <div
+                      key={tenant.id}
+                      onClick={() => setSelectedTenant(tenant)}
+                      className={`p-4 cursor-pointer transition-colors ${selectedTenant?.id === tenant.id ? 'bg-blue-50 border-l-4 border-blue-600' : 'hover:bg-gray-50'
+                        }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                          {tenant.name.charAt(0)}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{tenant.name}</p>
+                          <span className={`inline-block mt-1 px-2 py-1 text-xs font-semibold rounded ${getStatusColor(tenant.status)}`}>
+                            {tenant.status}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div className={isSuperAdmin ? "lg:col-span-3" : "lg:col-span-4"}>
             {selectedTenant ? (
               <div className="bg-white rounded-lg shadow">
                 {/* Tabs */}
@@ -148,11 +175,10 @@ export const TenantManagementView: React.FC = () => {
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
-                      className={`px-4 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${
-                        activeTab === tab.id
+                      className={`px-4 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === tab.id
                           ? 'border-blue-600 text-blue-600'
                           : 'border-transparent text-gray-600 hover:text-gray-900'
-                      }`}
+                        }`}
                     >
                       {tab.icon}
                       {tab.label}

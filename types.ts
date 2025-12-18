@@ -37,7 +37,8 @@ export enum Page {
   MY_DESKTOP = 'MY_DESKTOP',
   LIVE_PROJECT_MAP = 'LIVE_PROJECT_MAP',
   PROJECT_LAUNCHPAD = 'PROJECT_LAUNCHPAD',
-  TENANT_MANAGEMENT = 'TENANT_MANAGEMENT'
+  TENANT_MANAGEMENT = 'TENANT_MANAGEMENT',
+  TENANT_ANALYTICS = 'TENANT_ANALYTICS'
 }
 
 export enum UserRole {
@@ -165,6 +166,20 @@ export interface TenantUsage {
     storage?: number; // MB
     apiCalls?: number;
   };
+}
+
+export interface TenantAnalytics {
+  tenantId: string;
+  period: string;
+  usage: TenantUsage;
+  trends: {
+    usersGrowth: number;
+    projectsGrowth: number;
+    storageGrowth: number;
+    apiCallsGrowth: number;
+  };
+  activityHeatmap: Record<string, number>;
+  securityScore: number;
 }
 
 export interface Zone {

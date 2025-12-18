@@ -387,6 +387,42 @@ async function initSchema(db: IDatabase) {
       ipAddress TEXT,
       userAgent TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS roles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      permissions TEXT, -- JSON array
+      createdAt TEXT,
+      updatedAt TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS user_roles (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      companyId TEXT NOT NULL,
+      roleId TEXT NOT NULL,
+      assignedBy TEXT,
+      assignedAt TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id),
+      FOREIGN KEY (roleId) REFERENCES roles(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS tenant_usage_logs (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      resourceType TEXT NOT NULL,
+      amount INTEGER DEFAULT 1,
+      timestamp TEXT NOT NULL,
+      metadata TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_roles_user ON user_roles(userId);
+    CREATE INDEX IF NOT EXISTS idx_user_roles_company ON user_roles(companyId);
+    CREATE INDEX IF NOT EXISTS idx_usage_logs_company ON tenant_usage_logs(companyId);
+    CREATE INDEX IF NOT EXISTS idx_usage_logs_type ON tenant_usage_logs(resourceType);
+    CREATE INDEX IF NOT EXISTS idx_audit_logs_company ON audit_logs(companyId);
   `);
 
   // Migration: Add timelineOptimizations if not exists

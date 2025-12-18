@@ -5,10 +5,15 @@ import { useProjects } from '../contexts/ProjectContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { Transaction } from '@/types';
 import { useToast } from '@/contexts/ToastContext';
+import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/types';
 
 const FinancialsView: React.FC = () => {
   const { addToast } = useToast();
   const { transactions, projects, addTransaction } = useProjects();
+  const { requireRole, currentTenant } = useTenant();
+  const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'CASHFLOW' | 'BUDGET' | 'TRANSACTIONS'>('CASHFLOW');
   const [filterMonth, setFilterMonth] = useState('2025-12');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -129,6 +134,27 @@ const FinancialsView: React.FC = () => {
       setIsAnalyzingInsights(false);
     }
   };
+
+  if (!requireRole(['company_admin', 'super_admin'])) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[80vh] p-8 text-center">
+        <div className="w-20 h-20 bg-red-50 text-red-500 rounded-full flex items-center justify-center mb-6">
+          <ShieldAlert size={40} />
+        </div>
+        <h2 className="text-2xl font-black text-zinc-900 mb-2">Access Restricted</h2>
+        <p className="text-zinc-500 max-w-md mb-8">
+          Financial Command is only available to Company Administrators.
+          Please contact your system administrator if you believe this is an error.
+        </p>
+        <button
+          onClick={() => window.history.back()}
+          className="px-6 py-2 bg-zinc-900 text-white rounded-lg font-bold hover:bg-zinc-800 transition-all"
+        >
+          Return to Safety
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto">

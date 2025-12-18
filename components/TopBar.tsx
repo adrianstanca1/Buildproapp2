@@ -4,6 +4,8 @@ import { Search, Bell, WifiOff, AlertOctagon, X, Siren, Send, Wifi } from 'lucid
 import { Page } from '@/types';
 import { offlineQueue } from '../services/offlineQueue';
 import { useToast } from '../contexts/ToastContext';
+import { TenantSelector } from './TenantSelector';
+import { useTenant } from '../contexts/TenantContext';
 
 interface TopBarProps {
   setPage: (page: Page) => void;
@@ -15,6 +17,7 @@ const TopBar: React.FC<TopBarProps> = ({ setPage }) => {
   const [sosMessage, setSosMessage] = useState('');
   const [sosSent, setSosSent] = useState(false);
   const { addToast } = useToast();
+  const { tenant } = useTenant();
 
   useEffect(() => {
     const handleOnline = () => { setIsOnline(true); offlineQueue.processQueue(); };
@@ -75,23 +78,21 @@ const TopBar: React.FC<TopBarProps> = ({ setPage }) => {
 
           <div className="h-6 w-px bg-zinc-200 mx-2" />
 
-          <button className="relative text-zinc-500 hover:text-zinc-700">
-            <Bell size={20} />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
-              3
-            </span>
-          </button>
+          {/* Tenant Selector */}
+          <div className="hidden lg:block">
+            <TenantSelector />
+          </div>
 
           <button
             onClick={() => setPage(Page.PROFILE)}
-            className="flex items-center gap-3 pl-2 border-l border-transparent hover:bg-zinc-50 py-1 pr-2 rounded transition-colors"
+            className="flex items-center gap-3 pl-2 border-l border-zinc-200 hover:bg-zinc-50 py-1 pr-2 rounded transition-colors"
           >
-            <div className="w-9 h-9 rounded-full bg-[#0e5a8a] text-white flex items-center justify-center text-sm font-semibold">
-              JA
+            <div className={`w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center text-sm font-semibold shadow-sm`}>
+              {tenant?.name?.substring(0, 2).toUpperCase() || 'JA'}
             </div>
-            <div className="text-left hidden md:block">
+            <div className="text-left hidden xl:block">
               <div className="text-sm font-semibold text-zinc-900">John Anderson</div>
-              <div className="text-xs text-zinc-500">Principal Admin</div>
+              <div className="text-xs text-zinc-500">{tenant?.plan} Admin</div>
             </div>
           </button>
         </div>
