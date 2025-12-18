@@ -193,13 +193,15 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
     const { checkFeature } = useTenant();
 
     const actions = [
-        { icon: FileText, title: "Create Invoice", desc: "Generate a new invoice", page: Page.FINANCIALS, feature: 'FINANCIALS' },
-        { icon: PlusSquare, title: "New Quote", desc: "Create project quote", page: Page.PROJECT_LAUNCHPAD, feature: 'PROJECTS' },
-        { icon: Users, title: "Team Management", desc: "Manage team & resources", page: Page.TEAM, feature: 'TEAM', color: "text-purple-600" },
-        { icon: Calendar, title: "Schedule", desc: "View project timeline", page: Page.SCHEDULE, feature: 'SCHEDULE', color: "text-orange-600" },
-        { icon: Briefcase, title: "CRM", desc: "Customer relationship", page: Page.CLIENTS, feature: 'CLIENTS' },
-        { icon: Sparkles, title: "AI Tools", desc: "Deep intelligent analysis", page: Page.AI_TOOLS, feature: 'AI_TOOLS', color: "text-blue-600" },
-        { icon: FileBarChart, title: "Reports", desc: "Business intelligence", page: Page.REPORTS, feature: 'REPORTS' }
+        { icon: FileText, title: "Invoicing", desc: "Financial billing", page: Page.FINANCIALS, feature: 'FINANCIALS' },
+        { icon: PlusSquare, title: "Estimates", desc: "Project bidding", page: Page.PROJECT_LAUNCHPAD, feature: 'PROJECTS' },
+        { icon: Users, title: "Team", desc: "Resource planning", page: Page.TEAM, feature: 'TEAM', color: "text-purple-600" },
+        { icon: Calendar, title: "Schedule", desc: "View timeline", page: Page.SCHEDULE, feature: 'SCHEDULE', color: "text-orange-600" },
+        { icon: Briefcase, title: "CRM", desc: "Client Relations", page: Page.CLIENTS, feature: 'CLIENTS' },
+        { icon: Sparkles, title: "AI Tools", desc: "Deep Analysis", page: Page.AI_TOOLS, feature: 'AI_TOOLS', color: "text-blue-600" },
+        { icon: FileBarChart, title: "Reports", desc: "Business Intelligence", page: Page.REPORTS, feature: 'REPORTS', color: "text-teal-600" },
+        { icon: RotateCcw, title: "Variations", desc: "Track changes", page: Page.PROJECTS, feature: 'PROJECTS', color: "text-red-500" },
+        { icon: MessageSquare, title: "AI Advisor", desc: "Ask BuildPro", page: Page.CHAT, feature: 'CHAT', color: "text-indigo-600" }
     ];
 
     return (
@@ -208,7 +210,7 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
                 <Settings size={18} className="text-[#0f5c82]" />
                 <span>Quick Actions</span>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {actions.filter(a => !a.feature || checkFeature(a.feature)).map((action, i) => (
                     <QuickActionCard
                         key={i}
@@ -223,32 +225,6 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
         </div>
     );
 };
-color = "text-blue-600"
-    />
-            <QuickActionCard
-                icon={RotateCcw}
-                title="Variations"
-                desc="Project variations"
-                onClick={() => setPage(Page.PROJECTS)}
-                color="text-red-500"
-            />
-            <QuickActionCard
-                icon={MessageSquare}
-                title="AI Advisor"
-                desc="Get AI assistance"
-                onClick={() => setPage(Page.CHAT)}
-                color="text-indigo-600"
-            />
-            <QuickActionCard
-                icon={FileBarChart}
-                title="Reports"
-                desc="Business analytics"
-                onClick={() => setPage(Page.REPORTS)}
-                color="text-teal-600"
-            />
-        </div >
-    </div >
-);
 
 // --- 1. SUPER ADMIN DASHBOARD (ENHANCED) ---
 const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
