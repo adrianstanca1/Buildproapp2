@@ -1,14 +1,13 @@
-
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
     AlertTriangle, Eye, Shield, Flame, Wind,
     CheckCircle2, AlertOctagon, Thermometer,
     MoreVertical, FileText, Siren, Upload, Camera,
     ScanLine, X, ArrowRight, Loader2, Plus, BookOpen, FileBarChart,
-    Video, StopCircle, Focus
+    Video, StopCircle, Focus, Activity, Brain
 } from 'lucide-react';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
-import { SafetyIncident, SafetyHazard } from '@/types';
+import { SafetyIncident, SafetyHazard, Defect, Task } from '@/types';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
 
@@ -18,14 +17,20 @@ interface SafetyViewProps {
 
 const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     const { addToast } = useToast();
-    const { safetyIncidents, addSafetyIncident, updateSafetyIncident, projects } = useProjects();
-    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SCANNER'>('DASHBOARD');
+    const {
+        safetyIncidents, addSafetyIncident, updateSafetyIncident,
+        projects, safetyHazards, addSafetyHazard,
+        defects, addDefect, updateDefect, addTask
+    } = useProjects();
+
+    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SCANNER' | 'QC_SCANNER'>('DASHBOARD');
     const [showReportModal, setShowReportModal] = useState(false);
 
     // Scanner State
     const [scanImage, setScanImage] = useState<string | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [detectedHazards, setDetectedHazards] = useState<SafetyHazard[]>([]);
+    const [detectedDefects, setDetectedDefects] = useState<Defect[]>([]);
     const [selectedHazard, setSelectedHazard] = useState<SafetyHazard | null>(null);
     const [complianceReport, setComplianceReport] = useState<string | null>(null);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -42,6 +47,18 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
         return safetyIncidents.filter(i => i.projectId === projectId);
     }, [safetyIncidents, projectId]);
 
+    const filteredHazards = useMemo(() => {
+        if (!projectId) return safetyHazards;
+        return safetyHazards.filter(h => h.projectId === projectId);
+    }, [safetyHazards, projectId]);
+
+    const safetyScore = useMemo(() => {
+        const baseScore = 100;
+        const incidentPenalty = filteredIncidents.filter(i => i.status === 'Open').length * 5;
+        const hazardPenalty = filteredHazards.filter(h => h.severity === 'High').length * 2;
+        return Math.max(0, Math.min(100, baseScore - incidentPenalty - hazardPenalty)).toFixed(1);
+    }, [filteredIncidents, filteredHazards]);
+
     // Cleanup on unmount
     useEffect(() => {
         return () => stopCamera();
@@ -50,28 +67,27 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            stopCamera(); // Ensure camera is off if uploading
+            stopCamera();
             const reader = new FileReader();
             reader.onloadend = () => {
                 setScanImage(reader.result as string);
                 setDetectedHazards([]);
+                setDetectedDefects([]);
             };
             reader.readAsDataURL(file);
         }
     };
 
     // --- Live Camera Logic ---
-
     const startCamera = async () => {
         try {
-            setScanImage(null); // Clear static image
+            setScanImage(null);
             setIsCameraActive(true);
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
             });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                // Start analysis loop once video plays
                 videoRef.current.onloadedmetadata = () => {
                     videoRef.current?.play();
                     startLiveAnalysisLoop();
@@ -98,10 +114,8 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     };
 
     const startLiveAnalysisLoop = () => {
-        // Run initial immediately
         analyzeLiveFrame();
-        // Then interval
-        analysisInterval.current = window.setInterval(analyzeLiveFrame, 3000); // Every 3 seconds
+        analysisInterval.current = window.setInterval(analyzeLiveFrame, 3000);
     };
 
     const analyzeLiveFrame = async () => {
@@ -110,7 +124,6 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) return;
 
-        // Capture frame
         canvasRef.current.width = videoRef.current.videoWidth;
         canvasRef.current.height = videoRef.current.videoHeight;
         ctx.drawImage(videoRef.current, 0, 0);
@@ -128,12 +141,10 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
             - "recommendation": Short fix.
             - "regulation": Relevant code (e.g. OSHA).
             - "box_2d": [ymin, xmin, ymax, xmax] coordinates for the bounding box on a 0-1000 scale.
-
-            Only return hazards if you are confident. Limit to 5 items.
           `;
 
             const result = await runRawPrompt(prompt, {
-                model: 'gemini-2.5-flash', // Flash for speed in live mode
+                model: 'gemini-2.5-flash',
                 temperature: 0.3,
                 responseMimeType: 'application/json'
             }, base64Data);
@@ -141,6 +152,14 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
             const hazards = parseAIJSON(result);
             if (Array.isArray(hazards)) {
                 setDetectedHazards(hazards);
+                hazards.forEach(h => {
+                    addSafetyHazard({
+                        ...h,
+                        id: `haz-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                        projectId: projectId || 'site-wide',
+                        timestamp: Date.now()
+                    });
+                });
             }
         } catch (e) {
             console.error("Live analysis error", e);
@@ -150,7 +169,6 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     };
 
     // --- Static Image Logic ---
-
     const runStaticScan = async () => {
         if (!scanImage || isAnalyzing) return;
         setIsAnalyzing(true);
@@ -160,38 +178,109 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
             const base64 = scanImage.split(',')[1];
             const prompt = `
         Analyze this construction site image for potential safety hazards, risks, and OSHA violations.
-        Act as a Senior Safety Officer.
-
         Return a JSON array of objects. Each object must have:
         - "type": Short title of the hazard.
         - "severity": "High", "Medium", or "Low".
-        - "riskScore": A number from 1 (Low Risk) to 10 (Critical/Life Threatening).
-        - "description": Brief explanation of why this is a hazard.
-        - "recommendation": Immediate corrective action required.
-        - "regulation": Cite the relevant OSHA or safety code (e.g., "OSHA 1926.501").
-        - "box_2d": [ymin, xmin, ymax, xmax] coordinates for the bounding box on a 0-1000 scale.
+        - "riskScore": A number from 1 to 10.
+        - "description": Brief explanation.
+        - "recommendation": Immediate corrective action.
+        - "regulation": Relevant OSHA or safety code.
+        - "box_2d": [ymin, xmin, ymax, xmax] coordinates on 0-1000 scale.
       `;
 
             const result = await runRawPrompt(prompt, {
-                model: 'gemini-3-pro-preview', // Using Pro for high-quality static analysis
+                model: 'gemini-3-pro-preview',
                 temperature: 0.2,
-                responseMimeType: 'application/json',
-                thinkingConfig: { thinkingBudget: 2048 }
+                responseMimeType: 'application/json'
             }, base64);
 
             const hazards = parseAIJSON(result);
-            setDetectedHazards(Array.isArray(hazards) ? hazards : []);
+            const validatedHazards = Array.isArray(hazards) ? hazards : [];
+            setDetectedHazards(validatedHazards);
+
+            validatedHazards.forEach(h => {
+                addSafetyHazard({
+                    ...h,
+                    id: `haz-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    projectId: projectId || 'site-wide',
+                    timestamp: Date.now()
+                });
+            });
         } catch (e) {
             console.error("Scan failed", e);
-            addToast("Failed to analyze image. Please try again.", 'error');
+            addToast("Failed to analyze image.", 'error');
         } finally {
             setIsAnalyzing(false);
         }
     };
 
+    const runQCScan = async () => {
+        if (!scanImage || isAnalyzing) return;
+        setIsAnalyzing(true);
+        setDetectedDefects([]);
+
+        try {
+            const base64 = scanImage.split(',')[1];
+            const prompt = `
+        Analyze this construction site image for potential quality control (QC) defects or structural issues.
+        Return a JSON array of objects. Each object must have:
+        - "title": Short title of the defect.
+        - "severity": "High", "Medium", "Low", or "Critical".
+        - "category": "Structural", "Plumbing", "Electrical", "Mechanical", "Finish", or "General".
+        - "description": Brief explanation.
+        - "recommendation": Corrective action.
+        - "location": Where in the image this is.
+        - "box_2d": [ymin, xmin, ymax, xmax] on 0-1000 scale.
+      `;
+
+            const result = await runRawPrompt(prompt, {
+                model: 'gemini-3-pro-preview',
+                temperature: 0.2,
+                responseMimeType: 'application/json'
+            }, base64);
+
+            const fetchedDefects = parseAIJSON(result);
+            const validatedDefects = Array.isArray(fetchedDefects) ? fetchedDefects : [];
+            setDetectedDefects(validatedDefects);
+
+            validatedDefects.forEach(d => {
+                addDefect({
+                    ...d,
+                    id: `def-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    projectId: projectId || (projects[0]?.id || 'p1'),
+                    status: 'Open',
+                    createdAt: new Date().toISOString(),
+                    image: scanImage
+                });
+            });
+            addToast(`AI detected ${validatedDefects.length} potential defects.`, 'success');
+        } catch (e) {
+            console.error("QC Scan failed", e);
+            addToast("Failed to analyze image for defects.", 'error');
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const createRemediationTask = async (defect: Defect) => {
+        const newTask: Task = {
+            id: `task-${Date.now()}`,
+            title: `Remediate: ${defect.title}`,
+            projectId: defect.projectId,
+            status: 'To Do',
+            priority: defect.severity === 'Critical' ? 'Critical' : defect.severity === 'High' ? 'High' : 'Medium',
+            description: `AI Detected Defect remediation required.\nDescription: ${defect.description}\nCategory: ${defect.category}\nRecommendation: ${defect.recommendation}`,
+            dueDate: new Date(Date.now() + 3 * 86400000).toISOString().split('T')[0],
+            assigneeType: 'role'
+        };
+        await addTask(newTask);
+        await updateDefect(defect.id, { status: 'Remediating', remediationTaskId: newTask.id });
+        addToast("Remediation task created.", "success");
+    };
+
     const logHazard = async (hazard: SafetyHazard) => {
         const newIncident: SafetyIncident = {
-            id: `si-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: `si-${Date.now()}`,
             title: hazard.type,
             project: projectId ? 'Current Project' : 'Site Assessment',
             projectId: projectId,
@@ -209,24 +298,10 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
         setIsGeneratingReport(true);
         try {
             const hazardsStr = JSON.stringify(detectedHazards);
-            const prompt = `
-                Act as a Senior OSHA Compliance Officer. Analyze these detected hazards: ${hazardsStr}.
-                Provide a comprehensive Safety Compliance and Risk Mitigation Report.
-                Include:
-                1. Executive Summary
-                2. Immediate Corrective Actions
-                3. Long-term Prevention Strategies
-                4. Relevant Legal/OSHA References
-                
-                Format in clean Markdown.
-            `;
-            const report = await runRawPrompt(prompt, {
-                model: 'gemini-3-pro-preview',
-                temperature: 0.4,
-                thinkingConfig: { thinkingBudget: 1024 }
-            });
+            const prompt = `Act as a Senior OSHA Compliance Officer. Analyze these hazards: ${hazardsStr}. Provide a Markdown report with Executive Summary, Actions, and Prevention strategies.`;
+            const report = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', temperature: 0.4 });
             setComplianceReport(report);
-            setViewMode('SCANNER'); // Ensure we stay in scanner mode to show results
+            setViewMode('SCANNER');
         } catch (e) {
             addToast("Failed to generate report.", "error");
         } finally {
@@ -271,524 +346,258 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8 h-full flex flex-col">
-
+        <div className="max-w-7xl mx-auto space-y-8 h-full flex flex-col p-4">
             <div className="flex justify-between items-end flex-shrink-0">
                 <div>
                     <h1 className="text-2xl font-bold text-zinc-900 tracking-tight mb-1 flex items-center gap-3">
-                        Safety Command Center {viewMode === 'SCANNER' && <span className="text-lg text-zinc-400 font-normal">/ Risk Assessment</span>}
+                        Site Operations & Field Intelligence {viewMode !== 'DASHBOARD' && <span className="text-lg text-zinc-400 font-normal">/ {viewMode === 'SCANNER' ? 'Safety Scan' : 'QC Intelligence'}</span>}
                     </h1>
-                    <p className="text-zinc-500">Real-time risk monitoring and compliance tracking{projectId ? ' for this project' : ''}.</p>
+                    <p className="text-zinc-500">Persistent monitoring, AI hazard detection, and predictive quality control.</p>
                 </div>
                 <div className="flex gap-3">
-                    {viewMode === 'SCANNER' ? (
-                        <button onClick={() => { setViewMode('DASHBOARD'); stopCamera(); }} className="px-5 py-2.5 rounded-xl font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">
-                            Close Assessment
+                    {viewMode !== 'DASHBOARD' ? (
+                        <button onClick={() => { setViewMode('DASHBOARD'); stopCamera(); }} className="px-5 py-2.5 rounded-xl font-bold text-zinc-600 hover:bg-zinc-100 transition-colors border border-zinc-200">
+                            Back to Command Center
                         </button>
                     ) : (
-                        <button
-                            onClick={() => setViewMode('SCANNER')}
-                            className="bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-[#0c4a6e] transition-all flex items-center gap-2"
-                        >
-                            <ScanLine size={20} /> AI Risk Assessment
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={() => setViewMode('SCANNER')} className="bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-[#0c4a6e] transition-all flex items-center gap-2">
+                                <Shield size={20} /> Safety Scan
+                            </button>
+                            <button onClick={() => setViewMode('QC_SCANNER')} className="bg-indigo-600 text-white px-4 py-2 rounded-xl font-bold shadow-lg hover:bg-indigo-700 transition-all flex items-center gap-2">
+                                <Activity size={20} /> QC Intelligence
+                            </button>
+                        </div>
                     )}
                     {viewMode === 'DASHBOARD' && (
-                        <button
-                            onClick={() => setShowReportModal(true)}
-                            className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-red-200 hover:bg-red-700 transition-all flex items-center gap-2"
-                        >
+                        <button onClick={() => setShowReportModal(true)} className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2">
                             <Siren size={20} /> Report Incident
                         </button>
                     )}
                 </div>
             </div>
 
-            {viewMode === 'SCANNER' ? (
+            {viewMode !== 'DASHBOARD' ? (
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
-                    {/* Image/Video Area */}
                     <div className="bg-black rounded-2xl relative overflow-hidden flex items-center justify-center group border border-zinc-800 shadow-2xl min-h-[400px]">
-
-                        {/* Render Content */}
                         {isCameraActive ? (
                             <div className="relative w-full h-full">
                                 <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
                                 <canvas ref={canvasRef} className="hidden" />
-
-                                {/* Live Bounding Boxes */}
-                                {detectedHazards.map((h, i) => {
-                                    if (!h.box_2d) return null;
-                                    const [ymin, xmin, ymax, xmax] = h.box_2d;
-                                    return (
-                                        <div
-                                            key={i}
-                                            className={`absolute border-2 z-20 group/box transition-all duration-300 hover:z-50 hover:bg-white/5 ease-out ${getSeverityBorder(h.severity)}`}
-                                            style={{
-                                                top: `${ymin / 10}%`,
-                                                left: `${xmin / 10}%`,
-                                                height: `${(ymax - ymin) / 10}%`,
-                                                width: `${(xmax - xmin) / 10}%`
-                                            }}
-                                        >
-                                            <div className="absolute -top-6 left-0 bg-black/70 text-white text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap backdrop-blur-sm flex items-center gap-1 shadow-lg">
-                                                <AlertTriangle size={10} className={h.severity === 'High' ? 'text-red-400' : 'text-yellow-400'} />
-                                                {h.type}
-                                            </div>
-
-                                            {/* Detailed Hover Card */}
-                                            <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-white/10 rounded-xl p-4 text-white shadow-2xl opacity-0 group-hover/box:opacity-100 transition-all duration-200 pointer-events-none scale-95 group-hover/box:scale-100 origin-top-left z-50">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <span className="font-bold text-sm text-white">{h.type}</span>
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${h.severity === 'High' ? 'bg-red-500 text-white' : h.severity === 'Medium' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'}`}>
-                                                        {h.severity}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-zinc-300 mb-3 leading-relaxed">{h.description}</p>
-                                                <div className="bg-white/10 rounded-lg p-2 border border-white/5">
-                                                    <span className="text-[10px] text-zinc-400 uppercase font-bold block mb-1 flex items-center gap-1"><CheckCircle2 size={10} /> Recommendation</span>
-                                                    <p className="text-xs font-medium text-green-400 leading-snug">{h.recommendation}</p>
-                                                </div>
-                                                {h.regulation && <div className="mt-2 text-[10px] text-zinc-500 font-mono">Ref: {h.regulation}</div>}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-
-                                {/* HUD Overlay */}
-                                <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 text-xs font-mono text-white flex items-center gap-2 z-30">
-                                    <div className={`w-2 h-2 rounded-full ${isAnalyzing ? 'bg-green-500 animate-pulse' : 'bg-zinc-500'}`}></div>
-                                    {isAnalyzing ? 'SCANNING...' : 'LIVE FEED ACTIVE'}
-                                </div>
-
-                                <button onClick={stopCamera} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-full font-bold flex items-center gap-2 shadow-lg z-30">
-                                    <StopCircle size={18} /> Stop Camera
-                                </button>
+                                {detectedHazards.map((h, i) => (
+                                    <div key={i} className={`absolute border-2 z-20 group/box transition-all duration-300 hover:z-50 ${getSeverityBorder(h.severity)}`} style={{ top: `${h.box_2d![0] / 10}%`, left: `${h.box_2d![1] / 10}%`, height: `${(h.box_2d![2] - h.box_2d![0]) / 10}%`, width: `${(h.box_2d![3] - h.box_2d![1]) / 10}%` }}>
+                                        <div className="absolute -top-6 left-0 bg-black text-white text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap">{h.type}</div>
+                                    </div>
+                                ))}
+                                <button onClick={stopCamera} className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-red-600 text-white px-6 py-2 rounded-full font-bold z-30"><StopCircle size={18} /> Stop</button>
                             </div>
                         ) : scanImage ? (
-                            <>
-                                <div className="relative w-full h-full">
-                                    <img src={scanImage} alt="Scan Target" className="w-full h-full object-contain" />
-                                    {/* Static Bounding Boxes */}
-                                    {detectedHazards.map((h, i) => {
-                                        if (!h.box_2d) return null;
-                                        const [ymin, xmin, ymax, xmax] = h.box_2d;
-                                        return (
-                                            <div
-                                                key={i}
-                                                className={`absolute border-2 z-20 group/box transition-all duration-300 hover:z-50 hover:bg-white/5 ${getSeverityBorder(h.severity)}`}
-                                                style={{
-                                                    top: `${ymin / 10}%`,
-                                                    left: `${xmin / 10}%`,
-                                                    height: `${(ymax - ymin) / 10}%`,
-                                                    width: `${(xmax - xmin) / 10}%`
-                                                }}
-                                            >
-                                                <div className="absolute -top-6 left-0 bg-black/80 text-white text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap backdrop-blur-sm flex items-center gap-1 shadow-lg">
-                                                    <AlertTriangle size={10} className={h.severity === 'High' ? 'text-red-400' : 'text-yellow-400'} />
-                                                    {h.type}
-                                                </div>
-
-                                                {/* Detailed Hover Card */}
-                                                <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-white/10 rounded-xl p-4 text-white shadow-2xl opacity-0 group-hover/box:opacity-100 transition-all duration-200 pointer-events-none scale-95 group-hover/box:scale-100 origin-top-left z-50">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <span className="font-bold text-sm text-white">{h.type}</span>
-                                                        <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${h.severity === 'High' ? 'bg-red-500 text-white' : h.severity === 'Medium' ? 'bg-orange-500 text-white' : 'bg-blue-500 text-white'}`}>
-                                                            {h.severity}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-xs text-zinc-300 mb-3 leading-relaxed">{h.description}</p>
-                                                    <div className="bg-white/10 rounded-lg p-2 border border-white/5">
-                                                        <span className="text-[10px] text-zinc-400 uppercase font-bold block mb-1 flex items-center gap-1"><CheckCircle2 size={10} /> Recommendation</span>
-                                                        <p className="text-xs font-medium text-green-400 leading-snug">{h.recommendation}</p>
-                                                    </div>
-                                                    {h.regulation && <div className="mt-2 text-[10px] text-zinc-500 font-mono">Ref: {h.regulation}</div>}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-
-                                {isAnalyzing && (
-                                    <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-30 backdrop-blur-sm">
-                                        <div className="relative">
-                                            <div className="w-24 h-24 border-4 border-white/20 border-t-[#0f5c82] rounded-full animate-spin"></div>
-                                            <Shield className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white animate-pulse" size={32} />
-                                        </div>
-                                        <p className="text-white mt-6 font-bold text-lg animate-pulse">Gemini 3 Pro Risk Analysis...</p>
+                            <div className="relative w-full h-full">
+                                <img src={scanImage} alt="Scan Target" className="w-full h-full object-contain" />
+                                {detectedHazards.map((h, i) => (
+                                    <div key={i} className={`absolute border-2 z-20 group/box transition-all duration-300 ${getSeverityBorder(h.severity)}`} style={{ top: `${h.box_2d![0] / 10}%`, left: `${h.box_2d![1] / 10}%`, height: `${(h.box_2d![2] - h.box_2d![0]) / 10}%`, width: `${(h.box_2d![3] - h.box_2d![1]) / 10}%` }}>
+                                        <div className="absolute -top-6 left-0 bg-black text-white text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap">{h.type}</div>
                                     </div>
-                                )}
+                                ))}
+                                {detectedDefects.map((d, i) => (
+                                    <div key={i} className="absolute border-2 border-indigo-500 bg-indigo-500/10 z-20" style={{ top: `${d.box_2d![0] / 10}%`, left: `${d.box_2d![1] / 10}%`, height: `${(d.box_2d![2] - d.box_2d![0]) / 10}%`, width: `${(d.box_2d![3] - d.box_2d![1]) / 10}%` }}>
+                                        <div className="absolute -top-6 left-0 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded whitespace-nowrap">{d.title}</div>
+                                    </div>
+                                ))}
                                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4 z-30">
-                                    <button onClick={() => { setScanImage(null); setDetectedHazards([]); }} className="bg-black/50 backdrop-blur text-white px-4 py-2 rounded-lg hover:bg-white/20 transition-colors border border-white/10 font-medium">
-                                        Change Image
-                                    </button>
-                                    {!isAnalyzing && detectedHazards.length === 0 && (
-                                        <button onClick={runStaticScan} className="bg-[#0f5c82] text-white px-6 py-2 rounded-lg hover:bg-[#0c4a6e] shadow-lg font-bold flex items-center gap-2 border border-blue-400/30">
-                                            <ScanLine size={18} /> Run Assessment
-                                        </button>
+                                    <button onClick={() => { setScanImage(null); setDetectedHazards([]); setDetectedDefects([]); }} className="bg-black/50 text-white px-4 py-2 rounded-lg border border-white/10">Change Image</button>
+                                    {!isAnalyzing && (
+                                        viewMode === 'SCANNER' ? (
+                                            <button onClick={runStaticScan} className="bg-[#0f5c82] text-white px-6 py-2 rounded-lg font-bold">Run Safety Scan</button>
+                                        ) : (
+                                            <button onClick={runQCScan} className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold">Run QC Analysis</button>
+                                        )
                                     )}
                                 </div>
-                            </>
+                            </div>
                         ) : (
-                            <div className="text-center p-12">
-                                <div className="w-24 h-24 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-zinc-800 shadow-inner">
-                                    <Focus size={40} className="text-zinc-600" />
-                                </div>
-                                <h3 className="text-xl font-bold text-white mb-2">Start Safety Scan</h3>
-                                <p className="text-zinc-500 mb-8 max-w-sm mx-auto">Connect a live camera feed or upload a photo to detect hazards using Gemini Vision.</p>
-
-                                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                                    <button onClick={startCamera} className="bg-[#0f5c82] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#0c4a6e] transition-all shadow-lg flex items-center gap-2 justify-center">
-                                        <Video size={20} /> Live Camera
-                                    </button>
-                                    <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-800 text-white px-8 py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors flex items-center gap-2 justify-center border border-zinc-700">
-                                        <Upload size={20} /> Upload Photo
-                                    </button>
+                            <div className="text-center p-12 text-zinc-500">
+                                <Focus size={48} className="mx-auto mb-4 opacity-20" />
+                                <p className="mb-6">Start a scan or upload a photo.</p>
+                                <div className="flex gap-4">
+                                    <button onClick={startCamera} className="bg-zinc-800 text-white px-6 py-2 rounded-xl flex items-center gap-2"><Video size={18} /> Camera</button>
+                                    <button onClick={() => fileInputRef.current?.click()} className="bg-zinc-800 text-white px-6 py-2 rounded-xl flex items-center gap-2"><Upload size={18} /> Upload</button>
                                 </div>
                                 <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                             </div>
                         )}
+                        {isAnalyzing && (
+                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-40 backdrop-blur-sm">
+                                <Loader2 size={40} className="animate-spin text-white mb-4" />
+                                <p className="text-white font-bold">AI Analyzing Surface Intelligence...</p>
+                            </div>
+                        )}
                     </div>
 
-                    {/* Results Area */}
                     <div className="bg-white border border-zinc-200 rounded-2xl p-6 flex flex-col shadow-sm h-full overflow-hidden">
                         <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                                <Shield size={20} className="text-[#0f5c82]" /> Assessment Results
+                            <h2 className="text-lg font-bold flex items-center gap-2">
+                                {viewMode === 'SCANNER' ? <Shield size={20} className="text-[#0f5c82]" /> : <Brain size={20} className="text-indigo-600" />}
+                                {viewMode === 'SCANNER' ? 'Safety Observation Results' : 'AI QC Analysis Engine'}
                             </h2>
-                            {detectedHazards.length > 0 && (
-                                <button
-                                    onClick={generateComplianceReport}
-                                    disabled={isGeneratingReport}
-                                    className="text-xs font-bold text-[#0f5c82] hover:bg-blue-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100"
-                                >
-                                    {isGeneratingReport ? <Loader2 size={14} className="animate-spin" /> : <FileBarChart size={14} />}
-                                    {isGeneratingReport ? 'Generating Advisor...' : 'Safety Advisor'}
-                                </button>
-                            )}
                         </div>
-
-                        <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
-                            {complianceReport ? (
-                                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-6 mb-6 animate-in fade-in slide-in-from-right-4">
-                                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-blue-100">
-                                        <h3 className="font-bold text-[#0f5c82] flex items-center gap-2">
-                                            <Shield size={18} /> AI Compliance Advisor
-                                        </h3>
-                                        <button onClick={() => setComplianceReport(null)} className="text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
-                                    </div>
-                                    <div className="prose prose-sm prose-blue max-w-none text-zinc-700 leading-relaxed whitespace-pre-wrap">
-                                        {complianceReport}
-                                    </div>
-                                    <div className="mt-6 pt-4 border-t border-blue-100 flex gap-2">
-                                        <button className="flex-1 py-2 bg-[#0f5c82] text-white rounded-lg text-xs font-bold hover:bg-[#0c4a6e]">Download PDF Report</button>
-                                        <button className="flex-1 py-2 border border-blue-200 text-[#0f5c82] rounded-lg text-xs font-bold hover:bg-blue-50">Share with Team</button>
-                                    </div>
-                                </div>
-                            ) : detectedHazards.length > 0 ? (
-                                detectedHazards.map((hazard, i) => (
-                                    <div
-                                        key={i}
-                                        onMouseEnter={() => setSelectedHazard(hazard)}
-                                        onMouseLeave={() => setSelectedHazard(null)}
-                                        className={`border border-zinc-200 rounded-xl p-4 hover:shadow-md transition-all group bg-white hover:border-blue-300 ${selectedHazard === hazard ? 'ring-2 ring-blue-500 ring-offset-2' : ''}`}
-                                    >
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg shadow-sm ${getRiskColor(hazard.riskScore)}`}>
-                                                    {hazard.riskScore}
-                                                </div>
-                                                <div>
-                                                    <h4 className="font-bold text-zinc-900 leading-tight">{hazard.type}</h4>
-                                                    <div className="flex items-center gap-2 mt-1">
-                                                        <span className="text-[10px] font-bold bg-zinc-100 text-zinc-600 px-1.5 py-0.5 rounded border border-zinc-200 flex items-center gap-1">
-                                                            <BookOpen size={10} /> {hazard.regulation || 'Safety Code'}
-                                                        </span>
-                                                    </div>
-                                                </div>
+                        <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar">
+                            {viewMode === 'QC_SCANNER' ? (
+                                detectedDefects.length > 0 ? (
+                                    detectedDefects.map((defect, i) => (
+                                        <div key={i} className="border border-zinc-200 rounded-xl p-4 hover:border-indigo-300 transition-all">
+                                            <div className="flex justify-between mb-2">
+                                                <h4 className="font-bold">{defect.title}</h4>
+                                                <span className="text-[10px] font-bold px-2 py-1 rounded bg-indigo-50 text-indigo-700">{defect.severity}</span>
                                             </div>
-                                            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${hazard.severity === 'High' ? 'bg-red-100 text-red-700' :
-                                                hazard.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
-                                                    'bg-blue-100 text-blue-700'
-                                                }`}>
-                                                {hazard.severity}
-                                            </span>
+                                            <p className="text-sm text-zinc-600 mb-3">{defect.description}</p>
+                                            <button onClick={() => createRemediationTask(defect)} className="w-full py-2 bg-zinc-900 text-white rounded-lg text-xs font-bold transition-all hover:bg-indigo-600">Create Remediation Task</button>
                                         </div>
-
-                                        <p className="text-sm text-zinc-600 mb-3 leading-relaxed">{hazard.description}</p>
-
-                                        <div className="bg-green-50 border border-green-100 rounded-lg p-3 mb-3">
-                                            <div className="text-xs font-bold text-green-800 uppercase mb-1 flex items-center gap-1"><CheckCircle2 size={12} /> Corrective Action</div>
-                                            <p className="text-xs text-green-700 font-medium">{hazard.recommendation}</p>
-                                        </div>
-
-                                        <button
-                                            onClick={() => logHazard(hazard)}
-                                            className="w-full py-2 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:bg-zinc-800 hover:text-white hover:border-zinc-800 transition-colors flex items-center justify-center gap-2"
-                                        >
-                                            <Plus size={14} /> Log as Incident
-                                        </button>
-                                    </div>
-                                ))
+                                    ))
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-zinc-400">Ready for QC scan.</div>
+                                )
                             ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-zinc-400 text-center bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
-                                    {isAnalyzing ? (
-                                        <div className="space-y-3">
-                                            <Loader2 size={32} className="animate-spin text-[#0f5c82] mx-auto" />
-                                            <p className="font-medium text-zinc-500">Analyzing site conditions...</p>
-                                            <p className="text-xs">Detecting hazards & bounds</p>
-                                        </div>
+                                <>
+                                    {complianceReport && <div className="prose prose-sm max-w-none whitespace-pre-wrap p-4 bg-blue-50 rounded-xl border border-blue-100 mb-4">{complianceReport}</div>}
+                                    {detectedHazards.length > 0 ? (
+                                        detectedHazards.map((hazard, i) => (
+                                            <div key={i} className="border border-zinc-200 rounded-xl p-4 hover:border-blue-300 transition-all">
+                                                <div className="flex justify-between mb-2">
+                                                    <h4 className="font-bold">{hazard.type}</h4>
+                                                    <span className="text-[10px] font-bold px-2 py-1 rounded bg-red-50 text-red-700">{hazard.severity}</span>
+                                                </div>
+                                                <p className="text-sm text-zinc-600 mb-3">{hazard.description}</p>
+                                                <button onClick={() => logHazard(hazard)} className="w-full py-2 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-red-50 hover:text-red-700">Log as Incident</button>
+                                            </div>
+                                        ))
                                     ) : (
-                                        <>
-                                            <ScanLine size={48} className="opacity-20 mb-4" />
-                                            <p>No hazards detected yet.<br />Start camera or upload image.</p>
-                                        </>
+                                        <div className="flex items-center justify-center h-full text-zinc-400">Ready for safety scan.</div>
                                     )}
-                                </div>
+                                </>
                             )}
                         </div>
                     </div>
                 </div>
             ) : (
-                <>
-                    {/* Top Level Stats */}
+                <div className="space-y-8 overflow-y-auto overflow-x-hidden flex-1 pr-1 custom-scrollbar">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between h-40">
-                            <div className="flex justify-between items-start">
-                                <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Shield size={24} /></div>
-                                <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">+2.4%</span>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-zinc-900">98.2%</div>
-                                <div className="text-sm text-zinc-500 font-medium">Safety Compliance Score</div>
-                            </div>
+                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+                            <div className="text-3xl font-bold">{safetyScore}%</div>
+                            <div className="text-sm text-zinc-500 font-medium">Safety Score</div>
                         </div>
-
-                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between h-40">
-                            <div className="flex justify-between items-start">
-                                <div className="p-3 bg-zinc-50 text-zinc-600 rounded-xl"><FileText size={24} /></div>
-                                <span className="text-xs font-bold bg-zinc-100 text-zinc-600 px-2 py-1 rounded-full">{filteredIncidents.filter(i => i.status === 'Open').length} Open</span>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-zinc-900">1,240</div>
-                                <div className="text-sm text-zinc-500 font-medium">Days Injury Free</div>
-                            </div>
+                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+                            <div className="text-3xl font-bold">{filteredIncidents.filter(i => i.status === 'Open').length}</div>
+                            <div className="text-sm text-zinc-500 font-medium">Active Incidents</div>
                         </div>
-
-                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm flex flex-col justify-between h-40">
-                            <div className="flex justify-between items-start">
-                                <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><AlertTriangle size={24} /></div>
-                                <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-1 rounded-full">Action Req</span>
-                            </div>
-                            <div>
-                                <div className="text-3xl font-bold text-zinc-900">{filteredIncidents.filter(i => i.status !== 'Resolved').length}</div>
-                                <div className="text-sm text-zinc-500 font-medium">Active Hazards</div>
-                            </div>
+                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
+                            <div className="text-3xl font-bold">{defects.filter(d => d.status === 'Open').length}</div>
+                            <div className="text-sm text-zinc-500 font-medium">Open QC Defects</div>
                         </div>
-
-                        {/* AI Prediction Card */}
-                        <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 rounded-2xl shadow-lg flex flex-col justify-between h-40 text-white relative overflow-hidden group">
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-                            <div className="flex justify-between items-start relative z-10">
-                                <div className="p-3 bg-white/10 rounded-xl"><AlertOctagon size={24} className="text-red-400" /></div>
-                                <span className="text-xs font-bold bg-red-500/20 border border-red-500/50 text-red-300 px-2 py-1 rounded-full">AI Forecast</span>
-                            </div>
-                            <div className="relative z-10">
-                                <div className="text-2xl font-bold text-white mb-1">High Risk</div>
-                                <div className="text-xs text-zinc-400 leading-tight">
-                                    Predicted for <span className="text-white font-bold">East Wing</span> due to high winds & crane ops today.
-                                </div>
-                            </div>
+                        <div className="bg-zinc-900 text-white p-6 rounded-2xl shadow-lg border border-zinc-800">
+                            <div className="flex items-center gap-2 mb-1"><Brain size={16} className="text-indigo-400" /> <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">AI Insight</span></div>
+                            <div className="text-sm font-bold">Inclement weather predicted. Verify scaffolding stability in Sector 4.</div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Main Content: Incident Log */}
-                        <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
-                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
-                                <h3 className="font-bold text-zinc-800 text-lg">Recent Incidents & Observations</h3>
-                                <button className="text-sm text-[#0f5c82] font-medium hover:underline">View All Log</button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto h-[400px] custom-scrollbar">
-                                {filteredIncidents.length > 0 ? (
-                                    <table className="w-full text-left text-sm">
-                                        <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs font-medium sticky top-0 z-10">
-                                            <tr>
-                                                <th className="px-6 py-3">Incident</th>
-                                                <th className="px-6 py-3">Project</th>
-                                                <th className="px-6 py-3">Severity</th>
-                                                <th className="px-6 py-3">Status</th>
-                                                <th className="px-6 py-3 text-right">Action</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-zinc-100">
-                                            {filteredIncidents.map((inc, i) => (
-                                                <tr key={inc.id || i} className="hover:bg-zinc-50/50 transition-colors">
-                                                    <td className="px-6 py-4">
-                                                        <div className="font-bold text-zinc-900">{inc.title}</div>
-                                                        <div className="text-xs text-zinc-500">{inc.date} • {inc.type}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-zinc-600">{inc.project}</td>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${inc.severity === 'High' ? 'bg-red-100 text-red-700' :
-                                                            inc.severity === 'Medium' ? 'bg-orange-100 text-orange-700' :
-                                                                'bg-blue-100 text-blue-700'
-                                                            }`}>
-                                                            {inc.severity}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className={`w-2 h-2 rounded-full ${inc.status === 'Open' ? 'bg-red-500' : inc.status === 'Investigating' ? 'bg-orange-500' : 'bg-green-500'}`} />
-                                                            <span className="text-zinc-700 font-medium">{inc.status}</span>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        {inc.status !== 'Resolved' ? (
-                                                            <button
-                                                                onClick={() => inc.id && handleResolveIncident(inc.id)}
-                                                                className="text-xs font-bold text-green-600 hover:underline"
-                                                            >
-                                                                Resolve
-                                                            </button>
-                                                        ) : (
-                                                            <button className="text-zinc-400 hover:text-[#0f5c82]"><Eye size={18} /></button>
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <div className="p-8 text-center text-zinc-400">
-                                        No incidents reported for this scope.
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Risk Heatmap & Conditions */}
-                        <div className="flex flex-col gap-6">
-                            {/* Site Conditions */}
-                            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm">
-                                <h3 className="font-bold text-zinc-800 mb-4">Live Site Conditions</h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-blue-50 rounded-xl border border-blue-100 text-center">
-                                        <Thermometer size={20} className="mx-auto text-blue-500 mb-2" />
-                                        <div className="text-2xl font-bold text-zinc-900">72°F</div>
-                                        <div className="text-xs text-zinc-500">Temperature</div>
-                                    </div>
-                                    <div className="p-4 bg-orange-50 rounded-xl border border-orange-100 text-center">
-                                        <Wind size={20} className="mx-auto text-orange-500 mb-2" />
-                                        <div className="text-2xl font-bold text-zinc-900">18mph</div>
-                                        <div className="text-xs text-zinc-500">Wind Speed</div>
-                                    </div>
-                                    <div className="p-4 bg-red-50 rounded-xl border border-red-100 text-center col-span-2">
-                                        <Flame size={20} className="mx-auto text-red-500 mb-2" />
-                                        <div className="text-lg font-bold text-zinc-900">Moderate</div>
-                                        <div className="text-xs text-zinc-500">Fire Danger Level</div>
-                                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                                <h3 className="font-bold text-lg flex items-center gap-2"><Activity size={20} className="text-[#0f5c82]" /> Intelligence Feed</h3>
+                                <div className="flex gap-2 text-[10px] font-bold uppercase tracking-wider">
+                                    <span className="bg-red-50 text-red-700 px-2.5 py-1 rounded-full border border-red-100">{filteredHazards.length} Safety</span>
+                                    <span className="bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full border border-indigo-100">{defects.length} Quality</span>
                                 </div>
                             </div>
-
-                            {/* Heatmap Widget */}
-                            <div className="flex-1 bg-zinc-900 rounded-2xl border border-zinc-700 p-4 shadow-lg relative overflow-hidden min-h-[250px] flex flex-col">
-                                <div className="flex justify-between items-center mb-4 relative z-10">
-                                    <h3 className="font-bold text-zinc-100 flex items-center gap-2">
-                                        <AlertOctagon size={16} className="text-orange-500" /> Risk Heatmap
-                                    </h3>
-                                    <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded border border-zinc-700">Live Feed</span>
-                                </div>
-
-                                <div className="flex-1 relative rounded-xl overflow-hidden border border-zinc-800">
-                                    {/* Simplified Map Background */}
-                                    <div className="absolute inset-0 bg-[#1e293b]" />
-                                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(#475569 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
-
-                                    {/* Heat Blobs */}
-                                    <div className="absolute top-[30%] left-[40%] w-24 h-24 bg-red-500 rounded-full blur-2xl opacity-40 animate-pulse"></div>
-                                    <div className="absolute top-[60%] left-[70%] w-16 h-16 bg-orange-500 rounded-full blur-xl opacity-30"></div>
-
-                                    {/* Markers */}
-                                    <div className="absolute top-[30%] left-[40%] w-4 h-4 bg-red-500 border-2 border-white rounded-full shadow-lg transform -translate-x-1/2 -translate-y-1/2 z-10 group cursor-pointer">
-                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-zinc-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100">Crane Ops</div>
-                                    </div>
-
-                                    <div className="absolute bottom-2 left-2 right-2 bg-zinc-900/80 backdrop-blur-sm p-2 rounded-lg border border-zinc-700/50">
-                                        <div className="flex justify-between text-[10px] text-zinc-400 uppercase font-bold mb-1">
-                                            <span>Low Risk</span>
-                                            <span>High Risk</span>
+                            <div className="p-6 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
+                                {[...filteredHazards, ...defects].sort((a, b) => (b.timestamp || b.createdAt).toString().localeCompare((a.timestamp || a.createdAt).toString())).slice(0, 15).map((item: any, i) => (
+                                    <div key={item.id || i} className="flex gap-4 p-4 rounded-xl border border-zinc-100 bg-white hover:border-zinc-200 hover:shadow-sm transition-all group">
+                                        <div className={`w-1 rounded-full ${item.severity === 'High' || item.severity === 'Critical' ? 'bg-red-500' : 'bg-indigo-500'}`} />
+                                        <div className="flex-1">
+                                            <div className="flex justify-between mb-1">
+                                                <div className="font-bold text-zinc-900 group-hover:text-[#0f5c82] transition-colors">{item.type || item.title}</div>
+                                                <div className="text-[10px] text-zinc-400 font-mono">{item.timestamp ? new Date(item.timestamp).toLocaleTimeString() : 'Recent'}</div>
+                                            </div>
+                                            <p className="text-xs text-zinc-500 leading-relaxed line-clamp-2">{item.description}</p>
                                         </div>
-                                        <div className="h-1.5 w-full rounded-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"></div>
                                     </div>
-                                </div>
+                                ))}
+                                {filteredHazards.length === 0 && defects.length === 0 && <div className="text-center py-12 text-zinc-400 italic">No intelligence logs found.</div>}
+                            </div>
+                        </div>
+
+                        <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                            <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                                <h3 className="font-bold text-lg flex items-center gap-2"><Siren size={20} className="text-red-500" /> Reported Incidents</h3>
+                            </div>
+                            <div className="flex-1 overflow-y-auto max-h-[500px] custom-scrollbar">
+                                <table className="w-full text-left text-xs border-collapse">
+                                    <thead className="bg-zinc-50/50 text-zinc-500 uppercase font-bold tracking-wider">
+                                        <tr>
+                                            <th className="px-6 py-4 border-b border-zinc-100">Event</th>
+                                            <th className="px-6 py-4 border-b border-zinc-100">Status</th>
+                                            <th className="px-6 py-4 border-b border-zinc-100 text-right">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-zinc-100">
+                                        {filteredIncidents.slice(0, 10).map((inc, i) => (
+                                            <tr key={inc.id || i} className="hover:bg-zinc-50/50 transition-colors group">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-zinc-900">{inc.title}</div>
+                                                    <div className="text-[10px] text-zinc-400">{inc.date}</div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${inc.status === 'Open' ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>{inc.status}</span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    {inc.status !== 'Resolved' && (
+                                                        <button onClick={() => inc.id && handleResolveIncident(inc.id)} className="bg-[#0f5c82] text-white px-3 py-1.5 rounded-lg font-bold opacity-0 group-hover:opacity-100 transition-all hover:bg-[#0c4a6e] shadow-sm">Resolve</button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {filteredIncidents.length === 0 && <tr><td colSpan={3} className="px-6 py-12 text-center text-zinc-400 italic">No reported incidents.</td></tr>}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
-                </>
+                </div>
             )}
 
-            {/* Report Incident Modal */}
             {showReportModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="p-3 bg-red-100 rounded-xl text-red-600">
-                                <Siren size={24} />
-                            </div>
-                            <h2 className="text-xl font-bold text-zinc-900">Report New Incident</h2>
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 overflow-y-auto">
+                    <div className="bg-white rounded-3xl p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-10 duration-300">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-black text-zinc-900 tracking-tight">Report Incident</h2>
+                            <button onClick={() => setShowReportModal(false)} className="text-zinc-400 hover:text-zinc-900 transition-colors"><X size={24} /></button>
                         </div>
-
-                        <form onSubmit={handleReportIncident} className="space-y-4">
+                        <form onSubmit={handleReportIncident} className="space-y-6">
                             <div>
-                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Incident Title</label>
-                                <input name="title" required className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="e.g. Minor Fall, Equipment Damage" />
+                                <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Description</label>
+                                <input name="title" required placeholder="Describe the safety observation..." className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-red-500/20 transition-all font-bold placeholder:text-zinc-300" />
                             </div>
-
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Severity</label>
-                                    <select name="severity" className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
+                                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Severity</label>
+                                    <select name="severity" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-red-500/20 transition-all font-bold appearance-none cursor-pointer">
                                         <option value="Low">Low</option>
                                         <option value="Medium">Medium</option>
                                         <option value="High">High</option>
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Type</label>
-                                    <select name="type" className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
-                                        <option value="Near Miss">Near Miss</option>
-                                        <option value="Accident">Accident</option>
-                                        <option value="Hazard">Hazard Found</option>
-                                        <option value="Compliance">Compliance Issue</option>
+                                    <label className="block text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2">Category</label>
+                                    <select name="type" className="w-full bg-zinc-50 border border-zinc-200 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-red-500/20 transition-all font-bold appearance-none cursor-pointer">
+                                        <option value="Safety">Safety</option>
+                                        <option value="Quality">Quality</option>
+                                        <option value="Equipment">Equipment</option>
                                     </select>
                                 </div>
                             </div>
-
-                            {!projectId && (
-                                <div>
-                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Project</label>
-                                    <select name="projectId" className="w-full px-4 py-2.5 bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500">
-                                        {projects.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            )}
-
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowReportModal(false)}
-                                    className="flex-1 px-4 py-2.5 border border-zinc-200 text-zinc-600 rounded-xl font-bold hover:bg-zinc-50 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-100"
-                                >
-                                    Report Now
-                                </button>
+                            <div className="flex gap-4 pt-4">
+                                <button type="button" onClick={() => setShowReportModal(false)} className="flex-1 py-4 font-black text-zinc-500 hover:bg-zinc-100 rounded-2xl transition-colors">Dismiss</button>
+                                <button type="submit" className="flex-1 py-4 bg-red-600 text-white font-black rounded-2xl shadow-xl shadow-red-200 hover:bg-red-700 hover:-translate-y-1 active:translate-y-0 transition-all">Submit Log</button>
                             </div>
                         </form>
                     </div>

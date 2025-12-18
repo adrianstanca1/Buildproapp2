@@ -16,6 +16,10 @@ import {
   Filter,
   ChevronDown,
   ShieldAlert,
+  Palette,
+  Upload,
+  Coins,
+  HardDrive,
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -176,8 +180,8 @@ export const TenantManagementView: React.FC = () => {
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id)}
                       className={`px-4 py-4 font-medium text-sm border-b-2 transition-colors flex items-center gap-2 ${activeTab === tab.id
-                          ? 'border-blue-600 text-blue-600'
-                          : 'border-transparent text-gray-600 hover:text-gray-900'
+                        ? 'border-blue-600 text-blue-600'
+                        : 'border-transparent text-gray-600 hover:text-gray-900'
                         }`}
                     >
                       {tab.icon}
@@ -392,8 +396,24 @@ export const TenantManagementView: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="pt-4 border-t border-gray-200 text-xs text-gray-600">
-                        Usage data for: {tenantUsage.period}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6 border-b border-gray-200">
+                        <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center text-center">
+                          <Coins size={32} className="text-blue-600 mb-2" />
+                          <h4 className="font-bold text-zinc-900">AI Tokens</h4>
+                          <p className="text-2xl font-black text-blue-700 mt-1">42.5K <span className="text-xs text-blue-500/70 font-medium">/ 100K</span></p>
+                          <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mt-2">Monthly Quota</p>
+                        </div>
+                        <div className="bg-purple-50/50 p-6 rounded-2xl border border-purple-100 flex flex-col items-center text-center">
+                          <HardDrive size={32} className="text-purple-600 mb-2" />
+                          <h4 className="font-bold text-zinc-900">Cloud Storage</h4>
+                          <p className="text-2xl font-black text-purple-700 mt-1">8.2 <span className="text-xs text-purple-500/70 font-medium">GB / 50 GB</span></p>
+                          <p className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mt-2">Enterprise Storage</p>
+                        </div>
+                      </div>
+
+                      <div className="pt-4 text-xs text-gray-600 flex justify-between items-center">
+                        <span>Usage data for: {tenantUsage.period}</span>
+                        <button className="text-blue-600 font-bold hover:underline">View Detailed breakdown →</button>
                       </div>
                     </div>
                   )}
@@ -454,6 +474,49 @@ export const TenantManagementView: React.FC = () => {
                           </div>
                           <input type="checkbox" checked={selectedTenant.settings.customBranding} readOnly className="w-5 h-5" />
                         </div>
+
+                        {selectedTenant.settings.customBranding && (
+                          <div className="mt-4 p-6 bg-zinc-50 rounded-2xl border border-zinc-200 space-y-6">
+                            <h4 className="text-sm font-black text-zinc-900 uppercase tracking-widest flex items-center gap-2">
+                              <Palette size={16} className="text-blue-600" /> Identity & Branding
+                            </h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                              <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-3">Company Logo</label>
+                                <div className="flex items-center gap-4">
+                                  <div className="w-20 h-20 bg-white border-2 border-dashed border-zinc-300 rounded-xl flex items-center justify-center text-zinc-400 group hover:border-blue-400 transition-colors cursor-pointer">
+                                    <div className="text-center">
+                                      <Upload size={20} className="mx-auto mb-1" />
+                                      <span className="text-[10px] font-bold">Upload</span>
+                                    </div>
+                                  </div>
+                                  <div className="text-xs text-zinc-500">
+                                    <p className="font-bold text-zinc-700">PNG, SVG or JPG</p>
+                                    <p>Max size: 2MB</p>
+                                    <p>Optimal: 400x400px</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-3">Primary Theme Color</label>
+                                <div className="flex items-center gap-4">
+                                  <input
+                                    type="color"
+                                    defaultValue="#0f5c82"
+                                    className="w-12 h-12 rounded-lg cursor-pointer border-none p-0 overflow-hidden"
+                                  />
+                                  <div className="flex-1">
+                                    <input
+                                      type="text"
+                                      defaultValue="#0f5c82"
+                                      className="w-full px-3 py-2 border border-zinc-200 rounded-lg text-sm font-mono uppercase"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex gap-3 pt-6 border-t border-gray-200">

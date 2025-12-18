@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { PoundSterling, TrendingUp, PieChart, ArrowUpRight, ArrowDownRight, Download, Filter, Calendar, FileText, DollarSign, AlertCircle, CheckCircle2, Eye, Plus, Zap, Loader2, ShieldAlert, Sparkles, Info } from 'lucide-react';
+import { PoundSterling, TrendingUp, PieChart, ArrowUpRight, ArrowDownRight, Download, Filter, Calendar, FileText, DollarSign, AlertCircle, CheckCircle2, Eye, Plus, Zap, Loader2, ShieldAlert, Sparkles, Info, X, Brain } from 'lucide-react';
 import { useProjects } from '../contexts/ProjectContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { Transaction } from '@/types';
@@ -8,6 +8,8 @@ import { useToast } from '@/contexts/ToastContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
+import BudgetForecasting from '@/components/BudgetForecasting';
+import FileUploadZone from '@/components/FileUploadZone';
 
 const FinancialsView: React.FC = () => {
   const { addToast } = useToast();
@@ -24,6 +26,11 @@ const FinancialsView: React.FC = () => {
   const [forecastData, setForecastData] = useState<any>(null);
   const [aiInsights, setAiInsights] = useState<any[]>([]);
   const [isAnalyzingInsights, setIsAnalyzingInsights] = useState(false);
+  const [showInvoiceScan, setShowInvoiceScan] = useState(false);
+  const [invoiceAnalysis, setInvoiceAnalysis] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isAnalyzingVariance, setIsAnalyzingVariance] = useState(false);
+  const [varianceExplanation, setVarianceExplanation] = useState<string | null>(null);
 
   const stats = useMemo(() => {
     const totalRev = transactions.reduce((sum, t) => t.type === 'income' ? sum + t.amount : sum, 0);
@@ -135,6 +142,44 @@ const FinancialsView: React.FC = () => {
     }
   };
 
+  const handleInvoiceScan = async (url: string, file: File) => {
+    setIsScanning(true);
+    setInvoiceAnalysis(null);
+    try {
+      const base64 = url.startsWith('data:') ? url.split(',')[1] : null;
+      if (!base64) throw new Error("Could not get image data");
+
+      const prompt = `Extract construction invoice details. Total Amount, Vendor Name, Date, and suggest a Cost Code from: ${JSON.stringify(costCodes.map(c => c.desc))}. Return JSON: { amount: number, vendor: string, date: string, suggestedCode: string, confidence: number }`;
+      const res = await runRawPrompt(prompt, { model: 'gemini-1.5-flash', responseMimeType: 'application/json' }, base64);
+      setInvoiceAnalysis(parseAIJSON(res));
+    } catch (e) {
+      addToast("Invoice scanning failed.", "error");
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const runVarianceAnalysis = async () => {
+    setIsAnalyzingVariance(true);
+    try {
+      const data = JSON.stringify(costCodes);
+      const prompt = `
+        Analyze the following construction budget variance data:
+        ${data}
+        
+        Provide a deep-dive explanation for WHY these variances might be occurring (e.g., market price hikes for specific materials, labor inefficiencies, or scope expansion). 
+        Suggest 3 high-impact corrective actions.
+        Return your response in a clear, professional style suitable for a project manager.
+      `;
+      const result = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', thinkingConfig: { thinkingBudget: 1024 } });
+      setVarianceExplanation(result);
+    } catch (e) {
+      addToast("Variance analysis failed", "error");
+    } finally {
+      setIsAnalyzingVariance(false);
+    }
+  };
+
   if (!requireRole(['company_admin', 'super_admin'])) {
     return (
       <div className="flex flex-col items-center justify-center h-[80vh] p-8 text-center">
@@ -217,6 +262,12 @@ const FinancialsView: React.FC = () => {
           <div className="text-3xl font-bold text-zinc-900">{stats.margin}%</div>
         </div>
       </div>
+
+      {viewMode === 'CASHFLOW' && (
+        <div className="mb-8">
+          <BudgetForecasting projectId={projects[0]?.id || 'p1'} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Main Chart Area */}
@@ -352,9 +403,35 @@ const FinancialsView: React.FC = () => {
               </div>
             ))}
           </div>
-          <button className="mt-6 w-full py-2.5 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all shadow-lg">
-            Generate Comprehensive Audit
-          </button>
+
+          {varianceExplanation && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-100 rounded-xl relative animate-in fade-in slide-in-from-top-2">
+              <button
+                onClick={() => setVarianceExplanation(null)}
+                className="absolute top-2 right-2 text-blue-400 hover:text-blue-600 transition-colors"
+              >
+                <X size={14} />
+              </button>
+              <h4 className="text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2 flex items-center gap-2">
+                <Brain size={12} /> AI Variance Deep-Dive
+              </h4>
+              <p className="text-[11px] text-blue-900 leading-relaxed whitespace-pre-wrap">{varianceExplanation}</p>
+            </div>
+          )}
+
+          <div className="mt-6 flex flex-col gap-2">
+            <button
+              onClick={runVarianceAnalysis}
+              disabled={isAnalyzingVariance}
+              className="w-full py-2.5 bg-[#0f5c82] text-white rounded-xl text-xs font-bold hover:bg-[#0c4a6e] transition-all shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isAnalyzingVariance ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
+              {isAnalyzingVariance ? 'Analyzing Variances...' : 'AI Deep-Dive Variance'}
+            </button>
+            <button className="w-full py-2.5 bg-zinc-900 text-white rounded-xl text-xs font-bold hover:bg-zinc-800 transition-all shadow-lg">
+              Generate Comprehensive Audit
+            </button>
+          </div>
         </div>
       </div>
 
@@ -364,6 +441,12 @@ const FinancialsView: React.FC = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-bold text-zinc-900">Transaction History</h3>
             <div className="flex gap-2">
+              <button
+                onClick={() => setShowInvoiceScan(true)}
+                className="flex items-center gap-2 px-3 py-2 border border-[#0f5c82] text-[#0f5c82] rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
+              >
+                <Zap size={16} /> AI Invoice Scan
+              </button>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 px-3 py-2 bg-[#0f5c82] text-white rounded-lg text-sm font-medium hover:bg-[#0c4a6e] transition-colors"
@@ -485,6 +568,104 @@ const FinancialsView: React.FC = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+      {/* AI Invoice Scan Modal */}
+      {showInvoiceScan && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+            <div className="bg-[#0f5c82] p-6 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold flex items-center gap-2"><Zap size={20} className="text-yellow-400" /> AI Invoice Intelligence</h3>
+                <p className="text-blue-100 text-xs mt-1">Upload an invoice to automatically extract and verify details.</p>
+              </div>
+              <button onClick={() => { setShowInvoiceScan(false); setInvoiceAnalysis(null); }} className="p-2 hover:bg-white/10 rounded-lg"><X size={20} /></button>
+            </div>
+
+            <div className="p-6">
+              {!invoiceAnalysis && !isScanning ? (
+                <FileUploadZone
+                  onUploadComplete={handleInvoiceScan}
+                  label="Drop invoice here for AI Scan"
+                  description="Upload image or PDF"
+                  allowedTypes={['image/*', 'application/pdf']}
+                />
+              ) : isScanning ? (
+                <div className="py-12 flex flex-col items-center justify-center space-y-4">
+                  <div className="w-12 h-12 border-4 border-[#0f5c82]/20 border-t-[#0f5c82] rounded-full animate-spin"></div>
+                  <div className="text-center">
+                    <p className="font-bold text-zinc-800">Reading Invoice Content...</p>
+                    <p className="text-xs text-zinc-500">Gemini is extracting line items and verifying budget codes.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase">Vendor</p>
+                      <p className="font-bold text-zinc-900 border-b border-zinc-100 pb-1">{invoiceAnalysis.vendor}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase">Total Amount</p>
+                      <p className="text-lg font-black text-[#0f5c82]">£{invoiceAnalysis.amount?.toLocaleString()}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase">Invoice Date</p>
+                      <p className="text-sm font-medium text-zinc-700">{invoiceAnalysis.date}</p>
+                    </div>
+                    <div className="space-y-1 text-right">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase">AI Confidence</p>
+                      <p className="text-sm font-black text-green-600">{invoiceAnalysis.confidence}% Match</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                    <p className="text-[10px] font-bold text-blue-800 uppercase mb-2">Suggested Cost Code</p>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 size={16} className="text-blue-600" />
+                      <span className="font-bold text-blue-900">{invoiceAnalysis.suggestedCode}</span>
+                    </div>
+                    <p className="text-[10px] text-blue-600 mt-1 italic">Suggested based on vendor category and item description.</p>
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      onClick={() => setInvoiceAnalysis(null)}
+                      className="flex-1 py-3 border border-zinc-200 rounded-xl text-zinc-600 font-medium hover:bg-zinc-50"
+                    >
+                      Rescan
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const newTxn: Transaction = {
+                          id: `txn-${Date.now()}`,
+                          companyId: 'c1',
+                          date: invoiceAnalysis.date || new Date().toISOString().split('T')[0],
+                          description: `Invoiced: ${invoiceAnalysis.vendor}`,
+                          amount: -invoiceAnalysis.amount,
+                          type: 'expense',
+                          category: 'Materials',
+                          status: 'completed',
+                          projectId: projects[0]?.id || 'p1'
+                        };
+                        await addTransaction(newTxn);
+                        setShowInvoiceScan(false);
+                        setInvoiceAnalysis(null);
+                        addToast("Invoice recorded as transaction.", "success");
+                      }}
+                      className="flex-1 py-3 bg-[#0f5c82] text-white rounded-xl font-bold hover:bg-[#0c4a6e] shadow-lg shadow-blue-100"
+                    >
+                      Approve & Record
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-100 text-[10px] text-zinc-400 text-center">
+              AI verification should be reviewed. Accuracy depends on document clarity.
+            </div>
           </div>
         </div>
       )}

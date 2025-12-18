@@ -74,7 +74,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
         email: formData.email,
         role: formData.role,
         phone: formData.phone,
-        status: 'Off Site',
+        status: 'Invited',
         initials: formData.name.split(' ').map(n => n[0]).join('').toUpperCase(),
         color: getRandomColor(),
         skills: formData.skills ? formData.skills.split(',').map(s => s.trim()) : [],

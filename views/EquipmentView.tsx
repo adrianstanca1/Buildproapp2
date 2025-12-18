@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useRef } from 'react';
-import { Plus, Wrench, Filter, Search, Camera, Image as ImageIcon, X, Upload, Calendar, MapPin, Truck, AlertTriangle, Maximize2, Edit2, MoreHorizontal, Trash2, CheckCircle2, Activity, Zap, Info, Gauge, Thermometer, Droplets, Loader2 } from 'lucide-react';
+import { Plus, Wrench, Filter, Search, Camera, Image as ImageIcon, X, Upload, Calendar, MapPin, Truck, AlertTriangle, Maximize2, Edit2, MoreHorizontal, Trash2, CheckCircle2, Activity, Zap, Info, Gauge, Thermometer, Droplets, Loader2, Brain } from 'lucide-react';
 import { useProjects } from '../contexts/ProjectContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { Equipment } from '@/types';
@@ -12,9 +12,10 @@ interface EquipmentViewProps {
 
 const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
     const { addToast } = useToast();
-    const { equipment, addEquipment, updateEquipment } = useProjects();
+    const { equipment, addEquipment, updateEquipment, addTask, projects } = useProjects();
 
     // View State
+    const [viewMode, setViewMode] = useState<'FLEET' | 'FORECAST'>('FLEET');
     const [filterType, setFilterType] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [viewingImage, setViewingImage] = useState<string | null>(null);
@@ -176,6 +177,23 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
         }
     };
 
+    const createMaintenanceTask = async (item: Equipment, prediction: any) => {
+        const newTask: any = {
+            id: `maint-${Date.now()}`,
+            title: `Maint: ${item.name}`,
+            projectId: item.projectId || (projects[0]?.id || ''),
+            status: 'To Do',
+            priority: prediction.priority || 'High',
+            description: `AI Predicted Maintenance: ${prediction.prediction}\nRecommended Action: ${prediction.recommendedAction}`,
+            dueDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0], // Next week
+            assigneeType: 'role',
+            type: 'Maintenance'
+        };
+        await addTask(newTask);
+        addToast("Maintenance task created and assigned.", "success");
+        setPredictionResult(null);
+    };
+
     return (
         <div className="max-w-7xl mx-auto h-full flex flex-col">
             {/* Header Section */}
@@ -187,12 +205,28 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
                         </h1>
                         <p className="text-zinc-500">Track machinery allocation, maintenance status, and asset conditions.</p>
                     </div>
-                    <button
-                        onClick={openAddModal}
-                        className="flex items-center gap-2 bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#0c4a6e] shadow-lg transition-all transform hover:scale-105"
-                    >
-                        <Plus size={18} /> Add Equipment
-                    </button>
+                    <div className="flex gap-3">
+                        <div className="bg-white p-1 rounded-xl border border-zinc-200 shadow-sm flex">
+                            <button
+                                onClick={() => setViewMode('FLEET')}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${viewMode === 'FLEET' ? 'bg-zinc-900 text-white shadow-md' : 'text-zinc-500 hover:bg-zinc-50'}`}
+                            >
+                                Fleet List
+                            </button>
+                            <button
+                                onClick={() => setViewMode('FORECAST')}
+                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${viewMode === 'FORECAST' ? 'bg-zinc-900 text-white shadow-md' : 'text-zinc-500 hover:bg-zinc-50'}`}
+                            >
+                                Service Forecast
+                            </button>
+                        </div>
+                        <button
+                            onClick={openAddModal}
+                            className="flex items-center gap-2 bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#0c4a6e] shadow-lg transition-all transform hover:scale-105"
+                        >
+                            <Plus size={18} /> Add Equipment
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-2 rounded-2xl border border-zinc-200 shadow-sm">
@@ -224,168 +258,216 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
                 </div>
             </div>
 
-            {/* Equipment Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
-                {filteredEquipment.map((item) => (
-                    <div key={item.id} className="group bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:border-blue-200 flex flex-col h-full relative">
+            {viewMode === 'FLEET' ? (
+                /* Equipment Grid */
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+                    {filteredEquipment.map((item) => (
+                        <div key={item.id} className="group bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 hover:border-blue-200 flex flex-col h-full relative">
 
-                        {/* Image Area */}
-                        <div className="aspect-video w-full relative overflow-hidden bg-zinc-100 flex items-center justify-center">
-                            {item.image ? (
-                                <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                            ) : (
-                                <div className="flex flex-col items-center justify-center gap-2 opacity-50">
-                                    {getTypeIcon(item.type)}
-                                    <span className="text-xs text-zinc-400 font-medium">No Image Available</span>
-                                </div>
-                            )}
-
-                            {/* Hover Actions Overlay */}
-                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px] z-20">
-                                {item.image && (
-                                    <button
-                                        onClick={() => setViewingImage(item.image || null)}
-                                        className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors shadow-lg border border-white/30"
-                                        title="View Full Image"
-                                    >
-                                        <Maximize2 size={20} />
-                                    </button>
+                            {/* Image Area */}
+                            <div className="aspect-video w-full relative overflow-hidden bg-zinc-100 flex items-center justify-center">
+                                {item.image ? (
+                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center gap-2 opacity-50">
+                                        {getTypeIcon(item.type)}
+                                        <span className="text-xs text-zinc-400 font-medium">No Image Available</span>
+                                    </div>
                                 )}
+
+                                {/* Hover Actions Overlay */}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3 backdrop-blur-[2px] z-20">
+                                    {item.image && (
+                                        <button
+                                            onClick={() => setViewingImage(item.image || null)}
+                                            className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors shadow-lg border border-white/30"
+                                            title="View Full Image"
+                                        >
+                                            <Maximize2 size={20} />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => openEditModal(item)}
+                                        className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors shadow-lg border border-white/30"
+                                        title="Edit Details"
+                                    >
+                                        <Edit2 size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Service Alert */}
+                                {isServiceOverdue(item.nextService) && (
+                                    <div className="absolute top-3 left-3 z-10 bg-red-500 text-white px-2 py-1 rounded-lg shadow-md flex items-center gap-1 text-[10px] font-bold uppercase border border-red-400 animate-pulse">
+                                        <AlertTriangle size={12} fill="white" /> Service Due
+                                    </div>
+                                )}
+
+                                {/* Telemetry HUD Button */}
                                 <button
-                                    onClick={() => openEditModal(item)}
-                                    className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white hover:bg-white/40 transition-colors shadow-lg border border-white/30"
-                                    title="Edit Details"
+                                    onClick={(e) => { e.stopPropagation(); setShowTelemetry(showTelemetry === item.id ? null : item.id); }}
+                                    className="absolute bottom-3 right-3 z-30 p-2 bg-white/10 backdrop-blur-md rounded-lg text-white border border-white/20 hover:bg-[#0f5c82] transition-all flex items-center gap-1.5 shadow-lg group/iot"
                                 >
-                                    <Edit2 size={20} />
+                                    <Activity size={14} className={showTelemetry === item.id ? 'text-green-400' : 'text-zinc-300'} />
+                                    <span className="text-[10px] font-bold uppercase tracking-tight">IoT Live</span>
                                 </button>
                             </div>
 
-                            {/* Service Alert */}
-                            {isServiceOverdue(item.nextService) && (
-                                <div className="absolute top-3 left-3 z-10 bg-red-500 text-white px-2 py-1 rounded-lg shadow-md flex items-center gap-1 text-[10px] font-bold uppercase border border-red-400 animate-pulse">
-                                    <AlertTriangle size={12} fill="white" /> Service Due
-                                </div>
-                            )}
-
-                            {/* Telemetry HUD Button */}
-                            <button
-                                onClick={(e) => { e.stopPropagation(); setShowTelemetry(showTelemetry === item.id ? null : item.id); }}
-                                className="absolute bottom-3 right-3 z-30 p-2 bg-white/10 backdrop-blur-md rounded-lg text-white border border-white/20 hover:bg-[#0f5c82] transition-all flex items-center gap-1.5 shadow-lg group/iot"
-                            >
-                                <Activity size={14} className={showTelemetry === item.id ? 'text-green-400' : 'text-zinc-300'} />
-                                <span className="text-[10px] font-bold uppercase tracking-tight">IoT Live</span>
-                            </button>
-                        </div>
-
-                        {/* Card Body */}
-                        <div className="p-5 flex-1 flex flex-col">
-                            <div className="mb-4">
-                                <div className="flex justify-between items-start">
-                                    <h3 className="font-bold text-zinc-900 text-base mb-1 truncate pr-2">{item.name}</h3>
-                                    <button onClick={() => openEditModal(item)} className="text-zinc-300 hover:text-[#0f5c82] transition-colors">
-                                        <MoreHorizontal size={16} />
-                                    </button>
-                                </div>
-                                <p className="text-xs text-zinc-500 font-medium bg-zinc-100 px-2 py-0.5 rounded w-fit">{item.type}</p>
-                            </div>
-
-                            <div className="space-y-3 mb-4 flex-1">
-                                {showTelemetry === item.id ? (
-                                    <div className="bg-zinc-900 rounded-xl p-3 space-y-3 animate-in fade-in zoom-in-95 duration-200 border border-zinc-800">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1"><Zap size={10} className="text-yellow-400" /> Live Telemetry</span>
-                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <Gauge size={12} className="text-[#0f5c82]" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Engine Hours</span>
-                                                    <span className="text-xs text-white font-mono">{1240 + (Math.random() * 10).toFixed(1)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Thermometer size={12} className="text-orange-400" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Temp</span>
-                                                    <span className="text-xs text-white font-mono">{(85 + Math.random() * 5).toFixed(1)}°C</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Activity size={12} className="text-blue-400" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Oil Pressure</span>
-                                                    <span className="text-xs text-white font-mono">{(45 + Math.random() * 2).toFixed(1)} PSI</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <Droplets size={12} className="text-purple-400" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[9px] text-zinc-500 font-bold uppercase">Fuel</span>
-                                                    <span className="text-xs text-white font-mono">{(65 + Math.random() * 5).toFixed(0)}%</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => runPredictiveMaintenance(item)}
-                                            disabled={isPredicting}
-                                            className="w-full py-1.5 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-600/30 transition-all flex items-center justify-center gap-2"
-                                        >
-                                            {isPredicting ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
-                                            AI Predictive Check
+                            {/* Card Body */}
+                            <div className="p-5 flex-1 flex flex-col">
+                                <div className="mb-4">
+                                    <div className="flex justify-between items-start">
+                                        <h3 className="font-bold text-zinc-900 text-base mb-1 truncate pr-2">{item.name}</h3>
+                                        <button onClick={() => openEditModal(item)} className="text-zinc-300 hover:text-[#0f5c82] transition-colors">
+                                            <MoreHorizontal size={16} />
                                         </button>
                                     </div>
-                                ) : (
-                                    <>
-                                        {!projectId && (
-                                            <div className="flex items-start gap-2 text-xs text-zinc-600">
-                                                <MapPin size={14} className="text-zinc-400 mt-0.5 shrink-0" />
-                                                <span className="truncate font-medium">{item.projectName || 'Unassigned'}</span>
-                                            </div>
-                                        )}
+                                    <p className="text-xs text-zinc-500 font-medium bg-zinc-100 px-2 py-0.5 rounded w-fit">{item.type}</p>
+                                </div>
 
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <div className="bg-zinc-50 border border-zinc-100 rounded-lg p-2">
-                                                <div className="text-[10px] text-zinc-400 uppercase font-bold mb-0.5">Last Service</div>
-                                                <div className="text-xs font-mono text-zinc-700">{item.lastService || '-'}</div>
+                                <div className="space-y-3 mb-4 flex-1">
+                                    {showTelemetry === item.id ? (
+                                        <div className="bg-zinc-900 rounded-xl p-3 space-y-3 animate-in fade-in zoom-in-95 duration-200 border border-zinc-800">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-[10px] font-bold text-zinc-500 uppercase flex items-center gap-1"><Zap size={10} className="text-yellow-400" /> Live Telemetry</span>
+                                                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
                                             </div>
-                                            <div className={`border rounded-lg p-2 ${isServiceOverdue(item.nextService) ? 'bg-red-50 border-red-100' : 'bg-zinc-50 border-zinc-100'}`}>
-                                                <div className={`text-[10px] uppercase font-bold mb-0.5 ${isServiceOverdue(item.nextService) ? 'text-red-500' : 'text-zinc-400'}`}>Next Service</div>
-                                                <div className={`text-xs font-mono ${isServiceOverdue(item.nextService) ? 'text-red-700 font-bold' : 'text-zinc-700'}`}>{item.nextService}</div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Gauge size={12} className="text-[#0f5c82]" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Engine Hours</span>
+                                                        <span className="text-xs text-white font-mono">{1240 + (Math.random() * 10).toFixed(1)}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Thermometer size={12} className="text-orange-400" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Temp</span>
+                                                        <span className="text-xs text-white font-mono">{(85 + Math.random() * 5).toFixed(1)}°C</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Activity size={12} className="text-blue-400" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Oil Pressure</span>
+                                                        <span className="text-xs text-white font-mono">{(45 + Math.random() * 2).toFixed(1)} PSI</span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Droplets size={12} className="text-purple-400" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[9px] text-zinc-500 font-bold uppercase">Fuel</span>
+                                                        <span className="text-xs text-white font-mono">{(65 + Math.random() * 5).toFixed(0)}%</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => runPredictiveMaintenance(item)}
+                                                disabled={isPredicting}
+                                                className="w-full py-1.5 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs font-bold hover:bg-blue-600/30 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                {isPredicting ? <Loader2 size={12} className="animate-spin" /> : <Activity size={12} />}
+                                                AI Predictive Check
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {!projectId && (
+                                                <div className="flex items-start gap-2 text-xs text-zinc-600">
+                                                    <MapPin size={14} className="text-zinc-400 mt-0.5 shrink-0" />
+                                                    <span className="truncate font-medium">{item.projectName || 'Unassigned'}</span>
+                                                </div>
+                                            )}
+
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div className="bg-zinc-50 border border-zinc-100 rounded-lg p-2">
+                                                    <div className="text-[10px] text-zinc-400 uppercase font-bold mb-0.5">Last Service</div>
+                                                    <div className="text-xs font-mono text-zinc-700">{item.lastService || '-'}</div>
+                                                </div>
+                                                <div className={`border rounded-lg p-2 ${isServiceOverdue(item.nextService) ? 'bg-red-50 border-red-100' : 'bg-zinc-50 border-zinc-100'}`}>
+                                                    <div className={`text-[10px] uppercase font-bold mb-0.5 ${isServiceOverdue(item.nextService) ? 'text-red-500' : 'text-zinc-400'}`}>Next Service</div>
+                                                    <div className={`text-xs font-mono ${isServiceOverdue(item.nextService) ? 'text-red-700 font-bold' : 'text-zinc-700'}`}>{item.nextService}</div>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+
+                                <div className="pt-4 border-t border-zinc-50 flex gap-2">
+                                    <button
+                                        onClick={() => updateEquipment(item.id, { status: item.status === 'Available' ? 'In Use' : 'Available' })}
+                                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border ${item.status === 'Available'
+                                            ? 'bg-[#0f5c82] text-white border-[#0f5c82] hover:bg-[#0c4a6e]'
+                                            : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
+                                            }`}
+                                    >
+                                        {item.status === 'Available' ? 'Assign to Site' : 'Return to Yard'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+
+                    {filteredEquipment.length === 0 && (
+                        <div className="col-span-full p-16 text-center text-zinc-400 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-3xl">
+                            <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+                                <Wrench size={32} className="opacity-20" />
+                            </div>
+                            <h3 className="text-lg font-bold text-zinc-600 mb-2">No Equipment Found</h3>
+                            <p className="text-sm text-zinc-400 mb-6">Try adjusting your filters or add new equipment to the fleet.</p>
+                            <button onClick={openAddModal} className="text-[#0f5c82] font-bold hover:underline">Add New Equipment</button>
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* Forecast View */
+                <div className="bg-white border border-zinc-200 rounded-3xl p-8 shadow-sm">
+                    <div className="flex justify-between items-center mb-8">
+                        <div>
+                            <h2 className="text-xl font-bold text-zinc-900 mb-1">Maintenance Forecast</h2>
+                            <p className="text-sm text-zinc-500">Service schedule for the next 90 days across the fleet.</p>
+                        </div>
+                        <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl text-xs font-bold">
+                            <Calendar size={14} /> Tracking {equipment.length} Assets
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {equipment
+                            .sort((a, b) => new Date(a.nextService).getTime() - new Date(b.nextService).getTime())
+                            .map(item => {
+                                const isOverdue = isServiceOverdue(item.nextService);
+                                return (
+                                    <div key={item.id} className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${isOverdue ? 'bg-red-50 border-red-100' : 'bg-zinc-50 border-zinc-100 hover:border-blue-200'}`}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`p-3 rounded-xl ${isOverdue ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                <Truck size={20} />
+                                            </div>
+                                            <div>
+                                                <div className="font-bold text-zinc-900">{item.name}</div>
+                                                <div className="text-xs text-zinc-500 font-medium">{item.type} • {item.projectName || 'Unassigned'}</div>
                                             </div>
                                         </div>
-                                    </>
-                                )}
-                            </div>
-
-                            <div className="pt-4 border-t border-zinc-50 flex gap-2">
-                                <button
-                                    onClick={() => updateEquipment(item.id, { status: item.status === 'Available' ? 'In Use' : 'Available' })}
-                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors flex items-center justify-center gap-1.5 border ${item.status === 'Available'
-                                        ? 'bg-[#0f5c82] text-white border-[#0f5c82] hover:bg-[#0c4a6e]'
-                                        : 'bg-white text-zinc-600 border-zinc-200 hover:bg-zinc-50'
-                                        }`}
-                                >
-                                    {item.status === 'Available' ? 'Assign to Site' : 'Return to Yard'}
-                                </button>
-                            </div>
-                        </div>
+                                        <div className="flex items-center gap-8">
+                                            <div className="text-right">
+                                                <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${isOverdue ? 'text-red-500' : 'text-zinc-400'}`}>Service Date</div>
+                                                <div className={`font-mono text-sm ${isOverdue ? 'text-red-700 font-bold' : 'text-zinc-700'}`}>{item.nextService}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => openEditModal(item)}
+                                                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${isOverdue ? 'bg-red-600 text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}
+                                            >
+                                                Schedule
+                                            </button>
+                                        </div>
+                                    </div>
+                                );
+                            })}
                     </div>
-                ))}
+                </div>
+            )}
 
-                {filteredEquipment.length === 0 && (
-                    <div className="col-span-full p-16 text-center text-zinc-400 bg-zinc-50 border-2 border-dashed border-zinc-200 rounded-3xl">
-                        <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-                            <Wrench size={32} className="opacity-20" />
-                        </div>
-                        <h3 className="text-lg font-bold text-zinc-600 mb-2">No Equipment Found</h3>
-                        <p className="text-sm text-zinc-400 mb-6">Try adjusting your filters or add new equipment to the fleet.</p>
-                        <button onClick={openAddModal} className="text-[#0f5c82] font-bold hover:underline">Add New Equipment</button>
-                    </div>
-                )}
-            </div>
-
-            {/* Add / Edit Modal */}
+            {/* Modals */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
@@ -426,14 +508,6 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
                                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                                     </div>
                                 </div>
-                                {imagePreview && (
-                                    <button
-                                        onClick={() => { setImagePreview(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
-                                        className="text-xs text-red-500 hover:text-red-700 mt-2 flex items-center gap-1 font-medium"
-                                    >
-                                        <Trash2 size={12} /> Remove Photo
-                                    </button>
-                                )}
                             </div>
 
                             <div className="space-y-4">
@@ -509,7 +583,6 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
                 </div>
             )}
 
-            {/* Lightbox Viewer */}
             {viewingImage && (
                 <div className="fixed inset-0 z-[150] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
                     <button
@@ -526,7 +599,6 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
                 </div>
             )}
 
-            {/* AI Prediction Result Modal */}
             {predictionResult && (
                 <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95 border border-zinc-200">
@@ -573,12 +645,23 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={() => setPredictionResult(null)}
-                            className="w-full mt-8 py-3 bg-zinc-900 text-white rounded-xl font-bold hover:bg-zinc-800 transition-all shadow-xl"
-                        >
-                            Acknowledge
-                        </button>
+                        <div className="flex gap-3 mt-8">
+                            <button
+                                onClick={() => setPredictionResult(null)}
+                                className="flex-1 py-3 bg-zinc-100 text-zinc-600 rounded-xl font-bold hover:bg-zinc-200 transition-all"
+                            >
+                                Close
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const item = equipment.find(e => e.id === showTelemetry);
+                                    if (item) createMaintenanceTask(item, predictionResult);
+                                }}
+                                className="flex-1 py-3 bg-[#0f5c82] text-white rounded-xl font-bold hover:bg-[#0c4a6e] transition-all shadow-xl"
+                            >
+                                Create Task
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

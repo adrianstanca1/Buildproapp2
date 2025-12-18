@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
-import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Channel, TeamMessage, Transaction } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk } from '@/types';
 import { useAuth } from './AuthContext';
 import { db } from '@/services/db';
 import { supabase } from '../services/supabaseClient';
+import { auditLog } from '../services/AuditLogService';
+import { useNotifications } from './NotificationContext';
 
 interface ProjectContextType {
   projects: Project[];
@@ -16,11 +18,14 @@ interface ProjectContextType {
   dailyLogs: DailyLog[];
   dayworks: Daywork[];
   safetyIncidents: SafetyIncident[];
+  safetyHazards: SafetyHazard[];
   equipment: Equipment[];
   timesheets: Timesheet[];
   channels: Channel[];
   teamMessages: TeamMessage[];
   transactions: Transaction[];
+  defects: Defect[];
+  projectRisks: ProjectRisk[];
   isLoading: boolean;
 
   // Project CRUD
@@ -57,6 +62,7 @@ interface ProjectContextType {
   // Backend Extensions
   addSafetyIncident: (incident: SafetyIncident) => Promise<void>;
   updateSafetyIncident: (id: string, updates: Partial<SafetyIncident>) => Promise<void>;
+  addSafetyHazard: (hazard: SafetyHazard) => Promise<void>;
   addEquipment: (item: Equipment) => Promise<void>;
   updateEquipment: (id: string, updates: Partial<Equipment>) => Promise<void>;
   addTimesheet: (sheet: Timesheet) => Promise<void>;
@@ -67,6 +73,14 @@ interface ProjectContextType {
 
   // Financials
   addTransaction: (transaction: Transaction) => Promise<void>;
+
+  // Defects
+  addDefect: (defect: Defect) => Promise<void>;
+  updateDefect: (id: string, updates: Partial<Defect>) => Promise<void>;
+  deleteDefect: (id: string) => Promise<void>;
+
+  // Forecasting
+  runHealthForecasting: (projectId: string) => Promise<ProjectRisk | null>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -93,11 +107,14 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [dayworks, setDayworks] = useState<Daywork[]>([]);
   const [safetyIncidents, setSafetyIncidents] = useState<SafetyIncident[]>([]);
+  const [safetyHazards, setSafetyHazards] = useState<SafetyHazard[]>([]);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [teamMessages, setTeamMessages] = useState<TeamMessage[]>([]);
+  const [defects, setDefects] = useState<Defect[]>([]);
+  const [projectRisks, setProjectRisks] = useState<ProjectRisk[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Supabase Realtime Subscription
@@ -138,7 +155,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [p, t, tm, d, c, i, r, pi, dl, dw, si, eq, ts, txn] = await Promise.all([
+        const [p, t, tm, d, c, i, r, pi, dl, dw, si, sh, eq, ts, txn, defs, risks] = await Promise.all([
           db.getProjects(),
           db.getTasks(),
           db.getTeam(),
@@ -150,9 +167,12 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
           db.getDailyLogs(),
           db.getDayworks(),
           db.getSafetyIncidents(),
+          db.getSafetyHazards(),
           db.getEquipment(),
           db.getTimesheets(),
-          db.getTransactions()
+          db.getTransactions(),
+          db.getDefects(),
+          db.getProjectRisks()
         ]);
         setProjects(p);
         setTasks(t);
@@ -165,9 +185,12 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         setDailyLogs(dl);
         setDayworks(dw);
         setSafetyIncidents(si);
+        setSafetyHazards(sh);
         setEquipment(eq);
         setTimesheets(ts);
         setTransactions(txn);
+        setDefects(defs);
+        setProjectRisks(risks);
       } catch (e) {
         console.error("Failed to load data from DB", e);
       } finally {
@@ -228,6 +251,14 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     return timesheets.filter(t => t.companyId === user.companyId);
   }, [timesheets, user]);
 
+  const visibleDefects = useMemo(() => {
+    return defects.filter(d => visibleProjectIds.includes(d.projectId));
+  }, [defects, visibleProjectIds]);
+
+  const visibleRisks = useMemo(() => {
+    return projectRisks.filter(r => visibleProjectIds.includes(r.projectId));
+  }, [projectRisks, visibleProjectIds]);
+
 
   // --- Project Methods ---
   const addProject = async (project: Project) => {
@@ -242,6 +273,17 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const updateProject = async (id: string, updates: Partial<Project>) => {
     setProjects((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)));
     await db.updateProject(id, updates);
+
+    // Log update
+    auditLog.log({
+      userId: user?.id || 'system',
+      userName: user?.name || 'Anonymous',
+      action: 'UPDATE_PROJECT',
+      entityType: 'Project',
+      entityId: id,
+      details: `Updated fields: ${Object.keys(updates).join(', ')}`,
+      tenantId: user?.companyId || 'c1'
+    });
   };
 
   const deleteProject = async (id: string) => {
@@ -280,8 +322,34 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.addTask(task);
   };
 
+  const { addNotification } = useNotifications();
+
   const updateTask = async (id: string, updates: Partial<Task>) => {
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    setTasks(prev => {
+      const taskIndex = prev.findIndex(t => t.id === id);
+      if (taskIndex === -1) return prev;
+
+      const oldTask = prev[taskIndex];
+      const newTasks = prev.map(t => t.id === id ? { ...t, ...updates } : t);
+
+      // --- Delay Propagation Logic ---
+      if (updates.dueDate && updates.dueDate !== oldTask.dueDate) {
+        // Find tasks that depend on this one
+        const dependents = newTasks.filter(t => t.dependencies?.includes(id));
+
+        dependents.forEach(dep => {
+          addNotification({
+            title: 'Downstream Delay Alert',
+            message: `Dependency "${oldTask.title}" delayed to ${updates.dueDate}. Review impact on "${dep.title}".`,
+            type: 'warning',
+            link: 'TASKS'
+          });
+        });
+      }
+
+      return newTasks;
+    });
+
     await db.updateTask(id, updates);
   };
 
@@ -347,11 +415,27 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addSafetyIncident = async (item: SafetyIncident) => {
     setSafetyIncidents(prev => [item, ...prev]);
     await db.addSafetyIncident(item);
+
+    // Log incident
+    auditLog.log({
+      userId: user?.id || 'system',
+      userName: user?.name || 'Anonymous',
+      action: 'ADD_SAFETY_INCIDENT',
+      entityType: 'Safety',
+      entityId: item.id || 'new',
+      details: `${item.type}: ${item.title}`,
+      tenantId: user?.companyId || 'c1'
+    });
   };
 
   const updateSafetyIncident = async (id: string, updates: Partial<SafetyIncident>) => {
     setSafetyIncidents(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
     await db.updateSafetyIncident(id, updates);
+  };
+
+  const addSafetyHazard = async (item: SafetyHazard) => {
+    setSafetyHazards(prev => [item, ...prev]);
+    await db.addSafetyHazard(item);
   };
 
   const addEquipment = async (item: Equipment) => {
@@ -392,6 +476,67 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     const itemWithTenant = { ...item, companyId: user?.companyId || 'c1' };
     setTransactions(prev => [itemWithTenant, ...prev]);
     await db.addTransaction(itemWithTenant);
+
+    // Log transaction
+    auditLog.log({
+      userId: user?.id || 'system',
+      userName: user?.name || 'Anonymous',
+      action: 'ADD_TRANSACTION',
+      entityType: 'Financial',
+      entityId: item.id,
+      details: `${item.type.toUpperCase()}: £${item.amount} (${item.description})`,
+      tenantId: user?.companyId || 'c1'
+    });
+  };
+
+  const addDefect = async (item: Defect) => {
+    const itemWithTenant = { ...item, companyId: user?.companyId || 'c1' };
+    setDefects(prev => [itemWithTenant, ...prev]);
+    await db.addDefect(itemWithTenant);
+  };
+
+  const updateDefect = async (id: string, updates: Partial<Defect>) => {
+    setDefects(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+    await db.updateDefect(id, updates);
+  };
+
+  const deleteDefect = async (id: string) => {
+    setDefects(prev => prev.filter(d => d.id !== id));
+    await db.deleteDefect(id);
+  };
+
+  const runHealthForecasting = async (projectId: string): Promise<ProjectRisk | null> => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return null;
+
+    const projectTasks = tasks.filter(t => t.projectId === projectId);
+    const completedTasks = projectTasks.filter(t => t.status === 'Completed').length;
+    const totalTasks = projectTasks.length;
+    const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) : 0;
+
+    // Simulate AI analysis logic
+    const risk: ProjectRisk = {
+      id: `risk-${Date.now()}`,
+      projectId,
+      riskLevel: completionRate < 0.3 ? 'High' : completionRate < 0.7 ? 'Medium' : 'Low',
+      predictedDelayDays: Math.floor((1 - completionRate) * 15),
+      factors: [
+        completionRate < 0.5 ? 'Slow task completion rate' : 'Standard progress',
+        'Material lead times in current supply chain',
+        'Upcoming inclement weather forecast'
+      ],
+      recommendations: [
+        'Increase workforce allocation in Sector 2',
+        'Pre-order Phase 3 materials now',
+        'Review critical path dependencies'
+      ],
+      timestamp: new Date().toISOString(),
+      trend: completionRate > 0.5 ? 'Improving' : 'Stable'
+    };
+
+    setProjectRisks(prev => [risk, ...prev]);
+    await db.addProjectRisk(risk);
+    return risk;
   };
 
   return (
@@ -432,13 +577,20 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addDaywork,
       addSafetyIncident,
       updateSafetyIncident,
+      addSafetyHazard,
       addEquipment,
       updateEquipment,
       addTimesheet,
       updateTimesheet,
       addChannel,
       addTeamMessage,
-      addTransaction
+      addTransaction,
+      defects: visibleDefects,
+      addDefect,
+      updateDefect,
+      deleteDefect,
+      projectRisks: visibleRisks,
+      runHealthForecasting
     }}>
       {children}
     </ProjectContext.Provider>

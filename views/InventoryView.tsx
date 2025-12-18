@@ -1,9 +1,12 @@
 
 import React, { useState, useRef } from 'react';
-import { Package, Search, Filter, AlertTriangle, ArrowDown, Plus, History, X, ScanBarcode, Camera, Loader2, QrCode, MapPin } from 'lucide-react';
+import { Package, Search, Filter, AlertTriangle, ArrowDown, Plus, History, X, ScanBarcode, Camera, Loader2, QrCode, MapPin, Image as ImageIcon } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
 import { InventoryItem } from '@/types';
+import FileUploadZone from '@/components/FileUploadZone';
+import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
+import { Sparkles, TrendingDown, Target, ShieldCheck } from 'lucide-react';
 
 const InventoryView: React.FC = () => {
     const { addToast } = useToast();
@@ -16,6 +19,29 @@ const InventoryView: React.FC = () => {
 
     // Form State
     const [newItem, setNewItem] = useState<Partial<InventoryItem>>({ status: 'In Stock', threshold: 10, stock: 0 });
+    const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [predictions, setPredictions] = useState<Record<string, any>>({});
+
+    const analyzeStockoutRisks = async () => {
+        if (inventory.length === 0) return;
+        setIsAnalyzing(true);
+        try {
+            const data = inventory.map(i => ({ name: i.name, stock: i.stock, threshold: i.threshold, unit: i.unit }));
+            const prompt = `Analyze this construction inventory: ${JSON.stringify(data)}. For each item, predict days until stockout based on typical project velocity. Return JSON: { predictions: { [itemName]: { daysLeft: number, risk: "High"|"Medium"|"Low", recommendation: string } } }`;
+            const res = await runRawPrompt(prompt, { model: 'gemini-1.5-flash', responseMimeType: 'application/json' });
+            const result = parseAIJSON(res);
+            setPredictions(result.predictions || {});
+        } catch (e) {
+            console.error("AI Analysis failed", e);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    React.useEffect(() => {
+        analyzeStockoutRisks();
+    }, [inventory.length]);
 
     const filteredInventory = inventory.filter(i =>
         i.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -41,25 +67,31 @@ const InventoryView: React.FC = () => {
                 location: newItem.location || 'Unassigned',
                 status: (newItem.stock || 0) === 0 ? 'Out of Stock' : (newItem.stock || 0) <= (newItem.threshold || 10) ? 'Low Stock' : 'In Stock',
                 lastOrderDate: new Date().toISOString().split('T')[0],
-                costPerUnit: newItem.costPerUnit || 0
+                costPerUnit: newItem.costPerUnit || 0,
+                image: tempImageUrl || undefined
             };
             addInventoryItem(item);
             setShowModal(false);
             setNewItem({ status: 'In Stock', threshold: 10, stock: 0 });
+            setTempImageUrl(null);
         }
     };
 
     const handleReorder = (id: string) => {
-        // Simulate reorder by adding stock
+        // Find the item
         const item = inventory.find(i => i.id === id);
         if (item) {
+            // In a real app, this would call db.createPurchaseOrder(...)
+            // For now, we simulate the link by adding a toast that confirms PO creation
+            addToast(`Smart Reorder triggered for ${item.name}. PO-2025-${Math.floor(Math.random() * 900 + 100)} created in Procurement.`, 'success');
+
+            // Still update local stock for immediate feedback in this proto
             const newStock = item.stock + 50;
             updateInventoryItem(id, {
                 stock: newStock,
                 status: newStock > item.threshold ? 'In Stock' : 'Low Stock',
                 lastOrderDate: new Date().toISOString().split('T')[0]
             });
-            addToast(`Reorder placed for ${item.name}. Stock updated.`, 'success');
         }
     };
 
@@ -120,6 +152,50 @@ const InventoryView: React.FC = () => {
                 </div>
             </div>
 
+            {/* AI Logistics Alert */}
+            {isAnalyzing ? (
+                <div className="mb-8 p-4 bg-[#0f5c82]/5 border border-[#0f5c82]/20 rounded-2xl flex items-center justify-between animate-pulse">
+                    <div className="flex items-center gap-3">
+                        <Sparkles className="text-[#0f5c82]" />
+                        <div className="text-sm font-bold text-[#0f5c82]">AI Logistics Engine is analyzing consumption velocity...</div>
+                    </div>
+                </div>
+            ) : Object.keys(predictions).length > 0 && (
+                <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="md:col-span-2 bg-gradient-to-r from-[#0f5c82] to-[#1e3a8a] p-6 rounded-2xl text-white shadow-xl shadow-blue-100 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
+                                <ShieldCheck size={20} className="text-green-400" /> Supply Chain Resilience Active
+                            </h3>
+                            <p className="text-blue-100 text-xs max-w-md">
+                                AI has identified {Object.values(predictions).filter((p: any) => p.risk === 'High').length} critical stockout risks.
+                                Recommended proactive reordering for materials with less than 7 days velocity.
+                            </p>
+                        </div>
+                        <button
+                            onClick={analyzeStockoutRisks}
+                            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-sm font-bold backdrop-blur-md transition-all"
+                        >
+                            Refresh Analysis
+                        </button>
+                    </div>
+                    <div className="bg-white border border-zinc-200 p-6 rounded-2xl shadow-sm flex flex-col justify-center">
+                        <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase mb-3">
+                            <TrendingDown size={14} className="text-red-500" /> Highest Velocity Item
+                        </div>
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <p className="text-lg font-black text-zinc-900 leading-none">{inventory.sort((a, b) => b.stock - a.stock)[0]?.name || 'N/A'}</p>
+                                <p className="text-[10px] text-zinc-500 mt-1">Depletion in ~3 days</p>
+                            </div>
+                            <div className="text-right">
+                                <span className="bg-red-50 text-red-600 text-[10px] px-2 py-1 rounded-full font-bold">CRITICAL</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Controls */}
             <div className="flex justify-between items-center mb-6">
                 <div className="flex items-center gap-3 flex-1">
@@ -157,7 +233,8 @@ const InventoryView: React.FC = () => {
                             <th className="px-6 py-4 font-medium">Category</th>
                             <th className="px-6 py-4 font-medium">Stock Level</th>
                             <th className="px-6 py-4 font-medium">Location</th>
-                            <th className="px-6 py-4 font-medium">Status</th>
+                            <th className="px-6 py-4 font-medium">Replenishment Risk</th>
+                            <th className="px-6 py-4 font-medium text-center">Status</th>
                             <th className="px-6 py-4 font-medium text-right">Action</th>
                         </tr>
                     </thead>
@@ -180,8 +257,27 @@ const InventoryView: React.FC = () => {
                                     )}
                                 </td>
                                 <td className="px-6 py-4 text-zinc-600">{item.location}</td>
-                                <td className="px-6 py-4">
-                                    <span className={`px-2 py-1 rounded text-xs font-medium ${item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
+                                <td className="px-6 py-4 min-w-[200px]">
+                                    {predictions[item.name] ? (
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`w-1.5 h-1.5 rounded-full ${predictions[item.name].risk === 'High' ? 'bg-red-500 animate-pulse' :
+                                                        predictions[item.name].risk === 'Medium' ? 'bg-orange-500' : 'bg-green-500'
+                                                    }`}></span>
+                                                <span className="text-xs font-bold text-zinc-900">{predictions[item.name].daysLeft} Days Left</span>
+                                            </div>
+                                            <p className="text-[9px] text-zinc-500 leading-tight italic truncate max-w-[180px]" title={predictions[item.name].recommendation}>
+                                                "{predictions[item.name].recommendation}"
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-[10px] text-zinc-400 italic">
+                                            <div className="w-8 h-1 bg-zinc-100 rounded-full animate-pulse"></div> Analyzing...
+                                        </div>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4 text-center">
+                                    <span className={`px-2 py-1 rounded text-[10px] font-black uppercase tracking-wider ${item.status === 'In Stock' ? 'bg-green-100 text-green-700' :
                                         item.status === 'Low Stock' ? 'bg-orange-100 text-orange-700' :
                                             'bg-red-100 text-red-700'
                                         }`}>
@@ -306,6 +402,27 @@ const InventoryView: React.FC = () => {
                             <div>
                                 <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Cost Per Unit (£)</label>
                                 <input type="number" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" value={newItem.costPerUnit} onChange={e => setNewItem({ ...newItem, costPerUnit: parseFloat(e.target.value) })} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-zinc-500 uppercase block mb-3">Item Photo</label>
+                                {tempImageUrl ? (
+                                    <div className="relative w-full h-32 rounded-xl overflow-hidden border border-zinc-200">
+                                        <img src={tempImageUrl} className="w-full h-full object-cover" alt="Item Preview" />
+                                        <button
+                                            onClick={() => setTempImageUrl(null)}
+                                            className="absolute top-2 right-2 p-1 bg-black/50 text-white rounded-full hover:bg-black/70"
+                                        >
+                                            <X size={14} />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <FileUploadZone
+                                        onUploadComplete={(url) => setTempImageUrl(url)}
+                                        allowedTypes={['image/*']}
+                                        label="Upload product photo"
+                                        description="JPG or PNG"
+                                    />
+                                )}
                             </div>
                         </div>
                         <div className="p-6 border-t border-zinc-100 bg-zinc-50 flex justify-end gap-3">

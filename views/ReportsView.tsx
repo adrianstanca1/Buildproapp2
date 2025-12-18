@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Briefcase, Shield, List, DollarSign, Users, Wrench, Filter, Calculator, FileDown, Eye, X, Loader2, Download, Mail, Clock, Plus, GripVertical, Settings, Trash2, Layout, BarChart, Table as TableIcon, Type, PlusCircle, CheckCircle2, AlertTriangle, TrendingUp, Calendar, Zap, Info, ChevronRight, Share2 } from 'lucide-react';
+import { Briefcase, Shield, List, DollarSign, Users, Wrench, Filter, Calculator, FileDown, Eye, X, Loader2, Download, Mail, Clock, Plus, GripVertical, Settings, Trash2, Layout, BarChart, Table as TableIcon, Type, PlusCircle, CheckCircle2, AlertTriangle, TrendingUp, Calendar, Zap, Info, ChevronRight, Share2, Brain } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { useProjects } from '@/contexts/ProjectContext';
+import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 
 interface ReportElement {
   id: string;
@@ -45,6 +47,9 @@ const ReportsView = () => {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [scheduleFrequency, setScheduleFrequency] = useState<string>('');
   const [generatedReport, setGeneratedReport] = useState<Report | null>(null);
+  const { projects, tasks, financials, inventory, safetyIncidents } = useProjects();
+  const [isAiSummarizing, setIsAiSummarizing] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
 
   // Designer State
   const [isDesigning, setIsDesigning] = useState(false);
@@ -140,7 +145,32 @@ const ReportsView = () => {
     }
 
     setGenerating(true);
-    setTimeout(() => {
+
+    // Gather context for AI
+    const context = {
+      template: selectedTemplate,
+      projects: projects.map(p => ({ name: p.name, status: p.status, progress: p.progress })),
+      tasks: tasks.filter(t => t.status !== 'completed').slice(0, 10).map(t => ({ title: t.title, due: t.dueDate })),
+      safety: safetyIncidents.slice(0, 5).map(s => ({ type: s.type, severity: s.severity }))
+    };
+
+    try {
+      const prompt = `
+        Generate a professional construction executive summary for a report named "${reportName}" based on this template: ${selectedTemplate}.
+        Context: ${JSON.stringify(context)}
+        
+        The summary should highlight:
+        1. Current project health across the portfolio.
+        2. Top 3 critical risks or blockers.
+        3. Strategic recommendations for the next 7 days.
+        
+        Keep it professional, concise, and impact-oriented.
+      `;
+
+      setIsAiSummarizing(true);
+      const result = await runRawPrompt(prompt, { model: 'gemini-3-pro-preview', thinkingConfig: { thinkingBudget: 1024 } });
+      setAiSummary(result);
+
       const newReport: Report = {
         id: `r${Date.now()}`,
         name: reportName,
@@ -157,10 +187,14 @@ const ReportsView = () => {
 
       setGeneratedReport(newReport);
       setSavedReports([newReport, ...savedReports]);
-      setGenerating(false);
       setActiveModal('preview');
       setIsDesigning(false);
-    }, 2000);
+    } catch (e) {
+      addToast("Failed to generate AI summary", "error");
+    } finally {
+      setGenerating(false);
+      setIsAiSummarizing(false);
+    }
   };
 
   const startNewCustomReport = () => {
@@ -593,13 +627,17 @@ const ReportsView = () => {
 
                 <div className="flex-1 border-t border-zinc-100 pt-12">
                   <div className="flex items-center gap-4 mb-8">
-                    <Info size={24} className="text-[#0f5c82]" />
-                    <h3 className="text-2xl font-black text-zinc-900 tracking-tight italic">Executive Notes</h3>
+                    <Brain size={24} className="text-[#0f5c82]" />
+                    <h3 className="text-2xl font-black text-zinc-900 tracking-tight italic">AI Executive Intelligence</h3>
                   </div>
-                  <div className="space-y-6">
-                    <div className="h-4 w-full bg-zinc-50 rounded-full"></div>
-                    <div className="h-4 w-full bg-zinc-50 rounded-full"></div>
-                    <div className="h-4 w-4/5 bg-zinc-50 rounded-full"></div>
+                  <div className="bg-zinc-50 border border-zinc-100 p-8 rounded-[2rem] text-sm text-zinc-800 leading-relaxed whitespace-pre-wrap font-medium">
+                    {aiSummary || (
+                      <div className="space-y-6">
+                        <div className="h-4 w-full bg-zinc-100 rounded-full animate-pulse"></div>
+                        <div className="h-4 w-full bg-zinc-100 rounded-full animate-pulse"></div>
+                        <div className="h-4 w-4/5 bg-zinc-100 rounded-full animate-pulse"></div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

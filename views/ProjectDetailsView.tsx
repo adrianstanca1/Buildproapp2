@@ -1,13 +1,13 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-ArrowLeft, Calendar, PoundSterling, Users, MapPin,
-LayoutDashboard, CheckSquare, FileText, Layers,
-CloudRain, AlertTriangle, Plus, Filter, Download, Box, Image as ImageIcon,
-Camera, Hammer, Clipboard, ChevronRight, Building, HelpCircle, List, Link, Wrench, Navigation, Shield,
-Sparkles, BrainCircuit, Send, Loader2, Bot, User, CheckCircle2, MoreHorizontal, Search, Paperclip,
-Clock, Zap, X, Building2, Info, RefreshCw, ScanLine, MessageSquare, Maximize2, Eye, ChevronUp, ChevronDown,
-GitCommit
+    ArrowLeft, Calendar, PoundSterling, Users, MapPin,
+    LayoutDashboard, CheckSquare, FileText, Layers,
+    CloudRain, AlertTriangle, Plus, Filter, Download, Box, Image as ImageIcon,
+    Camera, Hammer, Clipboard, ChevronRight, Building, HelpCircle, List, Link, Wrench, Navigation, Shield,
+    Sparkles, BrainCircuit, Send, Loader2, Bot, User, CheckCircle2, MoreHorizontal, Search, Paperclip,
+    Clock, Zap, X, Building2, Info, RefreshCw, ScanLine, MessageSquare, Maximize2, Eye, ChevronUp, ChevronDown,
+    GitCommit, LineChart, Brain
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -22,6 +22,7 @@ import TasksView from './TasksView';
 import ProjectPhasesView from './ProjectPhasesView';
 import { ProjectActionModals } from '@/components/ProjectActionModals';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
+import FileUploadZone from '@/components/FileUploadZone';
 
 interface ProjectDetailsViewProps {
     projectId: string | null;
@@ -39,7 +40,7 @@ interface ChatMessage {
 }
 
 const ProjectGallery = ({ projectId, onUpload }: { projectId: string, onUpload: () => void }) => {
-    const { documents, addSafetyIncident, projects } = useProjects();
+    const { documents, addSafetyIncident, addDocument, projects } = useProjects();
     const { addToast } = useToast();
     const photos = documents.filter(d => d.projectId === projectId && d.type === 'Image');
     const [selectedPhoto, setSelectedPhoto] = useState<ProjectDocument | null>(null);
@@ -116,17 +117,74 @@ const ProjectGallery = ({ projectId, onUpload }: { projectId: string, onUpload: 
         }
     };
 
+    const [showUploadModal, setShowUploadModal] = useState(false);
+
+    const handleUploadComplete = async (url: string, file: File) => {
+        const newDoc: ProjectDocument = {
+            id: `doc-${Date.now()}`,
+            name: file.name,
+            type: 'Image',
+            projectId: projectId,
+            projectName: project?.name || 'Current Project',
+            size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+            date: new Date().toLocaleDateString(),
+            status: 'Approved',
+            url: url
+        };
+        addDocument(newDoc);
+        setShowUploadModal(false);
+        addToast(`Photo ${file.name} added to gallery.`, 'success');
+
+        // Automatic Safety Check for new photos
+        try {
+            const base64 = url.startsWith('data:') ? url.split(',')[1] : null;
+            if (base64) {
+                const prompt = "Act as a safety inspector. Scan this construction photo for immediate life-safety hazards. If any found, describe them briefly. If clean, say 'No immediate hazards detected'.";
+                const res = await runRawPrompt(prompt, { model: 'gemini-2.0-flash' }, base64);
+                if (res && !res.includes('No immediate hazards')) {
+                    addToast(`AI Alert: Potential safety issue detected in upload.`, 'warning');
+                }
+            }
+        } catch (e) { console.warn("Auto-safety check failed", e); }
+    };
+
     return (
-        <div className="h-full flex flex-col max-w-7xl mx-auto">
+        <div className="h-full flex flex-col max-w-7xl mx-auto drop-shadow-sm">
             <div className="flex justify-between items-end mb-6">
                 <div>
                     <h2 className="text-2xl font-bold text-zinc-900 flex items-center gap-2"><ImageIcon className="text-[#0f5c82]" /> Photo Gallery</h2>
                     <p className="text-zinc-500 text-sm">{photos.length} site photos available for intelligence analysis</p>
                 </div>
-                <button onClick={onUpload} className="bg-[#0f5c82] text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md hover:bg-[#0c4a6e] transition-colors flex items-center gap-2">
+                <button
+                    onClick={() => setShowUploadModal(true)}
+                    className="bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-[#0c4a6e] transition-all transform hover:scale-105 flex items-center gap-2"
+                >
                     <Camera size={16} /> Add Photo
                 </button>
             </div>
+
+            {/* Upload Modal */}
+            {showUploadModal && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-white w-full max-w-xl rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
+                            <div>
+                                <h3 className="font-bold text-zinc-900 text-lg">Add Site Photo</h3>
+                                <p className="text-xs text-zinc-500">Upload photos for documentation and AI visual analysis.</p>
+                            </div>
+                            <button onClick={() => setShowUploadModal(false)} className="p-2 hover:bg-white rounded-full"><X size={20} /></button>
+                        </div>
+                        <div className="p-8">
+                            <FileUploadZone
+                                onUploadComplete={handleUploadComplete}
+                                allowedTypes={['image/*']}
+                                label="Drop site photo here"
+                                description="JPG, PNG up to 10MB"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {photos.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center bg-zinc-50 rounded-2xl border-2 border-dashed border-zinc-200 p-12 text-center">
@@ -445,6 +503,89 @@ const AIArchitectConsole = ({ project, tasks, onUpdate }: { project: Project, ta
     );
 };
 
+const ForecastingWidget = ({ projectId }: { projectId: string }) => {
+    const { projectRisks, runHealthForecasting } = useProjects();
+    const [isRunning, setIsRunning] = useState(false);
+
+    const latestRisk = useMemo(() => {
+        return projectRisks.find(r => r.projectId === projectId);
+    }, [projectRisks, projectId]);
+
+    const handleRunForecasting = async () => {
+        setIsRunning(true);
+        await runHealthForecasting(projectId);
+        setIsRunning(false);
+    };
+
+    if (!latestRisk) {
+        return (
+            <div className="bg-zinc-900 text-white rounded-2xl p-6 border border-zinc-800 shadow-xl overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-transparent opacity-50"></div>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-2 mb-4">
+                        <div className="p-2 bg-indigo-500/20 rounded-lg"><LineChart size={20} className="text-indigo-400" /></div>
+                        <h4 className="font-bold text-sm uppercase tracking-wider text-zinc-400">Project Health Forecast</h4>
+                    </div>
+                    <p className="text-sm text-zinc-400 mb-6 font-medium">Predictive model for project delays, budget slippage, and resource risks.</p>
+                    <button
+                        onClick={handleRunForecasting}
+                        disabled={isRunning}
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all shadow-lg flex items-center justify-center gap-2"
+                    >
+                        {isRunning ? <Loader2 size={18} className="animate-spin" /> : <Brain size={18} />}
+                        {isRunning ? 'Running Simulation...' : 'Generate AI Forecast'}
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-zinc-900 text-white rounded-2xl p-6 border border-zinc-800 shadow-xl overflow-hidden relative">
+            <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl blur-3xl opacity-20 ${latestRisk.riskLevel === 'High' ? 'from-red-600' : 'from-green-600'}`}></div>
+            <div className="relative z-10">
+                <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-indigo-500/20 rounded-lg"><LineChart size={20} className="text-indigo-400" /></div>
+                        <h4 className="font-bold text-sm uppercase tracking-wider text-zinc-400">Project Health Forecast</h4>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-widest ${latestRisk.trend === 'Improving' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {latestRisk.trend}
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="bg-black/40 rounded-xl p-4 border border-white/5">
+                        <div className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Risk Level</div>
+                        <div className={`text-xl font-black ${latestRisk.riskLevel === 'High' ? 'text-red-500' : 'text-green-500'}`}>{latestRisk.riskLevel}</div>
+                    </div>
+                    <div className="bg-black/40 rounded-xl p-4 border border-white/5">
+                        <div className="text-[10px] text-zinc-500 uppercase font-bold mb-1">Predicted Delay</div>
+                        <div className="text-xl font-black text-white">{latestRisk.predictedDelayDays} Days</div>
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <div>
+                        <div className="text-[10px] text-zinc-500 uppercase font-bold mb-2">Primary Factors</div>
+                        <div className="flex flex-wrap gap-2">
+                            {latestRisk.factors.map((f, i) => (
+                                <span key={i} className="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded text-zinc-300 font-medium">{f}</span>
+                            ))}
+                        </div>
+                    </div>
+                    <button
+                        onClick={handleRunForecasting}
+                        className="w-full py-2 text-xs font-bold text-zinc-400 hover:text-white transition-colors flex items-center justify-center gap-2"
+                    >
+                        <RefreshCw size={12} /> Recalculate Forecast
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Project, tasks: Task[], onUpdate: (updates: Partial<Project>) => void, openModal: (m: any) => void }) => {
     const [isArchitectOpen, setIsArchitectOpen] = useState(false);
     const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
@@ -726,7 +867,7 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
 
                     <div>
                         <h3 className="text-sm font-bold text-zinc-900 mb-4">Quick Actions</h3>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-2 gap-3 mb-8">
                             <QuickActionButton icon={Plus} label="New Task" onClick={() => openModal(null)} />
                             <QuickActionButton icon={FileText} label="New RFI" onClick={() => openModal('RFI')} />
                             <QuickActionButton icon={CheckSquare} label="Punch Item" onClick={() => openModal('PUNCH')} />
@@ -734,6 +875,9 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
                             <QuickActionButton icon={Hammer} label="Daywork" onClick={() => openModal('DAYWORK')} />
                             <QuickActionButton icon={Camera} label="Add Photo" onClick={() => openModal('PHOTO')} />
                         </div>
+
+                        {/* Forecasting Widget */}
+                        <ForecastingWidget projectId={project.id} />
                     </div>
                 </div>
             </div>
@@ -742,7 +886,7 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
 };
 
 const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBack }) => {
-    const { getProject, updateProject, tasks, rfis, punchItems, dailyLogs, dayworks } = useProjects();
+    const { getProject, updateProject, addDocument, tasks, rfis, punchItems, dailyLogs, dayworks } = useProjects();
     const [activeTab, setActiveTab] = useState<Tab>('OVERVIEW');
     const [project, setProject] = useState<Project | undefined>(undefined);
     const [rfiSearch, setRfiSearch] = useState('');

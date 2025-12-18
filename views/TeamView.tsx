@@ -1,9 +1,9 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import {
-Plus, Users, LayoutGrid, List as ListIcon, Search, Filter,
-Phone, Mail, MapPin, Award, Star, Briefcase, X,
-FileText, Loader2, Tag, Sparkles, Copy, UserCheck, Upload, Trash2, Eye, Globe
+    Plus, Users, LayoutGrid, List as ListIcon, Search, Filter,
+    Phone, Mail, MapPin, Award, Star, Briefcase, X,
+    FileText, Loader2, Tag, Sparkles, Copy, UserCheck, Upload, Trash2, Eye, Globe
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,7 +24,8 @@ const StatusBadge = ({ status }: { status: string }) => {
         'On Site': 'bg-green-100 text-green-700',
         'Off Site': 'bg-zinc-100 text-zinc-600',
         'On Break': 'bg-blue-100 text-blue-700',
-        'Leave': 'bg-orange-100 text-orange-700'
+        'Leave': 'bg-orange-100 text-orange-700',
+        'Invited': 'bg-purple-100 text-purple-700 border border-purple-200'
     };
     return (
         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase ${colors[status] || 'bg-zinc-100 text-zinc-600'}`}>
@@ -48,11 +49,11 @@ const UserCard: React.FC<{ member: TeamMember; onClick: () => void; showCompany:
 
     return (
         <div onClick={onClick} className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden hover:border-[#0f5c82] flex flex-col h-full">
-            <div className={`absolute top-0 left-0 w-1 h-full ${status === 'On Site' ? 'bg-green-500' : 'bg-zinc-300'}`} />
+            <div className={`absolute top-0 left-0 w-1 h-full ${status === 'On Site' ? 'bg-green-500' : status === 'Invited' ? 'bg-purple-500' : 'bg-zinc-300'}`} />
 
             <div className="flex justify-between items-start mb-4 pl-2">
-                <div className={`w-12 h-12 rounded-full ${color} text-white flex items-center justify-center text-sm font-bold shadow-sm ring-2 ring-white`}>
-                    {initials}
+                <div className={`w-12 h-12 rounded-full ${color} text-white flex items-center justify-center text-sm font-bold shadow-sm ring-2 ring-white overflow-hidden`}>
+                    {member.status === 'Invited' ? <Mail size={20} className="opacity-80" /> : initials}
                 </div>
                 <StatusBadge status={status} />
             </div>
@@ -315,8 +316,8 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                         }}
                         disabled={!canAddResource('users')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('users')
-                                ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
-                                : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
+                            ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
+                            : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
                             }`}
                     >
                         <Plus size={18} /> Add Member

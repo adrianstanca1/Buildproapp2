@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk } from '@/types';
 import { db as mockDb } from './mockDb';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -229,6 +229,20 @@ class DatabaseService {
     await this.put('safety_incidents', id, u);
   }
 
+  // --- Safety Hazards ---
+  async getSafetyHazards(): Promise<SafetyHazard[]> {
+    if (this.useMock) return JSON.parse(localStorage.getItem('safety_hazards') || '[]');
+    return this.fetch<SafetyHazard>('safety_hazards').catch(() => JSON.parse(localStorage.getItem('safety_hazards') || '[]'));
+  }
+  async addSafetyHazard(item: SafetyHazard) {
+    if (this.useMock) {
+      const hazards = await this.getSafetyHazards();
+      localStorage.setItem('safety_hazards', JSON.stringify([item, ...hazards]));
+      return;
+    }
+    await this.post('safety_hazards', item);
+  }
+
   // --- Equipment ---
   async getEquipment(): Promise<Equipment[]> {
     if (this.useMock) return [];
@@ -285,6 +299,51 @@ class DatabaseService {
   async addTeamMessage(item: any) {
     if (this.useMock) return;
     await this.post('team_messages', item);
+  }
+
+  // --- Defects ---
+  async getDefects(): Promise<Defect[]> {
+    if (this.useMock) return JSON.parse(localStorage.getItem('defects') || '[]');
+    return this.fetch<Defect>('defects').catch(() => JSON.parse(localStorage.getItem('defects') || '[]'));
+  }
+  async addDefect(item: Defect) {
+    if (this.useMock) {
+      const defects = await this.getDefects();
+      localStorage.setItem('defects', JSON.stringify([item, ...defects]));
+      return;
+    }
+    await this.post('defects', item);
+  }
+  async updateDefect(id: string, u: Partial<Defect>) {
+    if (this.useMock) {
+      const defects = await this.getDefects();
+      localStorage.setItem('defects', JSON.stringify(defects.map(d => d.id === id ? { ...d, ...u } : d)));
+      return;
+    }
+    await this.put('defects', id, u);
+  }
+  async deleteDefect(id: string) {
+    if (this.useMock) {
+      const defects = await this.getDefects();
+      localStorage.setItem('defects', JSON.stringify(defects.filter(d => d.id !== id)));
+      return;
+    }
+    await this.delete('defects', id);
+  }
+
+  // --- Project Health Forecasting ---
+  async getProjectRisks(): Promise<ProjectRisk[]> {
+    if (this.useMock) return JSON.parse(localStorage.getItem('projectRisks') || '[]');
+    return this.fetch<ProjectRisk>('projectRisks').catch(() => JSON.parse(localStorage.getItem('projectRisks') || '[]'));
+  }
+
+  async addProjectRisk(item: ProjectRisk) {
+    if (this.useMock) {
+      const risks = await this.getProjectRisks();
+      localStorage.setItem('projectRisks', JSON.stringify([item, ...risks]));
+      return;
+    }
+    await this.post('projectRisks', item);
   }
 
 

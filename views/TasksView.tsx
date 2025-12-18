@@ -1,10 +1,10 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import {
-Plus, Calendar, User, Briefcase, X, Link, AlertCircle, Search, Filter,
-ArrowUpDown, LayoutGrid, List as ListIcon, CheckCircle2, AlertTriangle,
-Lock, Sparkles, Loader2, MapPin, Navigation,
-ChevronsUp, ChevronUp, Minus, ChevronDown, Paperclip, FileText, Eye, Trash2, Download, Image as ImageIcon, Box, Upload, Link2, Ban, Edit3
+    Plus, Calendar, User, Briefcase, X, Link, AlertCircle, Search, Filter,
+    ArrowUpDown, LayoutGrid, List as ListIcon, CheckCircle2, AlertTriangle,
+    Lock, Sparkles, Loader2, MapPin, Navigation,
+    ChevronsUp, ChevronUp, Minus, ChevronDown, Paperclip, FileText, Eye, Trash2, Download, Image as ImageIcon, Box, Upload, Link2, Ban, Edit3
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -31,7 +31,9 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
 
     // AI State
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isMatchingResource, setIsMatchingResource] = useState(false);
     const [aiReasoning, setAiReasoning] = useState('');
+    const [resourceMatchingReasoning, setResourceMatchingReasoning] = useState('');
     const [aiSuggested, setAiSuggested] = useState(false);
 
     // View State
@@ -183,6 +185,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
     const openCreateModal = () => {
         setEditingTask(null);
         setAiReasoning('');
+        setResourceMatchingReasoning('');
         setAiSuggested(false);
         const newId = `t-${Date.now()}`;
         setDraftTaskId(newId);
@@ -225,6 +228,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
 
         setDraftTaskId(task.id);
         setAiReasoning('');
+        setResourceMatchingReasoning('');
         setAiSuggested(false);
         setFormState({
             title: task.title,
@@ -399,6 +403,57 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
             setAiReasoning("Analysis failed. Please try again.");
         } finally {
             setIsAnalyzing(false);
+        }
+    };
+
+    const handleSuggestResource = async () => {
+        if (!formState.title) return;
+        setIsMatchingResource(true);
+        setResourceMatchingReasoning('');
+
+        try {
+            const prompt = `
+        Act as a HR & Resource Manager for a construction company.
+        Find the best candidate for this task.
+
+        Task: "${formState.title}"
+        Description: "${formState.description || 'N/A'}"
+        Project: "${getProjectName(formState.projectId)}"
+
+        Available Team Members:
+        ${teamMembers.map(m => `- ${m.name} (Role: ${m.role}, Skills: ${m.skills?.join(', ') || 'N/A'}, Status: ${m.status})`).join('\n')}
+
+        Select the most qualified person based on their skills matching the task requirements.
+        If no direct skill match, pick based on Role.
+        Prefer 'On Site' members.
+
+        Return ONLY raw JSON:
+        {
+            "suggestedName": "Full Name",
+            "reasoning": "Concise explanation of why this person fits the task."
+        }
+        `;
+
+            const res = await runRawPrompt(prompt, {
+                model: 'gemini-3-pro-preview',
+                responseMimeType: 'application/json',
+                temperature: 0.2
+            });
+
+            const data = parseAIJSON(res);
+            if (data.suggestedName) {
+                setFormState(prev => ({
+                    ...prev,
+                    assigneeType: 'user',
+                    assigneeName: data.suggestedName
+                }));
+                setResourceMatchingReasoning(data.reasoning);
+            }
+        } catch (e) {
+            console.error("Resource suggestion failed", e);
+            setResourceMatchingReasoning("Matching failed. Please try again.");
+        } finally {
+            setIsMatchingResource(false);
         }
     };
 
@@ -1137,6 +1192,24 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
                                             <option key={name} value={name}>{name}</option>
                                         ))}
                                     </select>
+                                )}
+
+                                {canEditDetails && (
+                                    <button
+                                        onClick={handleSuggestResource}
+                                        disabled={isMatchingResource || !formState.title}
+                                        className={`mt-2 w-full py-2 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 font-bold text-xs flex items-center justify-center gap-2 transition-all ${isMatchingResource || !formState.title ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-100 shadow-sm'}`}
+                                    >
+                                        {isMatchingResource ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                        AI Match Resource
+                                    </button>
+                                )}
+
+                                {resourceMatchingReasoning && (
+                                    <div className="mt-2 bg-blue-50/50 border border-blue-100 rounded-lg p-3 text-[11px] text-blue-800 leading-relaxed italic">
+                                        <div className="font-bold flex items-center gap-1 mb-1 not-italic"><Sparkles size={12} /> Matching Logic:</div>
+                                        {resourceMatchingReasoning}
+                                    </div>
                                 )}
                             </div>
                         </div>

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export enum Page {
@@ -38,7 +37,8 @@ export enum Page {
   LIVE_PROJECT_MAP = 'LIVE_PROJECT_MAP',
   PROJECT_LAUNCHPAD = 'PROJECT_LAUNCHPAD',
   TENANT_MANAGEMENT = 'TENANT_MANAGEMENT',
-  TENANT_ANALYTICS = 'TENANT_ANALYTICS'
+  TENANT_ANALYTICS = 'TENANT_ANALYTICS',
+  RESOURCE_OPTIMIZATION = 'RESOURCE_OPTIMIZATION'
 }
 
 export enum UserRole {
@@ -276,7 +276,7 @@ export interface TeamMember {
   name: string;
   initials: string;
   role: string;
-  status: 'On Site' | 'Off Site' | 'On Break' | 'Leave';
+  status: 'On Site' | 'Off Site' | 'On Break' | 'Leave' | 'Invited';
   projectId?: string; // Current assignment
   projectName?: string; // Denormalized
   phone: string;
@@ -333,6 +333,7 @@ export interface InventoryItem {
   status: 'In Stock' | 'Low Stock' | 'Out of Stock';
   lastOrderDate?: string;
   costPerUnit?: number;
+  image?: string;
 }
 
 export interface UserProfile {
@@ -529,4 +530,84 @@ export interface Transaction {
   category: string;
   status: 'completed' | 'pending';
   invoice?: string;
+  linkedPurchaseOrderId?: string;
+}
+
+// --- Procurement & Supply Chain ---
+export interface OrderItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Approver {
+  id: string;
+  name: string;
+  role: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp?: string;
+  comment?: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  projectId?: string;
+  number: string;
+  vendor: string;
+  date: string;
+  amount: number;
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'completed';
+  items: OrderItem[];
+  createdBy: string;
+  approvers: Approver[];
+  notes: string;
+  estimatedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  category: string;
+  contact: string;
+  email: string;
+  rating: number;
+  performance: number;
+  activeOrders: number;
+  spend: string;
+  status: 'Preferred' | 'Active' | 'Review';
+  reliabilityScore: number;
+  averageDeliveryDays: number;
+  lat?: number;
+  lng?: number;
+}
+// --- Quality Control & Defects ---
+export interface Defect {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  severity: 'High' | 'Medium' | 'Low' | 'Critical';
+  status: 'Open' | 'Resolved' | 'Remediating' | 'Closed';
+  location: string;
+  category: string;
+  createdAt: string;
+  resolvedAt?: string;
+  image?: string;
+  remediationTaskId?: string;
+  recommendation?: string;
+  companyId?: string;
+}
+
+// --- Project Health Forecasting ---
+export interface ProjectRisk {
+  id: string;
+  projectId: string;
+  riskLevel: 'High' | 'Medium' | 'Low' | 'Critical';
+  predictedDelayDays: number;
+  factors: string[];
+  recommendations: string[];
+  timestamp: string;
+  trend: 'Improving' | 'Degrading' | 'Stable';
 }

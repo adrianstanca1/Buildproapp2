@@ -6,7 +6,8 @@ import {
     MoreHorizontal, Shield, DollarSign, Users, Briefcase, HardHat, CheckSquare, Map as MapIcon,
     FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
     Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
-    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight, PieChart
+    Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight, PieChart,
+    AlertTriangle, Wrench
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -43,7 +44,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setPage }) => {
 // --- AI Daily Briefing Component ---
 
 const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
-    const { projects } = useProjects();
+    const { projects, safetyHazards, equipment } = useProjects();
     const { user } = useAuth();
     const [briefing, setBriefing] = useState<any>(null);
     const [loading, setLoading] = useState(false);
@@ -51,11 +52,26 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
     const generateBriefing = async () => {
         setLoading(true);
         try {
+            const openHazards = safetyHazards.filter(h => h.status === 'Open');
+            const maintenanceDone = equipment.filter(e => e.status === 'Maintenance').length;
+            const overdueService = equipment.filter(e => {
+                if (!e.nextService) return false;
+                return new Date(e.nextService) < new Date();
+            }).length;
+
             const context = {
                 role,
                 userName: user?.name,
                 projectCount: projects.length,
                 topProjects: projects.slice(0, 3).map(p => ({ name: p.name, health: p.health, progress: p.progress })),
+                safety: {
+                    openHazards: openHazards.length,
+                    criticalHazards: openHazards.filter(h => h.severity === 'Critical').length
+                },
+                fleet: {
+                    inMaintenance: maintenanceDone,
+                    overdueService: overdueService
+                },
                 date: new Date().toLocaleDateString()
             };
 
@@ -614,7 +630,7 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 
 // --- 2. COMPANY ADMIN DASHBOARD ---
 const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
-    const { projects } = useProjects();
+    const { projects, safetyHazards, equipment } = useProjects();
     const { canAddResource, currentTenant, checkFeature } = useTenant();
 
     const totalRevenue = useMemo(() => projects.reduce((sum, p) => sum + (p.budget || 0), 0), [projects]);
@@ -664,7 +680,7 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="col-span-2 bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
+                <div className="bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
                     <div className="relative z-10">
                         <h3 className="text-blue-200 font-medium text-sm uppercase tracking-wider mb-1">Total Budget (YTD)</h3>
                         <div className="text-4xl font-bold mb-4">£{(totalRevenue / 1000000).toFixed(1)} Million</div>
@@ -675,33 +691,71 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
                             </div>
                             <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
                                 <div className="text-xs text-blue-200">Win Rate</div>
-                                <div className="font-bold text-xl">64%</div> {/* Keeping mock win rate for now as no data exists */}
+                                <div className="font-bold text-xl">64%</div>
                             </div>
                         </div>
                     </div>
                     <Sparkles className="absolute top-0 right-0 text-white/10 w-64 h-64 -mr-10 -mt-10" />
                 </div>
+
                 <div className="bg-white border border-zinc-200 rounded-2xl p-6">
-                    <h3 className="font-bold text-zinc-900 mb-4">Project Health</h3>
+                    <h3 className="font-bold text-zinc-900 mb-4 flex items-center justify-between">
+                        Project Health
+                        <Activity size={16} className="text-zinc-400" />
+                    </h3>
                     <div className="flex items-center justify-center h-40 relative">
                         <div className="text-center">
                             <div className={`text-3xl font-bold ${healthPercentage >= 70 ? 'text-green-600' : 'text-orange-600'}`}>{healthPercentage}%</div>
-                            <div className="text-xs text-zinc-500">On Track</div>
+                            <div className="text-xs text-zinc-500 font-bold uppercase tracking-tighter">On Track</div>
                         </div>
                         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="#e4e4e7" strokeWidth="8" />
+                            <circle cx="50" cy="50" r="40" fill="none" stroke="#f4f4f5" strokeWidth="8" />
                             <circle
                                 cx="50"
                                 cy="50"
                                 r="40"
                                 fill="none"
-                                stroke={healthPercentage >= 70 ? "#16a34a" : "#f97316"}
+                                stroke={healthPercentage >= 70 ? "#10b981" : "#f97316"}
                                 strokeWidth="8"
                                 strokeDasharray="251"
                                 strokeDashoffset={251 - (251 * healthPercentage) / 100}
                                 strokeLinecap="round"
                             />
                         </svg>
+                    </div>
+                </div>
+
+                <div className="bg-white border border-zinc-200 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <h3 className="font-bold text-zinc-900 mb-4 flex items-center justify-between">
+                            Operational Health
+                            <Shield size={16} className="text-zinc-400" />
+                        </h3>
+                        <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <AlertTriangle size={14} className="text-amber-500" />
+                                    <span className="text-xs font-bold text-zinc-600">Active Hazards</span>
+                                </div>
+                                <span className="text-sm font-black text-zinc-900">{safetyHazards.filter(h => h.status === 'Open').length}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <Wrench size={14} className="text-blue-500" />
+                                    <span className="text-xs font-bold text-zinc-600">Maint. Overdue</span>
+                                </div>
+                                <span className="text-sm font-black text-zinc-900">{equipment.filter(e => e.nextService && new Date(e.nextService) < new Date()).length}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-zinc-50">
+                        <div className="flex justify-between items-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
+                            <span>Risk Exposure</span>
+                            <span className="text-red-500">Medium</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-500 w-1/3" />
+                        </div>
                     </div>
                 </div>
             </div>

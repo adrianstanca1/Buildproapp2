@@ -9,6 +9,7 @@ import { ProjectProvider } from '@/contexts/ProjectContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 import ToastProvider from '@/contexts/ToastContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 
 // Lazily loaded view components
 const LoginView = lazy(() => import('@/views/LoginView'));
@@ -48,6 +49,7 @@ const LiveProjectMapView = lazy(() => import('@/views/LiveProjectMapView'));
 const ProjectLaunchpadView = lazy(() => import('@/views/ProjectLaunchpadView'));
 const TenantManagementView = lazy(() => import('@/views/TenantManagementView'));
 const TenantAnalyticsView = lazy(() => import('@/views/TenantAnalyticsView'));
+const ResourceOptimizationView = lazy(() => import('@/views/ResourceOptimizationView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);
@@ -138,6 +140,7 @@ const AuthenticatedApp: React.FC = () => {
               )}
               {page === Page.TENANT_MANAGEMENT && <TenantManagementView />}
               {page === Page.TENANT_ANALYTICS && <TenantAnalyticsView />}
+              {page === Page.RESOURCE_OPTIMIZATION && <ResourceOptimizationView />}
             </Suspense>
           </ErrorBoundary>
         </main>
@@ -152,7 +155,9 @@ const App: React.FC = () => {
       <AuthProvider>
         <ProjectProvider>
           <TenantProvider>
-            <AuthenticatedApp />
+            <NotificationProvider>
+              <AuthenticatedApp />
+            </NotificationProvider>
           </TenantProvider>
         </ProjectProvider>
       </AuthProvider>

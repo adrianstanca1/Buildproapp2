@@ -1,11 +1,11 @@
 
 import React from 'react';
 import {
-Briefcase, Bot, LayoutDashboard, FolderOpen, CheckSquare, Users, Clock, FileText,
-Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
-ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
-HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-BrainCircuit, Building2
+  Briefcase, Bot, LayoutDashboard, FolderOpen, CheckSquare, Users, Clock, FileText,
+  Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
+  ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
+  HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
+  BrainCircuit, Building2
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -59,6 +59,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
         { id: Page.AI_TOOLS, label: 'AI Tools', icon: Cpu, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
         { id: Page.ML_INSIGHTS, label: 'ML Insights', icon: LineChart, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
         { id: Page.TENANT_ANALYTICS, label: 'Tenant Intelligence', icon: Building2, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.RESOURCE_OPTIMIZATION, label: 'Resource Match AI', icon: BrainCircuit, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
         { id: Page.REPORTS, label: 'Reports', icon: FileBarChart, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
         { id: Page.MAP_VIEW, label: 'Global Map', icon: Map, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN] },
       ]
