@@ -20,11 +20,14 @@
     "leaflet": "1.9.4",
     "lucide-react": "^0.554.0",
     "onnxruntime-web": "^1.19.0",
+    "pg": "^8.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "sqlite": "^5.1.1",
     "sqlite3": "^5.1.7",
-    "uuid": "^11.0.0"
+    "uuid": "^11.0.0",
+    "winston": "^3.19.0",
+    "ws": "^8.18.3"
   },
   "devDependencies": {
     "@testing-library/react": "^16.3.1",
