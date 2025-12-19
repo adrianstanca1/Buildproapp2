@@ -24,7 +24,7 @@ class DatabaseService {
       console.log("Connected to Backend API");
     } catch (e) {
       console.error("Backend API unreachable. Application will degrade.");
-      // this.useMock = true; // Disabled for production reliability
+      this.useMock = true; // Enabled for Vercel/Production resilience
     }
   }
 
