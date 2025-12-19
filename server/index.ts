@@ -64,7 +64,15 @@ const logAction = async (req: any, action: string, resource: string, resourceId:
   }
 };
 
-app.use(tenantMiddleware);
+
+import { authenticateToken } from './middleware/authMiddleware.js';
+
+// app.use(tenantMiddleware); // Legacy
+app.use('/api', authenticateToken); // Protect all API routes
+
+import aiRoutes from './routes/ai.js';
+app.use('/api/ai', aiRoutes);
+
 
 // --- Companies Routes ---
 app.get('/api/companies', async (req: any, res: any) => {
@@ -706,6 +714,14 @@ app.get('*', (req, res) => {
 });
 
 // Initialize and Start
+import { createServer } from 'http';
+import { setupWebSocketServer } from './socket.js';
+
+const httpServer = createServer(app);
+
+// Setup WebSockets
+setupWebSocketServer(httpServer);
+
 const startServer = async () => {
   try {
     // Only initialize DB immediately if not in Vercel (Vercel does it via middleware)
@@ -713,8 +729,10 @@ const startServer = async () => {
       await ensureDbInitialized();
       await seedDatabase();
 
-      app.listen(port, () => {
+      // Listen on the HTTP server, not the Express app
+      httpServer.listen(port, () => {
         console.log(`Backend server running at http://localhost:${port}`);
+        console.log(`WebSocket server ready at ws://localhost:${port}/api/live`);
       });
     }
   } catch (err) {
