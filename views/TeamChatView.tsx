@@ -55,24 +55,7 @@ const TeamChatView: React.FC = () => {
         await addTeamMessage(newMsg);
         setInputText('');
 
-        // Simulate reply (optional, maybe remove for real backend)
-        if (Math.random() > 0.8) {
-            setTimeout(() => setIsTyping(true), 1000);
-            setTimeout(async () => {
-                setIsTyping(false);
-                const reply: TeamMessage = {
-                    id: `msg-${Date.now() + 1}`,
-                    channelId: activeChannel,
-                    senderId: 'u2', // Mock other user
-                    senderName: 'Sarah Mitchell',
-                    senderRole: 'Site Supervisor',
-                    senderAvatar: 'SM',
-                    content: 'Copy that. I will update the log.',
-                    createdAt: new Date().toISOString()
-                };
-                await addTeamMessage(reply);
-            }, 3000);
-        }
+
     };
 
     const handleAIDraft = () => {
