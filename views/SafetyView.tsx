@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import {
     AlertTriangle, Eye, Shield, Flame, Wind,
-    CheckCircle2, AlertOctagon, Thermometer,
+    CheckCircle2, AlertOctagon, Thermometer, ShieldAlert,
     MoreVertical, FileText, Siren, Upload, Camera,
     ScanLine, X, ArrowRight, Loader2, Plus, BookOpen, FileBarChart,
     Video, StopCircle, Focus, Activity, Brain
@@ -23,7 +23,7 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
         defects, addDefect, updateDefect, addTask
     } = useProjects();
 
-    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SCANNER' | 'QC_SCANNER'>('DASHBOARD');
+    const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SCANNER' | 'QC_SCANNER' | 'RISK_REPORT'>('DASHBOARD');
     const [showReportModal, setShowReportModal] = useState(false);
 
     // Scanner State
@@ -33,6 +33,7 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
     const [detectedDefects, setDetectedDefects] = useState<Defect[]>([]);
     const [selectedHazard, setSelectedHazard] = useState<SafetyHazard | null>(null);
     const [complianceReport, setComplianceReport] = useState<string | null>(null);
+    const [siteRiskReport, setSiteRiskReport] = useState<string | null>(null);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -309,6 +310,31 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
         }
     };
 
+    const generateSiteRiskReport = async () => {
+        setIsGeneratingReport(true);
+        try {
+            const prompt = `
+                Based on the REAL-TIME SAFETY INCIDENTS in the system context:
+                1. Identify the top 3 recurring hazard patterns.
+                2. Calculate a "Trend Rating" (Improving/Worsening).
+                3. Suggest specific Toolbox Talk topics for the crew.
+                4. Provide a summarized "Site Safety Assessment" paragraph.
+                
+                Format as valid Markdown.
+            `;
+            const report = await runRawPrompt(prompt, {
+                model: 'gemini-3-pro-preview',
+                contextType: 'SAFETY'
+            });
+            setSiteRiskReport(report);
+            setViewMode('RISK_REPORT');
+        } catch (e) {
+            addToast("Failed to generate site report", "error");
+        } finally {
+            setIsGeneratingReport(false);
+        }
+    };
+
     const handleResolveIncident = async (id: string) => {
         await updateSafetyIncident(id, { status: 'Resolved' });
     };
@@ -370,14 +396,20 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
                         </div>
                     )}
                     {viewMode === 'DASHBOARD' && (
-                        <button onClick={() => setShowReportModal(true)} className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2">
-                            <Siren size={20} /> Report Incident
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={generateSiteRiskReport} disabled={isGeneratingReport} className="bg-white text-zinc-700 border border-zinc-200 px-4 py-2.5 rounded-xl font-bold hover:bg-zinc-50 transition-all flex items-center gap-2">
+                                {isGeneratingReport ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} />}
+                                Site Risk Report
+                            </button>
+                            <button onClick={() => setShowReportModal(true)} className="bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg hover:bg-red-700 transition-all flex items-center gap-2">
+                                <Siren size={20} /> Report Incident
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>
 
-            {viewMode !== 'DASHBOARD' ? (
+            {viewMode === 'SCANNER' || viewMode === 'QC_SCANNER' ? (
                 <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-8 overflow-hidden animate-in fade-in slide-in-from-bottom-4">
                     <div className="bg-black rounded-2xl relative overflow-hidden flex items-center justify-center group border border-zinc-800 shadow-2xl min-h-[400px]">
                         {isCameraActive ? (
@@ -476,6 +508,42 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
                                     )}
                                 </>
                             )}
+                        </div>
+                    </div>
+                </div>
+            ) : viewMode === 'RISK_REPORT' ? (
+                <div className="flex-1 overflow-y-auto custom-scrollbar bg-white rounded-2xl border border-zinc-200 shadow-sm p-8 animate-in fade-in slide-in-from-bottom-4">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="flex items-center gap-4 mb-8 border-b border-zinc-100 pb-6">
+                            <div className="p-3 bg-red-50 rounded-xl text-red-600">
+                                <ShieldAlert size={32} />
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Site Safety Assessment</h2>
+                                <p className="text-zinc-500 font-medium">AI-Generated Analysis of Live Incident Data</p>
+                            </div>
+                        </div>
+                        <div className="prose prose-zinc max-w-none prose-headings:font-black prose-h3:text-[#0f5c82] prose-strong:text-zinc-900">
+                            {siteRiskReport ? (
+                                <div dangerouslySetInnerHTML={{ __html: siteRiskReport.replace(/\n/g, '<br/>') }} />
+                                // Note: In a real app use a markdown renderer. For now, simple spacing.
+                                // Actually, let's just display it as whitespace-pre-wrap div to respect markdown formatting visually
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-20 text-zinc-400">
+                                    <Loader2 size={40} className="animate-spin mb-4" />
+                                    <p>Analyzing safety trends...</p>
+                                </div>
+                            )}
+                        </div>
+                        {siteRiskReport && (
+                            <div className="mt-8 whitespace-pre-wrap font-sans text-sm leading-relaxed text-zinc-700">
+                                {siteRiskReport}
+                            </div>
+                        )}
+                        <div className="mt-12 pt-8 border-t border-zinc-100 flex justify-end">
+                            <button onClick={() => setViewMode('DASHBOARD')} className="px-6 py-3 bg-zinc-900 text-white rounded-xl font-bold hover:bg-zinc-800 transition-all">
+                                Return to Dashboard
+                            </button>
                         </div>
                     </div>
                 </div>

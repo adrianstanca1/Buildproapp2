@@ -93,6 +93,7 @@ const FinancialsView: React.FC = () => {
       const history = monthlyData.map(m => ({ month: m.month, rev: m.revenue, exp: m.expense }));
       const prompt = `
             Analyze this construction financial history: ${JSON.stringify(history)}.
+            Also consider the REAL-TIME TRANSACTIONS and PURCHASE ORDERS provided in your system context.
             Predict the next 3 months of Cash Flow. 
             Return JSON:
             {
@@ -102,13 +103,14 @@ const FinancialsView: React.FC = () => {
                     { "month": "Mar", "rev": number, "exp": number }
                 ],
                 "confidenceScore": number,
-                "reasoning": "Brief explanation"
+                "reasoning": "Brief explanation citing specific recent transactions or POs if relevant."
             }
         `;
       const result = await runRawPrompt(prompt, {
         model: 'gemini-3-pro-preview',
         temperature: 0.2,
-        thinkingConfig: { thinkingBudget: 1024 }
+        thinkingConfig: { thinkingBudget: 1024 },
+        projectId: projects[0]?.id || 'p1'
       });
       setForecastData(parseAIJSON(result));
     } catch (e) {

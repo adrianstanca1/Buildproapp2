@@ -23,6 +23,8 @@ export interface ChatConfig {
   responseSchema?: any;
   temperature?: number;
   topP?: number;
+  projectId?: string;
+  contextType?: string;
 }
 
 export type GenConfig = ChatConfig;
@@ -54,7 +56,9 @@ export const streamChatResponse = async (
       newMessage,
       imageData, // backend expects raw base64 or handled there? server code expects { mimeType, data } in parts logic
       mimeType,
-      config: configOverride
+      config: configOverride,
+      projectId: configOverride?.projectId,
+      contextType: configOverride?.contextType
     };
 
     const headers = await getAuthHeaders();

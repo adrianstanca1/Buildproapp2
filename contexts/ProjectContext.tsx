@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
 import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk, PurchaseOrder } from '@/types';
 import { useAuth } from './AuthContext';
+import { useTenant } from './TenantContext';
 import { db } from '@/services/db';
 import { supabase } from '../services/supabaseClient';
 import { auditLog } from '../services/AuditLogService';
@@ -101,6 +102,7 @@ export const useProjects = () => {
 
 export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user, addProjectId } = useAuth();
+  const { currentTenant } = useTenant();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -157,8 +159,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
   }, [user]);
 
-  // Initial Data Load
+  // Initial Data Load (and on Tenant Change)
   useEffect(() => {
+    // Wait for tenant to be initialized if we are logged in
+    if (user && !currentTenant) return;
+
     const loadData = async () => {
       setIsLoading(true);
       try {
@@ -208,7 +213,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
     };
     loadData();
-  }, []);
+  }, [currentTenant?.id, user]);
 
   // --- RBAC & Multi-tenant Filtering ---
   const visibleProjects = useMemo(() => {

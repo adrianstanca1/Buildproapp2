@@ -4,6 +4,7 @@ import { GoogleGenAI } from '@google/genai';
 import multer from 'multer';
 import { analyzeProjectDocument } from '../services/aiService.js';
 import { logger } from '../utils/logger.js';
+import { getDb } from '../database.js';
 
 const router = express.Router();
 
@@ -23,14 +24,49 @@ router.post('/chat', async (req: any, res: any) => {
     }
 
     try {
-        const { history, newMessage, imageData, mimeType, config } = req.body;
+        const { history, newMessage, imageData, mimeType, config, projectId, contextType } = req.body;
         const ai = new GoogleGenAI({ apiKey });
 
         // Default model
         const model = config?.model || "gemini-2.0-flash-exp";
 
+        let systemInstruction = config?.systemInstruction || "You are a helpful, witty, and precise AI assistant for the BuildPro construction platform.";
+
+        // --- Context Injection ---
+        if (projectId || contextType) {
+            try {
+                const db = getDb();
+                const contextParts = [];
+
+                if (projectId) {
+                    const project = await db.all('SELECT * FROM projects WHERE id = ?', [projectId]);
+                    if (project.length) contextParts.push(`Current Project Metadata: ${JSON.stringify(project[0])}`);
+
+                    const transactions = await db.all('SELECT * FROM transactions WHERE projectId = ? ORDER BY date DESC LIMIT 20', [projectId]);
+                    if (transactions.length) contextParts.push(`Recent Financial Transactions: ${JSON.stringify(transactions)}`);
+
+                    const tasks = await db.all('SELECT * FROM tasks WHERE projectId = ? AND status != "Done" LIMIT 20', [projectId]);
+                    if (tasks.length) contextParts.push(`Active Tasks: ${JSON.stringify(tasks)}`);
+
+                    const pos = await db.all('SELECT * FROM purchase_orders WHERE projectId = ? AND status != "rejected" LIMIT 10', [projectId]);
+                    if (pos.length) contextParts.push(`Active Purchase Orders: ${JSON.stringify(pos)}`);
+                }
+
+                if (contextType === 'SAFETY') {
+                    const incidents = await db.all('SELECT * FROM safety_incidents WHERE status != "Resolved" ORDER BY date DESC LIMIT 50');
+                    if (incidents.length) contextParts.push(`Active Safety Incidents: ${JSON.stringify(incidents)}`);
+                }
+
+                if (contextParts.length > 0) {
+                    systemInstruction += `\n\n=== REAL-TIME DATABASE CONTEXT ===\nUse the following live data to answer user questions authentically. Do not hallucinate data if it's not here.\n\n${contextParts.join('\n\n')}\n==================================`;
+                }
+            } catch (e) {
+                logger.error("Failed to inject DB context into AI chat", e);
+            }
+        }
+
         const chatConfig: any = {
-            systemInstruction: config?.systemInstruction || "You are a helpful, witty, and precise AI assistant for the BuildPro construction platform.",
+            systemInstruction: systemInstruction,
         };
 
         // Thinking/Tools config
