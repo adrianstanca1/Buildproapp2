@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 
@@ -377,6 +377,21 @@ class MockDatabase {
     const items = this.getItems<Tenant>(DB_KEYS.COMPANIES);
     this.setItems(DB_KEYS.COMPANIES, items.filter(c => c.id !== id));
   }
+
+  // --- Defects & Risks ---
+  async getDefects(): Promise<Defect[]> {
+    await delay(200);
+    return [];
+  }
+  async addDefect(item: Defect) { /* no-op */ }
+  async updateDefect(id: string, updates: Partial<Defect>) { /* no-op */ }
+  async deleteDefect(id: string) { /* no-op */ }
+
+  async getProjectRisks(): Promise<ProjectRisk[]> {
+    await delay(200);
+    return [];
+  }
+  async addProjectRisk(item: ProjectRisk) { /* no-op */ }
 }
 
 export const db = new MockDatabase();

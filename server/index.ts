@@ -701,6 +701,8 @@ createCrudRoutes('channels');
 createCrudRoutes('team_messages');
 createCrudRoutes('transactions');
 createCrudRoutes('purchase_orders', ['items', 'approvers']);
+createCrudRoutes('defects', ['box_2d']);
+createCrudRoutes('project_risks', ['factors', 'recommendations']);
 
 
 // Serve static files from the React app

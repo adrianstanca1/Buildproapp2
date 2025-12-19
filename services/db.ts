@@ -333,11 +333,11 @@ class DatabaseService {
 
   // --- Project Health Forecasting ---
   async getProjectRisks(): Promise<ProjectRisk[]> {
-    return this.fetch<ProjectRisk>('projectRisks');
+    return this.fetch<ProjectRisk>('project_risks');
   }
 
   async addProjectRisk(item: ProjectRisk) {
-    await this.post('projectRisks', item);
+    await this.post('project_risks', item);
   }
 
 

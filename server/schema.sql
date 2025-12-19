@@ -294,3 +294,34 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
   companyId TEXT,
   createdAt TEXT
 );
+
+-- Defects Table
+CREATE TABLE IF NOT EXISTS defects (
+  id TEXT PRIMARY KEY,
+  projectId TEXT,
+  companyId TEXT,
+  title TEXT,
+  description TEXT,
+  severity TEXT,
+  status TEXT,
+  location TEXT,
+  category TEXT,
+  createdAt TEXT,
+  resolvedAt TEXT,
+  image TEXT,
+  remediationTaskId TEXT,
+  recommendation TEXT,
+  box_2d TEXT -- JSON array
+);
+
+-- Project Risks Table
+CREATE TABLE IF NOT EXISTS project_risks (
+  id TEXT PRIMARY KEY,
+  projectId TEXT,
+  riskLevel TEXT,
+  predictedDelayDays INTEGER,
+  factors TEXT, -- JSON array
+  recommendations TEXT, -- JSON array
+  timestamp TEXT,
+  trend TEXT
+);
