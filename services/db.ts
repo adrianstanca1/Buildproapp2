@@ -44,8 +44,25 @@ class DatabaseService {
 
   // --- Generic Helpers ---
   private async fetch<T>(endpoint: string): Promise<T[]> {
-    // Rigid Production Mode: Do not use mock unless explicitly configured (future feature)
-    // if (this.useMock) return []; 
+    // Use Mock Data if configured
+    if (this.useMock) {
+      console.log(`[MockDB] Fetching ${endpoint}`);
+      // return (mockDb as any)[endpoint] || [];
+      if (endpoint === 'projects') return mockDb.getProjects() as any;
+      if (endpoint === 'tasks') return mockDb.getTasks() as any;
+      if (endpoint === 'team') return mockDb.getTeam() as any;
+      if (endpoint === 'rfis') return mockDb.getRFIs() as any;
+      if (endpoint === 'daily_logs') return mockDb.getDailyLogs() as any;
+      if (endpoint === 'punch_items') return mockDb.getPunchItems() as any;
+      if (endpoint === 'dayworks') return mockDb.getDayworks() as any;
+      if (endpoint === 'companies') return mockDb.getCompanies() as any;
+      if (endpoint === 'documents') return mockDb.getDocuments() as any;
+      if (endpoint === 'inventory') return mockDb.getInventory() as any;
+      if (endpoint === 'clients') return mockDb.getClients() as any;
+
+      // Default fallback
+      return [];
+    }
 
     try {
       const res = await fetch(`${API_URL}/${endpoint}`, {
@@ -61,7 +78,10 @@ class DatabaseService {
   }
 
   private async post<T>(endpoint: string, data: T): Promise<T | null> {
-    if (this.useMock) return null;
+    if (this.useMock) {
+      console.log(`[MockDB] POST ${endpoint}`, data);
+      return { ...data, id: 'mock-id-' + Date.now() };
+    }
     try {
       const res = await fetch(`${API_URL}/${endpoint}`, {
         method: 'POST',
@@ -77,7 +97,10 @@ class DatabaseService {
   }
 
   private async put<T>(endpoint: string, id: string, data: Partial<T>): Promise<void> {
-    if (this.useMock) return;
+    if (this.useMock) {
+      console.log(`[MockDB] PUT ${endpoint}/${id}`, data);
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
         method: 'PUT',
@@ -91,7 +114,10 @@ class DatabaseService {
   }
 
   private async delete(endpoint: string, id: string): Promise<void> {
-    if (this.useMock) return;
+    if (this.useMock) {
+      console.log(`[MockDB] DELETE ${endpoint}/${id}`);
+      return;
+    }
     try {
       const res = await fetch(`${API_URL}/${endpoint}/${id}`, {
         method: 'DELETE',
