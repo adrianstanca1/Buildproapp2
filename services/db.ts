@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder } from '@/types';
 import { db as mockDb } from './mockDb';
+import { supabase } from './supabaseClient';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -34,7 +35,8 @@ class DatabaseService {
     if (this.tenantId) headers['x-company-id'] = this.tenantId;
 
     // Get real Auth Token
-    const { data } = await import('./supabaseClient').then(m => m.supabase.auth.getSession());
+    // Get real Auth Token
+    const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) {
       headers['Authorization'] = `Bearer ${data.session.access_token}`;
     }
