@@ -167,47 +167,35 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [p, t, tm, d, c, i, r, pi, dl, dw, si, sh, eq, ts, txn, defs, risks] = await Promise.all([
-          db.getProjects(),
-          db.getTasks(),
-          db.getTeam(),
-          db.getDocuments(),
-          db.getClients(),
-          db.getInventory(),
-          db.getRFIs(),
-          db.getPunchItems(),
-          db.getDailyLogs(),
-          db.getDayworks(),
-          db.getSafetyIncidents(),
-          db.getSafetyHazards(),
-          db.getEquipment(),
-          db.getTimesheets(),
-          db.getTransactions(),
-          db.getDefects(),
-          db.getProjectRisks(),
-          db.getPurchaseOrders()
+        // Core Data (Critical) - Fail nicely if these break
+        const [p, t, tm] = await Promise.all([
+          db.getProjects().catch(e => { console.error('Projects failed', e); return []; }),
+          db.getTasks().catch(e => { console.error('Tasks failed', e); return []; }),
+          db.getTeam().catch(e => { console.error('Team failed', e); return []; })
         ]);
         setProjects(p);
         setTasks(t);
         setTeamMembers(tm);
-        setDocuments(d);
-        setClients(c);
-        setInventory(i);
-        setRFIs(r);
-        setPunchItems(pi);
-        setDailyLogs(dl);
-        setDayworks(dw);
-        setSafetyIncidents(si);
-        setSafetyHazards(sh);
-        setEquipment(eq);
-        setTimesheets(ts);
-        setTransactions(txn);
-        setDefects(defs);
-        setProjectRisks(risks);
-        // @ts-ignore
-        setPurchaseOrders(pi[17] || []); // pi is the array of results
+
+        // Secondary Data - Load independently so they don't block critical UI
+        db.getDocuments().then(setDocuments).catch(console.error);
+        db.getClients().then(setClients).catch(console.error);
+        db.getInventory().then(setInventory).catch(console.error);
+        db.getRFIs().then(setRFIs).catch(console.error);
+        db.getPunchItems().then(setPunchItems).catch(console.error);
+        db.getDailyLogs().then(setDailyLogs).catch(console.error);
+        db.getDayworks().then(setDayworks).catch(console.error);
+        db.getSafetyIncidents().then(setSafetyIncidents).catch(console.error);
+        db.getSafetyHazards().then(setSafetyHazards).catch(console.error);
+        db.getEquipment().then(setEquipment).catch(console.error);
+        db.getTimesheets().then(setTimesheets).catch(console.error);
+        db.getTransactions().then(setTransactions).catch(console.error);
+        db.getDefects().then(setDefects).catch(console.error);
+        db.getProjectRisks().then(setProjectRisks).catch(console.error);
+        db.getPurchaseOrders().then(setPurchaseOrders).catch(console.error);
+
       } catch (e) {
-        console.error("Failed to load data from DB", e);
+        console.error("Critical Data Load Failed", e);
       } finally {
         setIsLoading(false);
       }
