@@ -11,6 +11,7 @@ import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
 import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
 import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tenantService.js';
+import { logger } from './utils/logger.js';
 
 const app = express();
 const port = process.env.PORT || 3002;
@@ -59,8 +60,8 @@ const logAction = async (req: any, action: string, resource: string, resourceId:
         req.headers['user-agent']
       ]
     );
-  } catch (e) {
-    console.error('Audit log failed:', e);
+  } catch (e: any) {
+    logger.error('Audit log failed:', { error: e.message });
   }
 };
 
@@ -125,7 +126,7 @@ app.post('/api/companies', async (req, res) => {
     );
     res.json({ ...c, id });
   } catch (e) {
-    console.error('Error adding company:', e);
+    logger.error('Error adding company:', { error: e });
     res.status(500).json({ error: (e as Error).message });
   }
 });
@@ -561,7 +562,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         // Strict isolation: if it's a tenant table but no header, return empty or error
         // For dev flexibility we return all, but for prod we'd error.
         // Let's stick with the current logic but add a warning.
-        console.warn(`Accessing tenant table ${tableName} without companyId header!`);
+        logger.warn(`Accessing tenant table ${tableName} without companyId header!`);
       }
 
       const items = await db.all(sql, params);
@@ -572,7 +573,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
             try {
               newItem[field] = JSON.parse(newItem[field]);
             } catch (e) {
-              console.error(`Failed to parse JSON field ${field} in ${tableName}`, e);
+              logger.error(`Failed to parse JSON field ${field} in ${tableName}`, { error: e });
             }
           }
         });
@@ -731,12 +732,12 @@ const startServer = async () => {
 
       // Listen on the HTTP server, not the Express app
       httpServer.listen(port, () => {
-        console.log(`Backend server running at http://localhost:${port}`);
-        console.log(`WebSocket server ready at ws://localhost:${port}/api/live`);
+        logger.info(`Backend server running at http://localhost:${port}`);
+        logger.info(`WebSocket server ready at ws://localhost:${port}/api/live`);
       });
     }
   } catch (err) {
-    console.error('Failed to start server:', err);
+    logger.error('Failed to start server:', err);
   }
 };
 

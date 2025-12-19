@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-Rocket, Sparkles, ArrowRight, Building, PoundSterling,
-Calendar, MapPin, Loader2, CheckCircle2, AlertCircle, Edit2, Wand2, ChevronRight, Building2, Briefcase, Home, Factory, Stethoscope, X, Upload, FileText, Image as ImageIcon, Trash2, ScanLine, BrainCircuit, Layers, Info, Zap, Activity, Check, Play, Cpu, Send, User, Bot, Paperclip, MessageSquare, Clock, ShieldAlert, Shield
+    Rocket, Sparkles, ArrowRight, Building, PoundSterling,
+    Calendar, MapPin, Loader2, CheckCircle2, AlertCircle, Edit2, Wand2, ChevronRight, Building2, Briefcase, Home, Factory, Stethoscope, X, Upload, FileText, Image as ImageIcon, Trash2, ScanLine, BrainCircuit, Layers, Info, Zap, Activity, Check, Play, Cpu, Send, User, Bot, Paperclip, MessageSquare, Clock, ShieldAlert, Shield
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { Project, ProjectDocument, Task } from '@/types';
-import { uploadFile } from '@/services/supabaseClient';
+// import { uploadFile } from '@/services/supabaseClient';
 
 interface ProjectLaunchpadProps {
     onClose: () => void;
@@ -408,7 +408,8 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
         // Try to upload image to Supabase Storage to avoid large payloads
         if (uploadedFile) {
             try {
-                const uploadedUrl = await uploadFile(uploadedFile, 'documents', `projects/${newId}`);
+                const { publicUrl } = await import('@/services/storageService').then(m => m.storageService.upload(uploadedFile, 'documents', `projects/${newId}`));
+                const uploadedUrl = publicUrl;
                 if (uploadedUrl) {
                     imageUrl = uploadedUrl;
                     docUrl = uploadedUrl;

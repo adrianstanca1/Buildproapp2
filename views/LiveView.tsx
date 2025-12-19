@@ -39,6 +39,15 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
     const sessionRef = useRef<Promise<any> | null>(null);
     const frameIntervalRef = useRef<number | null>(null);
     const safetyIntervalRef = useRef<number | null>(null);
+    const isMounted = useRef(true);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => {
+            isMounted.current = false;
+            cleanup();
+        };
+    }, []);
 
     const startSession = async () => {
         try {
@@ -72,6 +81,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                 },
                 callbacks: {
                     onopen: () => {
+                        if (!isMounted.current) return;
                         setIsActive(true);
                         setIsConnecting(false);
 
@@ -138,8 +148,11 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                             setCurrentModelText("");
                         }
                     },
-                    onclose: () => { cleanup(); },
-                    onerror: (e) => { console.error("Live Error", e); cleanup(); }
+                    onclose: () => { if (isMounted.current) cleanup(); },
+                    onerror: (e) => {
+                        console.error("Live Error", e);
+                        if (isMounted.current) cleanup();
+                    }
                 }
             });
         } catch (err) {
@@ -244,26 +257,47 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
     };
 
     const cleanup = () => {
+        if (!isMounted.current) return; // Prevent double cleanup if already unmounted (optional, but good practice)
+
         setIsActive(false);
         setIsConnecting(false);
         setVolume(0);
-        if (frameIntervalRef.current) clearInterval(frameIntervalRef.current);
-        if (safetyIntervalRef.current) clearInterval(safetyIntervalRef.current);
-        streamRef.current?.getTracks().forEach(t => t.stop());
-        videoStreamRef.current?.getTracks().forEach(t => t.stop());
+
+        if (frameIntervalRef.current) { clearInterval(frameIntervalRef.current); frameIntervalRef.current = null; }
+        if (safetyIntervalRef.current) { clearInterval(safetyIntervalRef.current); safetyIntervalRef.current = null; }
+
+        // Stop all tracks in streams
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(t => t.stop());
+            streamRef.current = null;
+        }
+        if (videoStreamRef.current) {
+            videoStreamRef.current.getTracks().forEach(t => t.stop());
+            videoStreamRef.current = null;
+        }
+
+        // Disconnect nodes
         sourceNodeRef.current?.disconnect();
         processorRef.current?.disconnect();
-        inputContextRef.current?.close();
-        audioContextRef.current?.close();
+        sourceNodeRef.current = null;
+        processorRef.current = null;
+
+        // Close contexts
+        if (inputContextRef.current && inputContextRef.current.state !== 'closed') inputContextRef.current.close();
+        if (audioContextRef.current && audioContextRef.current.state !== 'closed') audioContextRef.current.close();
+        inputContextRef.current = null;
+        audioContextRef.current = null;
+
         activeSourcesRef.current.forEach(s => { try { s.stop(); } catch (e) { } });
         activeSourcesRef.current.clear();
         sessionRef.current = null;
     };
 
-    useEffect(() => {
-        // Clean up on unmount
-        return () => cleanup();
-    }, []);
+    // calculate isMounted is handled in the top useEffect now, removing this redundant one
+    // useEffect(() => {
+    //     // Clean up on unmount
+    //     return () => cleanup();
+    // }, []);
 
     const handleEndCall = () => {
         cleanup();

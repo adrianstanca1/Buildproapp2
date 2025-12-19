@@ -24,6 +24,7 @@ interface ProjectContextType {
   channels: Channel[];
   teamMessages: TeamMessage[];
   transactions: Transaction[];
+  financials: Transaction[];
   defects: Defect[];
   projectRisks: ProjectRisk[];
   isLoading: boolean;
@@ -510,7 +511,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!project) return null;
 
     const projectTasks = tasks.filter(t => t.projectId === projectId);
-    const completedTasks = projectTasks.filter(t => t.status === 'Completed').length;
+    const completedTasks = projectTasks.filter(t => t.status === 'Done').length;
     const totalTasks = projectTasks.length;
     const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) : 0;
 
@@ -552,11 +553,13 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       dailyLogs,
       dayworks,
       safetyIncidents: visibleSafety,
+      safetyHazards,
       equipment: visibleEquipment,
       timesheets: visibleTimesheets,
       channels,
       teamMessages,
       transactions,
+      financials: transactions,
       isLoading,
       addProject,
       updateProject,

@@ -21,7 +21,7 @@ export const ResourceOptimizationView: React.FC = () => {
 
     // Metrics calculation
     const metrics = useMemo(() => {
-        const activeProjects = projects.filter(p => p.status === 'In Progress').length;
+        const activeProjects = projects.filter(p => p.status === 'Active').length;
         const totalResourceLoad = teamMembers.length > 0
             ? (tasks.filter(t => t.status !== 'Done').length / teamMembers.length).toFixed(1)
             : '0';

@@ -150,7 +150,7 @@ const ReportsView = () => {
     const context = {
       template: selectedTemplate,
       projects: projects.map(p => ({ name: p.name, status: p.status, progress: p.progress })),
-      tasks: tasks.filter(t => t.status !== 'completed').slice(0, 10).map(t => ({ title: t.title, due: t.dueDate })),
+      tasks: tasks.filter(t => t.status !== 'Done').slice(0, 10).map(t => ({ title: t.title, due: t.dueDate })),
       safety: safetyIncidents.slice(0, 5).map(s => ({ type: s.type, severity: s.severity }))
     };
 

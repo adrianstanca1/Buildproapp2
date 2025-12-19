@@ -471,6 +471,7 @@ export interface SafetyHazard {
   regulation?: string; // e.g. OSHA 1926.501
   box_2d?: [number, number, number, number]; // [ymin, xmin, ymax, xmax] 0-1000 scale
   timestamp?: number | string;
+  projectId?: string;
 }
 
 export interface Equipment {
@@ -598,6 +599,7 @@ export interface Defect {
   remediationTaskId?: string;
   recommendation?: string;
   companyId?: string;
+  box_2d?: [number, number, number, number];
 }
 
 // --- Project Health Forecasting ---

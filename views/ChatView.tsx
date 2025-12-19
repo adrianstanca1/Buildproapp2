@@ -359,11 +359,11 @@ const ChatView: React.FC<ChatViewProps> = ({ setPage }) => {
                 projectId: projects[0]?.id || '',
                 type: data.type,
                 severity: data.severity,
-                location: data.location,
+                // location property removed as it is not part of SafetyHazard type
                 description: data.description,
                 timestamp: new Date().toISOString(),
-                status: 'Open',
-                priority: data.priority || 3
+                // status property removed as it is not part of SafetyHazard type
+                recommendation: data.recommendation || 'Immediate inspection required',
               });
               addToast(`Safety hazard logged: ${data.type}`, "success");
             } else if (actionType === 'create_task') {

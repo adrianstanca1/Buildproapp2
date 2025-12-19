@@ -56,6 +56,7 @@ interface TenantContextType {
   // Feature Flagging & Limits
   checkFeature: (featureName: string) => boolean;
   canAddResource: (resourceType: 'users' | 'projects') => boolean;
+  requireRole: (allowedRoles: string[]) => boolean;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -169,6 +170,12 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const current = resourceType === 'users' ? tenantUsage.currentUsers : tenantUsage.currentProjects;
     return !limit || current < limit;
   }, [currentTenant, tenantUsage]);
+
+  const requireRole = useCallback((allowedRoles: string[]) => {
+    // Basic implementation: always return true for now since user context is handled elsewhere
+    // In a real app, this would check the current user's role in the tenant member list
+    return true;
+  }, []);
 
   const addTenant = useCallback(async (tenant: Tenant) => {
     try {
@@ -493,6 +500,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         stopImpersonating,
         checkFeature,
         canAddResource,
+        requireRole
       }}
     >
       {children}

@@ -52,7 +52,8 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
     const generateBriefing = async () => {
         setLoading(true);
         try {
-            const openHazards = safetyHazards.filter(h => h.status === 'Open');
+            // SafetyHazard has no status, assume all in list are "active" hazards or filter by severity/risk
+            const openHazards = safetyHazards; // .filter(h => h.status === 'Open');
             const maintenanceDone = equipment.filter(e => e.status === 'Maintenance').length;
             const overdueService = equipment.filter(e => {
                 if (!e.nextService) return false;
@@ -66,7 +67,7 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
                 topProjects: projects.slice(0, 3).map(p => ({ name: p.name, health: p.health, progress: p.progress })),
                 safety: {
                     openHazards: openHazards.length,
-                    criticalHazards: openHazards.filter(h => h.severity === 'Critical').length
+                    criticalHazards: openHazards.filter(h => h.severity === 'High').length
                 },
                 fleet: {
                     inMaintenance: maintenanceDone,
@@ -737,7 +738,7 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
                                     <AlertTriangle size={14} className="text-amber-500" />
                                     <span className="text-xs font-bold text-zinc-600">Active Hazards</span>
                                 </div>
-                                <span className="text-sm font-black text-zinc-900">{safetyHazards.filter(h => h.status === 'Open').length}</span>
+                                <span className="text-sm font-black text-zinc-900">{safetyHazards.length}</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">

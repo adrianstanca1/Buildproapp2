@@ -26,29 +26,36 @@ npm run start --prefix server  # Backend on http://localhost:3002
 
 ### Production Deployment
 
-#### Via Vercel (Recommended)
-```bash
-# Already configured - just push to main branch
-git add .
-git commit -m "your changes"
-git push origin main
-```
+#### Via Google Cloud Run (Recommended for WebSockets)
+Since Vercel Serverless does not support persistent WebSockets (required for Live View), we deploy using a monolithic Docker container to Cloud Run.
 
-The deployment automatically:
-- Builds the frontend with Vite
-- Deploys to Vercel's edge network
-- Rewrites SPA routes to index.html
-- Proxies `/api/*` calls
+**Prerequisites:**
+- Google Cloud SDK (`gcloud`) installed
+- Docker installed (optional, if building locally)
 
-**Live URL**: https://buildproapp-8sugil7az-adrianstanca1s-projects.vercel.app
+**Deployment Steps:**
+1. **Login to Google Cloud:**
+   ```bash
+   gcloud auth login
+   gcloud auth configure-docker
+   ```
 
-#### Environment Variables (Vercel)
-Set these in Vercel project settings → Environment Variables:
-- `GEMINI_API_KEY`
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- `DATABASE_URL` (for PostgreSQL production database)
-- `PGSSLMODE=no-verify` (for remote database)
+2. **Deploy directly from source:**
+   ```bash
+   gcloud run deploy buildproapp --source . --region us-central1 --allow-unauthenticated
+   ```
+
+   *During deployment, you will be prompted to set environment variables or you can set them in the Cloud Console later.*
+
+#### Environment Variables (Cloud Run)
+Set these in the Cloud Run Service "Variables" tab:
+- `GEMINI_API_KEY`: Your Google Gemini API Key
+- `VITE_SUPABASE_URL`: Your Supabase URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase Anon Key
+- `DATABASE_URL`: PostgreSQL Connection String (e.g. from Supabase Transaction Pooler)
+- `PORT`: 3000 (The Dockerfile exposes 3000 by default)
+
+**Note:** The `Dockerfile` builds both the Vite frontend and Express backend into a single container.
 
 ---
 
@@ -95,39 +102,37 @@ server/
 
 ---
 
-## Recent Improvements (Week 1)
+## Recent Improvements (Week 2 - Phase 6 Complete)
+
+### Infrastructure & Scaling
+✅ **Structured Logging**
+- Replaced `console.log` with `winston` logger in backend.
+- Logs are now JSON-formatted in production for Cloud Logging compatibility.
+
+✅ **Storage Standardization**
+- Implemented `services/storageService.ts` to wrap Supabase Storage.
+- Enforced strict bucket usage (`documents`, `images`).
+- Refactored `FileUploadZone` and Views to use the centralized service.
+
+✅ **Dockerization**
+- Created multi-stage `Dockerfile` (Node 18 Alpine).
+- Serves Vite frontend statically via Express backend.
+- Supports persistent WebSocket connections for Live View.
 
 ### Critical Fixes
-✅ **Error Handling** (Commit: bb3912e)
-- Added React ErrorBoundary component to prevent app crashes
-- Implemented ToastContext for user-facing notifications
-- Created useAsyncOperation hook for standardized error handling
-
-✅ **Security** (Commit: 7dd11f9)
-- Updated Express to 4.22.1+ to fix GHSA-pj86-cfqh-vqx6
-- 0 npm vulnerabilities (down from 2)
-
-✅ **Deployment** (Commits: 81dd9ff, 71bb2e9)
-- Configured Vercel deployment
-- Fixed project name for deployment validation
-- Added SPA routing configuration
-
-### Verified Components
-- ✅ Frontend builds without errors (5.58s)
-- ✅ Backend API routes all functional
-- ✅ Database supports PostgreSQL and SQLite
-- ✅ Environment variables properly configured
-- ✅ All 15 data tables initialized
+✅ **Security Hardening**
+- Moved all Gemini API calls to backend proxy (`/api/ai/*`).
+- Implemented Supabase JWT verification (`authMiddleware.ts`).
 
 ---
 
 ## Identified Issues & Recommendations
 
 ### CRITICAL (Do Next)
-1. **Memory Leaks in LiveView.tsx**
-   - Unclosed MediaStream connections
-   - Missing cleanup for animation intervals
-   - Recommendation: Audit useEffect cleanup functions
+1. **✅ Fixed: Memory Leaks in LiveView.tsx**
+   - Implemented `isMounted` ref cleaning.
+   - Added robust `cleanup()` for `MediaStream` and `AudioContext`.
+   - Ensured all intervals are cleared on unmount.
 
 2. **LiveView.tsx and SafetyView.tsx**
    - Camera resource not properly released
@@ -252,15 +257,12 @@ vercel inspect <deployment-url>
 
 ## File Structure
 
-### Key Files Modified This Session
-- `App.tsx` - Added ErrorBoundary and ToastProvider
-- `components/ErrorBoundary.tsx` - NEW: Error boundary component
-- `contexts/ToastContext.tsx` - NEW: Toast notification system
-- `hooks/useAsyncOperation.ts` - NEW: Async operation hook
-- `package.json` - Express security patch (4.22.1)
-- `vercel.json` - SPA routing configuration
-
-### Configuration Files
+### File Structure Updates
+- `server/utils/logger.ts` - New Winston logger config
+- `services/storageService.ts` - New Storage wrapper
+- `server/socket.ts` - WebSocket logic isolated
+- `.github/workflows/ci.yml` - CI Pipeline
+ Files
 - `.env` - Environment variables (in .gitignore)
 - `.env.example` - Template for required variables
 - `vite.config.ts` - Frontend build configuration

@@ -510,7 +510,7 @@ const SafetyView: React.FC<SafetyViewProps> = ({ projectId }) => {
                                 </div>
                             </div>
                             <div className="p-6 space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar">
-                                {[...filteredHazards, ...defects].sort((a, b) => (b.timestamp || b.createdAt).toString().localeCompare((a.timestamp || a.createdAt).toString())).slice(0, 15).map((item: any, i) => (
+                                {[...filteredHazards, ...defects].sort((a: any, b: any) => (b.timestamp || b.createdAt).toString().localeCompare((a.timestamp || a.createdAt).toString())).slice(0, 15).map((item: any, i) => (
                                     <div key={item.id || i} className="flex gap-4 p-4 rounded-xl border border-zinc-100 bg-white hover:border-zinc-200 hover:shadow-sm transition-all group">
                                         <div className={`w-1 rounded-full ${item.severity === 'High' || item.severity === 'Critical' ? 'bg-red-500' : 'bg-indigo-500'}`} />
                                         <div className="flex-1">

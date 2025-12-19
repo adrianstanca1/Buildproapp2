@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Upload, FileText, Download, Image as ImageIcon, Box, Link, X, Search, CheckCircle2, MoreVertical, Eye, FileSpreadsheet, Trash2, Calendar, Paperclip, Loader2 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { Task, ProjectDocument } from '@/types';
-import { uploadFile } from '@/services/supabaseClient';
+// import { uploadFile } from '@/services/supabaseClient';
 import FileUploadZone from '@/components/FileUploadZone';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';

@@ -51,11 +51,13 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             let url = '';
 
             // Attempt Supabase upload
+            // Attempt Supabase upload
             // @ts-ignore
             if (import.meta.env.VITE_SUPABASE_URL) {
                 try {
                     setProgress(30);
-                    url = await uploadFile(file, bucket, path);
+                    const { publicUrl } = await import('@/services/storageService').then(m => m.storageService.upload(file, bucket as any, path));
+                    url = publicUrl;
                     setProgress(90);
                 } catch (err: any) {
                     console.warn("Supabase upload failed, falling back to local storage", err);
