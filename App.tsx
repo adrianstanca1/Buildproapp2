@@ -50,6 +50,8 @@ const ProjectLaunchpadView = lazy(() => import('@/views/ProjectLaunchpadView'));
 const TenantManagementView = lazy(() => import('@/views/TenantManagementView'));
 const TenantAnalyticsView = lazy(() => import('@/views/TenantAnalyticsView'));
 const ResourceOptimizationView = lazy(() => import('@/views/ResourceOptimizationView'));
+const DailyLogsView = lazy(() => import('@/views/DailyLogsView'));
+const RFIView = lazy(() => import('@/views/RFIView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);

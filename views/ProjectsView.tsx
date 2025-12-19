@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import {
     Search, Plus, Filter, Calendar, Users, MapPin,
     CheckSquare, Activity, Image as ImageIcon, ArrowRight, MoreVertical,
-    LayoutGrid, List as ListIcon, Briefcase
+    LayoutGrid, List as ListIcon, Briefcase, Clock, Building, AlertTriangle, X
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { Project, Page } from '@/types';
@@ -11,6 +10,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProjectsViewProps {
     onProjectSelect?: (projectId: string) => void;
@@ -19,7 +19,8 @@ interface ProjectsViewProps {
 }
 
 const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, autoLaunch }) => {
-    const { projects, documents } = useProjects();
+    const { projects, addProject, updateProject } = useProjects();
+    const { user } = useAuth();
     const { addToast } = useToast();
     const { canAddResource, currentTenant } = useTenant();
     const { joinRoom, lastMessage } = useWebSocket(); // Import useWebSocket
@@ -39,6 +40,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
     const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
+    const [editingProjectStatus, setEditingProjectStatus] = useState<Project | null>(null);
 
     // Auto-launch logic if needed (e.g. for Project Launchpad redirection)
     React.useEffect(() => {
@@ -55,6 +57,9 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
             return matchesSearch && matchesStatus;
         });
     }, [projects, searchQuery, filterStatus]);
+
+    // Mock documents for photo gallery (since we don't have access to context)
+    const documents: any[] = [];
 
     const getLatestPhotos = (projectId: string) => {
         return documents
@@ -110,8 +115,8 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                         }}
                         disabled={!canAddResource('projects')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('projects')
-                            ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
-                            : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
+                                ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
+                                : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
                             }`}
                     >
                         <Plus size={18} /> New Project
@@ -277,8 +282,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                // Placeholder for status update logic
-                                                addToast("Status update dialog coming soon", 'info');
+                                                setEditingProjectStatus(project);
                                             }}
                                             className="flex-1 py-2.5 bg-white border border-zinc-200 hover:border-orange-500 hover:text-orange-600 text-zinc-600 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
                                         >
@@ -288,6 +292,84 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                 </div>
                             )
                         })}
+
+                        {/* Status Update Modal */}
+                        {editingProjectStatus && (
+                            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in">
+                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in zoom-in-95">
+                                    <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
+                                        <h3 className="text-lg font-bold text-zinc-900">Update Project Status</h3>
+                                        <button onClick={() => setEditingProjectStatus(null)} className="text-zinc-400 hover:text-zinc-600"><X size={20} /></button>
+                                    </div>
+                                    <div className="p-6 space-y-6">
+                                        <div>
+                                            <label className="text-xs font-bold text-zinc-500 uppercase block mb-2">Project Phase Status</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {['Planned', 'Active', 'On Hold', 'Completed'].map(s => (
+                                                    <button
+                                                        key={s}
+                                                        onClick={() => setEditingProjectStatus({ ...editingProjectStatus, status: s as any })}
+                                                        className={`py-2 rounded-lg text-xs font-bold border transition-all ${editingProjectStatus.status === s ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}
+                                                    >
+                                                        {s}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="text-xs font-bold text-zinc-500 uppercase block mb-2">Health Status</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {['Good', 'At Risk', 'Critical'].map(h => (
+                                                    <button
+                                                        key={h}
+                                                        onClick={() => setEditingProjectStatus({ ...editingProjectStatus, health: h as any })}
+                                                        className={`py-2 rounded-lg text-xs font-bold border transition-all ${editingProjectStatus.health === h
+                                                                ? (h === 'Good' ? 'bg-green-50 border-green-200 text-green-700' : h === 'At Risk' ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-red-50 border-red-200 text-red-700')
+                                                                : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'
+                                                            }`}
+                                                    >
+                                                        {h}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <div className="flex justify-between mb-2">
+                                                <label className="text-xs font-bold text-zinc-500 uppercase">Completion Progress</label>
+                                                <span className="text-xs font-bold text-[#0f5c82]">{editingProjectStatus.progress}%</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={editingProjectStatus.progress}
+                                                onChange={(e) => setEditingProjectStatus({ ...editingProjectStatus, progress: parseInt(e.target.value) })}
+                                                className="w-full h-2 bg-zinc-100 rounded-lg appearance-none cursor-pointer accent-[#0f5c82]"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="p-4 bg-zinc-50 flex justify-end gap-3 border-t border-zinc-100">
+                                        <button onClick={() => setEditingProjectStatus(null)} className="px-4 py-2 text-sm font-bold text-zinc-600 hover:text-zinc-900">Cancel</button>
+                                        <button
+                                            onClick={() => {
+                                                updateProject(editingProjectStatus.id, {
+                                                    status: editingProjectStatus.status,
+                                                    health: editingProjectStatus.health,
+                                                    progress: editingProjectStatus.progress
+                                                });
+                                                setEditingProjectStatus(null);
+                                                addToast("Project status updated successfully", "success");
+                                            }}
+                                            className="px-6 py-2 bg-[#0f5c82] text-white text-sm font-bold rounded-xl hover:bg-[#0c4a6e] shadow-sm"
+                                        >
+                                            Save Updates
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Add New Project Card */}
                         <button
@@ -299,13 +381,13 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                 setPage && setPage(Page.PROJECT_LAUNCHPAD);
                             }}
                             className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all group min-h-[300px] ${canAddResource('projects')
-                                ? 'border-zinc-200 text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30'
-                                : 'border-zinc-100 text-zinc-300 cursor-not-allowed'
+                                    ? 'border-zinc-200 text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30'
+                                    : 'border-zinc-100 text-zinc-300 cursor-not-allowed'
                                 }`}
                         >
                             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all ${canAddResource('projects')
-                                ? 'bg-zinc-50 group-hover:bg-white group-hover:shadow-md'
-                                : 'bg-zinc-50/50'
+                                    ? 'bg-zinc-50 group-hover:bg-white group-hover:shadow-md'
+                                    : 'bg-zinc-50/50'
                                 }`}>
                                 <Plus size={32} />
                             </div>

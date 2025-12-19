@@ -3,6 +3,8 @@ import { Briefcase, Shield, List, DollarSign, Users, Wrench, Filter, Calculator,
 import { useToast } from '@/contexts/ToastContext';
 import { useProjects } from '@/contexts/ProjectContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 interface ReportElement {
   id: string;

@@ -36,6 +36,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
       items: [
         { id: Page.LIVE, label: 'Live Field Asst.', icon: Zap, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.LIVE_PROJECT_MAP, label: 'Live Map', icon: Navigation, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.DAILY_LOGS, label: 'Daily Logs', icon: ClipboardCheck, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.RFI, label: 'RFIs', icon: FileText, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.SAFETY, label: 'Safety', icon: Shield, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.EQUIPMENT, label: 'Equipment', icon: Wrench, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
         { id: Page.INVENTORY, label: 'Inventory', icon: Package, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
