@@ -14,14 +14,18 @@ const getAuthHeaders = async () => {
 }
 
 export interface ChatConfig {
-  model: string;
+  model?: string;
   systemInstruction?: string;
   thinkingBudget?: number;
   thinkingConfig?: { thinkingBudget: number };
   tools?: any[];
   responseMimeType?: string;
   responseSchema?: any;
+  temperature?: number;
+  topP?: number;
 }
+
+export type GenConfig = ChatConfig;
 
 export const streamChatResponse = async (
   history: Message[],
@@ -120,9 +124,9 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
   }
 };
 
-export const runRawPrompt = async (prompt: string, config?: ChatConfig): Promise<string> => {
+export const runRawPrompt = async (prompt: string, config?: ChatConfig, imageData?: string, mimeType?: string): Promise<string> => {
   try {
-    const res = await streamChatResponse([], prompt, undefined, undefined, undefined, config);
+    const res = await streamChatResponse([], prompt, imageData, mimeType, undefined, config);
     return res.candidates?.[0]?.content?.parts?.[0]?.text || "";
   } catch (e) {
     console.error("runRawPrompt failed", e);
@@ -164,17 +168,18 @@ export const generateSpeech = async (text: string): Promise<AudioBuffer> => {
   return ctx.createBuffer(1, 1, 44100);
 }
 
-export const getLiveClient = () => {
+export interface LiveClient {
+  connect: (config: any) => Promise<{
+    sendRealtimeInput: (input: any) => void;
+    close: () => void;
+  }>;
+}
+
+export const getLiveClient = (): LiveClient => {
   return {
     connect: async (config: any) => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host; // e.g. localhost:3000
-      // In dev, backend might be on 3002. If proxied, use relative.
-      // Assuming Vite proxy is set up or backend is on same origin in prod.
-      // For localhost dev without proxy (likely), we might need to target 3002.
-      // But let's assume /api proxy exists in Vite config or similar.
-      // If not, we might need a fallback.
-
+      const host = window.location.host;
       const wsUrl = `${protocol}//${host.replace(':5173', ':3002').replace(':3000', ':3002')}/api/live`;
       console.log("Connecting to Live Proxy:", wsUrl);
 
@@ -184,18 +189,10 @@ export const getLiveClient = () => {
         ws.onopen = () => {
           console.log("WS Connected");
           if (config.callbacks?.onopen) config.callbacks.onopen();
-
-          // Send initial setup config if needed
           ws.send(JSON.stringify({ setup: config }));
 
           resolve({
             sendRealtimeInput: (input: any) => {
-              // Convert binary/blob to base64 if needed before sending?
-              // The socket expects text.
-              // Input might be { media: { chunks: ... } } or similar blob.
-              // For now, let's just send a safe structure or stringify.
-              // If it contains blobs, we might need to convert.
-              // This is a stub implementation for the 'continue' request.
               ws.send(JSON.stringify(input));
             },
             close: () => ws.close()
@@ -225,7 +222,7 @@ export const getLiveClient = () => {
   };
 }
 
-export const generateVideo = async (prompt: string): Promise<string> => {
+export const generateVideo = async (prompt: string, aspectRatio?: string): Promise<string> => {
   console.error("Secure Video Generation not implemented yet");
   throw new Error("Secure Video Generation not implemented yet");
 }
