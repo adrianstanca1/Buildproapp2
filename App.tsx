@@ -156,7 +156,9 @@ const App: React.FC = () => {
         <ProjectProvider>
           <TenantProvider>
             <NotificationProvider>
-              <AuthenticatedApp />
+              <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50">Loading BuildPro...</div>}>
+                <AuthenticatedApp />
+              </Suspense>
             </NotificationProvider>
           </TenantProvider>
         </ProjectProvider>
