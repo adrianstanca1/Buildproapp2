@@ -34,7 +34,7 @@ const StatusBadge = ({ status }: { status: string }) => {
     );
 };
 
-const UserCard: React.FC<{ member: TeamMember; onClick: () => void; showCompany: boolean }> = ({ member, onClick, showCompany }) => {
+const UserCard: React.FC<{ member: TeamMember; onClick: () => void; showCompany: boolean; isOnline?: boolean }> = ({ member, onClick, showCompany, isOnline }) => {
     if (!member) return null;
 
     // Safe access defaults
@@ -48,7 +48,7 @@ const UserCard: React.FC<{ member: TeamMember; onClick: () => void; showCompany:
     const certCount = member.certifications?.length || 0;
 
     return (
-        <div onClick={onClick} className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden hover:border-[#0f5c82] flex flex-col h-full">
+        <div onClick={onClick} className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden hover:border-[#0f5c82] flex flex-col h-full ${isOnline ? 'ring-2 ring-green-400 border-green-400' : 'border-zinc-200'}`}>
             <div className={`absolute top-0 left-0 w-1 h-full ${status === 'On Site' ? 'bg-green-500' : status === 'Invited' ? 'bg-purple-500' : 'bg-zinc-300'}`} />
 
             <div className="flex justify-between items-start mb-4 pl-2">
@@ -100,11 +100,39 @@ const UserCard: React.FC<{ member: TeamMember; onClick: () => void; showCompany:
     );
 };
 
+import { useWebSocket } from '@/contexts/WebSocketContext';
+
+// ... existing imports ...
+
 const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
     const { teamMembers, isLoading, addTeamMember } = useProjects();
     const { user } = useAuth();
     const { canAddResource, currentTenant, requireRole } = useTenant();
     const { addToast } = useToast();
+    const { joinRoom, lastMessage } = useWebSocket();
+
+    // Presence State
+    const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
+    // Join Project Room
+    React.useEffect(() => {
+        if (projectId) {
+            joinRoom(projectId);
+        }
+    }, [projectId, joinRoom]);
+
+    // Handle Presence Updates
+    React.useEffect(() => {
+        if (lastMessage && lastMessage.type === 'presence_update') {
+            setOnlineUsers(prev => {
+                const next = new Set(prev);
+                if (lastMessage.status === 'online') next.add(lastMessage.userId);
+                else next.delete(lastMessage.userId);
+                return next;
+            });
+        }
+    }, [lastMessage]);
+
     const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
     const [searchQuery, setSearchQuery] = useState('');
     const [companyFilter, setCompanyFilter] = useState('All');
@@ -377,7 +405,14 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                 {viewMode === 'GRID' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {filteredMembers.map(member => (
-                            <UserCard key={member.id} member={member} onClick={() => setSelectedMember(member)} showCompany={isSuperAdmin} />
+                            <UserCard
+                                key={member.id}
+                                member={member}
+                                onClick={() => setSelectedMember(member)}
+                                showCompany={isSuperAdmin}
+                                // @ts-ignore - Assuming member.id matches auth user id for now
+                                isOnline={onlineUsers.has(member.id)}
+                            />
                         ))}
                         {filteredMembers.length === 0 && (
                             <div className="col-span-full text-center py-12 text-zinc-400 italic">

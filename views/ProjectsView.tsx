@@ -9,6 +9,7 @@ import { useProjects } from '@/contexts/ProjectContext';
 import { Project, Page } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 import { AlertCircle } from 'lucide-react';
 
 interface ProjectsViewProps {
@@ -21,6 +22,20 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
     const { projects, documents } = useProjects();
     const { addToast } = useToast();
     const { canAddResource, currentTenant } = useTenant();
+    const { joinRoom, lastMessage } = useWebSocket(); // Import useWebSocket
+
+    // Real-time Updates
+    React.useEffect(() => {
+        joinRoom('all_projects');
+    }, [joinRoom]);
+
+    React.useEffect(() => {
+        if (lastMessage && lastMessage.type === 'project_updated') {
+            // In a full app, this would trigger refetchProjects() from context
+            addToast(`Project updated: ${lastMessage.payload?.name || 'A project'}`, 'info');
+        }
+    }, [lastMessage, addToast]);
+
     const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
     const [searchQuery, setSearchQuery] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
@@ -95,8 +110,8 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                         }}
                         disabled={!canAddResource('projects')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('projects')
-                                ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
-                                : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
+                            ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
+                            : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
                             }`}
                     >
                         <Plus size={18} /> New Project
@@ -284,13 +299,13 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                 setPage && setPage(Page.PROJECT_LAUNCHPAD);
                             }}
                             className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all group min-h-[300px] ${canAddResource('projects')
-                                    ? 'border-zinc-200 text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30'
-                                    : 'border-zinc-100 text-zinc-300 cursor-not-allowed'
+                                ? 'border-zinc-200 text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30'
+                                : 'border-zinc-100 text-zinc-300 cursor-not-allowed'
                                 }`}
                         >
                             <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all ${canAddResource('projects')
-                                    ? 'bg-zinc-50 group-hover:bg-white group-hover:shadow-md'
-                                    : 'bg-zinc-50/50'
+                                ? 'bg-zinc-50 group-hover:bg-white group-hover:shadow-md'
+                                : 'bg-zinc-50/50'
                                 }`}>
                                 <Plus size={32} />
                             </div>

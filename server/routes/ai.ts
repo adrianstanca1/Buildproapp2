@@ -1,8 +1,19 @@
 
 import express from 'express';
 import { GoogleGenAI } from '@google/genai';
+import multer from 'multer';
+import { analyzeProjectDocument } from '../services/aiService.js';
+import { logger } from '../utils/logger.js';
 
 const router = express.Router();
+
+// Configure Multer for memory storage (file buffer)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+});
 
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -112,4 +123,29 @@ router.post('/image', async (req: any, res: any) => {
         res.status(500).json({ error: e.message });
     }
 });
+
+// New Endpoint for Phase Analysis
+router.post('/analyze-phase', upload.single('file'), async (req: any, res: any) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        const { name, type } = req.body;
+        const projectContext = { name, type };
+
+        const result = await analyzeProjectDocument(
+            req.file.buffer,
+            req.file.mimetype,
+            projectContext
+        );
+
+        res.json(result);
+    } catch (error: any) {
+        logger.error("Analyze Phase Error:", error);
+        res.status(500).json({ error: error.message || "Failed to analyze document" });
+    }
+});
+
 export default router;
+

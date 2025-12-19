@@ -74,6 +74,9 @@ app.use('/api', authenticateToken); // Protect all API routes
 import aiRoutes from './routes/ai.js';
 app.use('/api/ai', aiRoutes);
 
+import storageRoutes from './routes/storage.js';
+app.use('/api/storage', storageRoutes);
+
 
 // --- Companies Routes ---
 app.get('/api/companies', async (req: any, res: any) => {

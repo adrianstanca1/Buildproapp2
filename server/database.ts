@@ -59,29 +59,44 @@ export async function initializeDatabase() {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-    if (connectionString) {
-      console.log('Initializing PostgreSQL connection...');
+    // In production (Vercel), strictly require Postgres variables.
+    // We do NOT want to fall back to ephemeral SQLite in production as it leads to data loss.
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (!connectionString) {
+        throw new Error(
+          'DATABASE_URL or POSTGRES_URL is missing! ' +
+          'Production requires a real PostgreSQL database. ' +
+          'Please configure this in your Vercel Project Settings.'
+        );
+      }
+      console.log('Initializing PostgreSQL connection for Production...');
       dbInstance = new PostgresAdapter(connectionString);
     } else {
-      console.log('Initializing SQLite connection...');
-      try {
-        // Use require for sqlite3 to ensure compatibility
-        const sqlite3 = require('sqlite3');
-        const { open } = require('sqlite');
+      // Local development fallback
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (connectionString) {
+        console.log('Initializing PostgreSQL connection...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        console.log('Initializing SQLite connection (Local/Dev)...');
+        try {
+          // Use require for sqlite3 to ensure compatibility
+          const sqlite3 = require('sqlite3');
+          const { open } = require('sqlite');
 
-        // Use /tmp on Vercel (ephemeral) or local file otherwise
-        const dbPath = process.env.VERCEL ? '/tmp/buildpro_db.sqlite' : './buildpro_db.sqlite';
+          const dbPath = './buildpro_db.sqlite';
 
-        const db = await open({
-          filename: dbPath,
-          driver: sqlite3.Database
-        });
-        await db.exec('PRAGMA foreign_keys = ON;');
-        dbInstance = new SqliteAdapter(db);
-      } catch (error) {
-        console.error('Failed to load SQLite:', error);
-        throw new Error('SQLite initialization failed. Ensure sqlite3 is installed or use DATABASE_URL.');
+          const db = await open({
+            filename: dbPath,
+            driver: sqlite3.Database
+          });
+          await db.exec('PRAGMA foreign_keys = ON;');
+          dbInstance = new SqliteAdapter(db);
+        } catch (error) {
+          console.error('Failed to load SQLite:', error);
+          throw new Error('SQLite initialization failed. Ensure sqlite3 is installed or use DATABASE_URL.');
+        }
       }
     }
 

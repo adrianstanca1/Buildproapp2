@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, FileText, Image as ImageIcon, Box, FileSpreadsheet, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { uploadFile } from '@/services/supabaseClient';
+import { uploadFile, supabase } from '@/services/supabaseClient';
 
 interface FileUploadZoneProps {
     onUploadComplete: (url: string, file: File) => void;
@@ -53,14 +53,35 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
             // Attempt Supabase upload
             // Attempt Supabase upload
             // @ts-ignore
+            // Attempt Supabase upload via Backend API
             if (import.meta.env.VITE_SUPABASE_URL) {
                 try {
                     setProgress(30);
-                    const { publicUrl } = await import('@/services/storageService').then(m => m.storageService.upload(file, bucket as any, path));
-                    url = publicUrl;
+
+                    const { data: authData } = await supabase.auth.getSession();
+                    const token = authData.session?.access_token;
+                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('bucket', bucket);
+                    if (path) formData.append('pathPrefix', path);
+
+                    const res = await fetch(`${apiUrl}/api/storage/upload`, {
+                        method: 'POST',
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                        body: formData
+                    });
+
+                    if (!res.ok) throw new Error('Upload failed');
+
+                    const data = await res.json();
+                    if (data.url) {
+                        url = data.url;
+                    }
                     setProgress(90);
                 } catch (err: any) {
-                    console.warn("Supabase upload failed, falling back to local storage", err);
+                    console.warn("Backend upload failed, falling back to local storage", err);
                 }
             }
 

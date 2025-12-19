@@ -12,10 +12,11 @@ interface DocumentsViewProps {
 }
 
 const DocumentsView: React.FC<DocumentsViewProps> = ({ projectId }) => {
-    const { documents, tasks, updateDocument, addDocument } = useProjects();
+    const { documents, tasks, updateDocument, addDocument, projects } = useProjects();
     const { addToast } = useToast();
     const [linkingDocId, setLinkingDocId] = useState<string | null>(null);
     const [showUploadModal, setShowUploadModal] = useState(false);
+    const [selectedUploadProject, setSelectedUploadProject] = useState<string>(projectId || '');
     const [taskSearch, setTaskSearch] = useState('');
     const [filterType, setFilterType] = useState('All');
     const [viewMode, setViewMode] = useState<'GRID' | 'LIST'>('GRID');
@@ -64,7 +65,11 @@ const DocumentsView: React.FC<DocumentsViewProps> = ({ projectId }) => {
     };
 
     const handleUploadComplete = async (url: string, file: File) => {
-        if (!projectId) return;
+        const targetProjectId = projectId || selectedUploadProject;
+        if (!targetProjectId) {
+            addToast("Please select a project first", "error");
+            return;
+        }
 
         try {
             // AI Analysis for specialized summary
@@ -85,8 +90,8 @@ const DocumentsView: React.FC<DocumentsViewProps> = ({ projectId }) => {
                 id: `doc-${Date.now()}`,
                 name: file.name,
                 type: file.type.includes('image') ? 'Image' : file.type.includes('pdf') ? 'PDF' : file.name.endsWith('.dwg') ? 'CAD' : 'Document',
-                projectId: projectId,
-                projectName: 'Current Project',
+                projectId: targetProjectId,
+                projectName: projects.find(p => p.id === targetProjectId)?.name || 'Unknown Project',
                 size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
                 date: new Date().toLocaleDateString(),
                 status: 'Approved',
@@ -124,15 +129,16 @@ const DocumentsView: React.FC<DocumentsViewProps> = ({ projectId }) => {
                         <h1 className="text-2xl font-bold text-zinc-900 mb-1">{projectId ? 'Project Documents' : 'Documents Library'}</h1>
                         <p className="text-zinc-500">Manage drawings, permits, specs, and photos.</p>
                     </div>
-                    {projectId && (
-                        <button
-                            onClick={() => setShowUploadModal(true)}
-                            className="flex items-center gap-2 bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10 transition-all transform hover:scale-105 active:scale-95 transition-all"
-                        >
-                            <Upload size={18} />
-                            Upload New
-                        </button>
-                    )}
+                    <button
+                        onClick={() => {
+                            setSelectedUploadProject(projectId || '');
+                            setShowUploadModal(true);
+                        }}
+                        className="flex items-center gap-2 bg-[#0f5c82] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10 transition-all transform hover:scale-105 active:scale-95 transition-all"
+                    >
+                        <Upload size={18} />
+                        Upload New
+                    </button>
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -297,6 +303,22 @@ const DocumentsView: React.FC<DocumentsViewProps> = ({ projectId }) => {
                             <button onClick={() => setShowUploadModal(false)} className="p-2 hover:bg-white rounded-full text-zinc-400 group"><X size={20} className="group-hover:text-zinc-900" /></button>
                         </div>
                         <div className="p-8">
+                            {!projectId && (
+                                <div className="mb-6">
+                                    <label className="block text-sm font-bold text-zinc-700 mb-2">Select Project</label>
+                                    <select
+                                        value={selectedUploadProject}
+                                        onChange={(e) => setSelectedUploadProject(e.target.value)}
+                                        className="w-full p-3 bg-white border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#0f5c82] outline-none transition-all"
+                                    >
+                                        <option value="">Select a project...</option>
+                                        {projects.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
                             <FileUploadZone
                                 onUploadComplete={handleUploadComplete}
                                 path={projectId}

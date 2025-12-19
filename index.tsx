@@ -8,12 +8,18 @@ if (!rootElement) {
 }
 
 import ErrorBoundary from './components/ErrorBoundary';
+import { NotificationProvider } from './contexts/NotificationContext';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <NotificationProvider>
+        <WebSocketProvider>
+          <App />
+        </WebSocketProvider>
+      </NotificationProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

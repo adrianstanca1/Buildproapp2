@@ -1,12 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-Calendar, Sparkles, Plus, Trash2, AlertTriangle,
-Clock, Loader2, ChevronDown, Save, BarChart
+    Calendar, Sparkles, Plus, Trash2, AlertTriangle,
+    Clock, Loader2, ChevronDown, Save, BarChart, Upload, FileText, X, Check
 } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
 import { Project, ProjectPhase } from '@/types';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
+import { supabase } from '@/services/supabaseClient';
 
 interface ProjectPhasesViewProps {
     project: Project;
@@ -17,7 +18,10 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
     const { addToast } = useToast();
     const [phases, setPhases] = useState<ProjectPhase[]>(project.phases || []);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [editingPhaseId, setEditingPhaseId] = useState<string | null>(null);
+    const [analysisResult, setAnalysisResult] = useState<any | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setPhases(project.phases || []);
@@ -48,10 +52,9 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
       `;
 
             const res = await runRawPrompt(prompt, {
-                model: 'gemini-3-pro-preview',
+                model: 'gemini-2.0-flash-exp', // Updated model
                 responseMimeType: 'application/json',
                 temperature: 0.3,
-                thinkingConfig: { thinkingBudget: 2048 }
             });
 
             const data = parseAIJSON(res);
@@ -75,6 +78,74 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
         } finally {
             setIsGenerating(false);
         }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Reset input value to allow re-uploading the same file if needed
+        e.target.value = '';
+
+        uploadAndAnalyze(file);
+    };
+
+    const uploadAndAnalyze = async (file: File) => {
+        setIsAnalyzing(true);
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('name', project.name);
+        formData.append('type', project.type);
+
+        try {
+            // Get real Auth Token from Supabase
+            const { data: authData } = await supabase.auth.getSession();
+            const token = authData.session?.access_token;
+
+            // Try explicit endpoint or fallback to relative
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+
+            const response = await fetch(`${apiUrl}/api/ai/analyze-phase`, {
+                method: 'POST',
+                headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                body: formData
+            });
+
+            if (!response.ok) {
+                const err = await response.json();
+                throw new Error(err.error || 'Upload failed');
+            }
+
+            const data = await response.json();
+            setAnalysisResult(data);
+            addToast("Document analyzed successfully! Review the proposed phases below.", "success");
+
+        } catch (error: any) {
+            console.error("Analysis Error:", error);
+            addToast(error.message || "Failed to analyze document", "error");
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const applyAnalysis = () => {
+        if (!analysisResult?.phases) return;
+
+        const newPhases: ProjectPhase[] = analysisResult.phases.map((p: any, i: number) => ({
+            id: `ph-${Date.now()}-${i}`,
+            name: p.name,
+            startDate: p.startDate,
+            endDate: p.endDate,
+            status: p.status || 'Pending',
+            progress: p.status === 'Completed' ? 100 : p.status === 'In Progress' ? 35 : 0,
+            riskLevel: p.riskLevel || 'Low',
+            color: p.riskLevel === 'High' ? 'bg-red-500' : 'bg-blue-500' // Simple logic
+        }));
+
+        setPhases(newPhases);
+        onUpdate(newPhases);
+        setAnalysisResult(null);
+        addToast("Phases updated from document analysis", "success");
     };
 
     const handlePhaseUpdate = (id: string, updates: Partial<ProjectPhase>) => {
@@ -181,7 +252,67 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
     const timeTicks = getTimeTicks();
 
     return (
-        <div className="flex flex-col h-full bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="flex flex-col h-full bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm relative">
+            {/* Analysis Result Modal */}
+            {analysisResult && (
+                <div className="absolute inset-0 z-50 bg-white bg-opacity-95 backdrop-blur-sm p-6 flex flex-col animate-in fade-in">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2">
+                                <Sparkles className="text-purple-600" /> AI Analysis Result
+                            </h3>
+                            <p className="text-sm text-zinc-500 mt-1">{analysisResult.summary}</p>
+                        </div>
+                        <button onClick={() => setAnalysisResult(null)} className="p-2 hover:bg-zinc-100 rounded-full transition-colors">
+                            <X size={20} className="text-zinc-500" />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto mb-6 bg-zinc-50 border border-zinc-200 rounded-xl p-4">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-zinc-400 uppercase border-b border-zinc-200">
+                                <tr>
+                                    <th className="pb-2 font-semibold">Phase</th>
+                                    <th className="pb-2 font-semibold">Timeline</th>
+                                    <th className="pb-2 font-semibold">Risk</th>
+                                    <th className="pb-2 font-semibold">Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200">
+                                {analysisResult.phases.map((p: any, i: number) => (
+                                    <tr key={i} className="group hover:bg-white transition-colors">
+                                        <td className="py-3 font-medium text-zinc-800">{p.name}</td>
+                                        <td className="py-3 text-zinc-600 font-mono text-xs">{p.startDate} → {p.endDate}</td>
+                                        <td className="py-3">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${p.riskLevel === 'High' ? 'bg-red-50 text-red-600 border-red-100' :
+                                                p.riskLevel === 'Medium' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                                                    'bg-green-50 text-green-600 border-green-100'
+                                                }`}>{p.riskLevel}</span>
+                                        </td>
+                                        <td className="py-3 text-zinc-500 italic max-w-xs truncate">{p.description}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div className="flex justify-end gap-3">
+                        <button
+                            onClick={() => setAnalysisResult(null)}
+                            className="px-4 py-2 text-zinc-600 hover:bg-zinc-100 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            Discard
+                        </button>
+                        <button
+                            onClick={applyAnalysis}
+                            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-bold shadow-lg shadow-purple-200 transition-all flex items-center gap-2"
+                        >
+                            <Check size={16} /> Apply {analysisResult.phases.length} Phases
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
                 <div>
@@ -191,9 +322,27 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
                     <p className="text-zinc-500 text-xs mt-1">Phasing, milestones, and risk management</p>
                 </div>
                 <div className="flex gap-3">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept=".pdf,application/pdf,image/*"
+                        onChange={handleFileUpload}
+                    />
+
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isGenerating || isAnalyzing}
+                        className="flex items-center gap-2 px-4 py-2 bg-white text-zinc-700 border border-zinc-200 rounded-lg text-xs font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-all disabled:opacity-50"
+                        title="Upload Schedule PDF or Image"
+                    >
+                        {isAnalyzing ? <Loader2 size={14} className="animate-spin text-purple-600" /> : <Upload size={14} />}
+                        {isAnalyzing ? 'Analyzing...' : 'Smart Upload'}
+                    </button>
+
                     <button
                         onClick={generatePhases}
-                        disabled={isGenerating}
+                        disabled={isGenerating || isAnalyzing}
                         className="flex items-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 border border-purple-100 rounded-lg text-xs font-bold hover:bg-purple-100 transition-colors disabled:opacity-50"
                     >
                         {isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
