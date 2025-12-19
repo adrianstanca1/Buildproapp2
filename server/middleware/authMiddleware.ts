@@ -7,7 +7,7 @@ if (!supabaseUrl || !supabaseKey) {
     console.warn('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Auth middleware will fail.');
 }
 
-const supabase = createClient(supabaseUrl || '', supabaseKey || '');
+const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
 
 export const authenticateToken = async (req: any, res: any, next: any) => {
     const authHeader = req.headers['authorization'];
