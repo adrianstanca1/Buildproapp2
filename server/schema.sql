@@ -277,3 +277,20 @@ CREATE TABLE IF NOT EXISTS transactions (
   status TEXT, -- 'completed', 'pending'
   invoice TEXT
 );
+
+-- Purchase Orders Table
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id TEXT PRIMARY KEY,
+  number TEXT,
+  vendor TEXT,
+  date TEXT,
+  amount REAL,
+  status TEXT,
+  createdBy TEXT,
+  items TEXT, -- JSON array of line items
+  approvers TEXT, -- JSON array of approvers
+  notes TEXT,
+  projectId TEXT,
+  companyId TEXT,
+  createdAt TEXT
+);

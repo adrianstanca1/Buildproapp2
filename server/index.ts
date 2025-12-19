@@ -700,6 +700,7 @@ createCrudRoutes('timesheets');
 createCrudRoutes('channels');
 createCrudRoutes('team_messages');
 createCrudRoutes('transactions');
+createCrudRoutes('purchase_orders', ['items', 'approvers']);
 
 
 // Serve static files from the React app

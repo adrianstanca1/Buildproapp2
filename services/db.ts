@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder } from '@/types';
 import { db as mockDb } from './mockDb';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
@@ -253,6 +253,20 @@ class DatabaseService {
   async addTransaction(item: Transaction) {
     if (this.useMock) return;
     await this.post('transactions', item);
+  }
+
+  // --- Purchase Orders ---
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    if (this.useMock) return [];
+    return this.fetch<PurchaseOrder>('purchase_orders');
+  }
+  async addPurchaseOrder(item: PurchaseOrder) {
+    if (this.useMock) return;
+    await this.post('purchase_orders', item);
+  }
+  async updatePurchaseOrder(id: string, u: Partial<PurchaseOrder>) {
+    if (this.useMock) return;
+    await this.put('purchase_orders', id, u);
   }
 
   // --- Channels ---

@@ -567,6 +567,8 @@ export interface PurchaseOrder {
   notes: string;
   estimatedDeliveryDate?: string;
   actualDeliveryDate?: string;
+  createdAt?: string;
+  companyId?: string;
 }
 
 export interface Vendor {

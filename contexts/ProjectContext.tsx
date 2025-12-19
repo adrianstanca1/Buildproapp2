@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
-import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk, PurchaseOrder } from '@/types';
 import { useAuth } from './AuthContext';
 import { db } from '@/services/db';
 import { supabase } from '../services/supabaseClient';
@@ -27,6 +27,7 @@ interface ProjectContextType {
   financials: Transaction[];
   defects: Defect[];
   projectRisks: ProjectRisk[];
+  purchaseOrders: PurchaseOrder[];
   isLoading: boolean;
 
   // Project CRUD
@@ -82,6 +83,10 @@ interface ProjectContextType {
 
   // Forecasting
   runHealthForecasting: (projectId: string) => Promise<ProjectRisk | null>;
+
+  // Procurement
+  addPurchaseOrder: (po: PurchaseOrder) => Promise<void>;
+  updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -116,6 +121,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [teamMessages, setTeamMessages] = useState<TeamMessage[]>([]);
   const [defects, setDefects] = useState<Defect[]>([]);
   const [projectRisks, setProjectRisks] = useState<ProjectRisk[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Supabase Realtime Subscription
@@ -173,7 +179,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
           db.getTimesheets(),
           db.getTransactions(),
           db.getDefects(),
-          db.getProjectRisks()
+          db.getProjectRisks(),
+          db.getPurchaseOrders()
         ]);
         setProjects(p);
         setTasks(t);
@@ -192,6 +199,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         setTransactions(txn);
         setDefects(defs);
         setProjectRisks(risks);
+        // @ts-ignore
+        setPurchaseOrders(pi[17] || []); // pi is the array of results
       } catch (e) {
         console.error("Failed to load data from DB", e);
       } finally {
@@ -259,6 +268,10 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const visibleRisks = useMemo(() => {
     return projectRisks.filter(r => visibleProjectIds.includes(r.projectId));
   }, [projectRisks, visibleProjectIds]);
+
+  const visiblePurchaseOrders = useMemo(() => {
+    return purchaseOrders.filter(po => visibleProjectIds.includes(po.projectId || ''));
+  }, [purchaseOrders, visibleProjectIds]);
 
 
   // --- Project Methods ---
@@ -540,6 +553,17 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     return risk;
   };
 
+  const addPurchaseOrder = async (po: PurchaseOrder) => {
+    const poWithTenant = { ...po, companyId: user?.companyId || 'c1' };
+    setPurchaseOrders(prev => [poWithTenant, ...prev]);
+    await db.addPurchaseOrder(poWithTenant);
+  };
+
+  const updatePurchaseOrder = async (id: string, updates: Partial<PurchaseOrder>) => {
+    setPurchaseOrders(prev => prev.map(p => p.id === id ? { ...p, ...updates } : p));
+    await db.updatePurchaseOrder(id, updates);
+  };
+
   return (
     <ProjectContext.Provider value={{
       projects: visibleProjects,
@@ -593,7 +617,10 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateDefect,
       deleteDefect,
       projectRisks: visibleRisks,
-      runHealthForecasting
+      runHealthForecasting,
+      purchaseOrders: visiblePurchaseOrders,
+      addPurchaseOrder,
+      updatePurchaseOrder
     }}>
       {children}
     </ProjectContext.Provider>

@@ -8,7 +8,7 @@ import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 
 const ProcurementView: React.FC = () => {
   const { addToast } = useToast();
-  const { inventory, transactions, addTransaction } = useProjects();
+  const { inventory, transactions, addTransaction, purchaseOrders, addPurchaseOrder, updatePurchaseOrder, projects } = useProjects();
   const [activeTab, setActiveTab] = useState<'VENDORS' | 'ORDERS' | 'APPROVALS' | 'LOGISTICS'>('VENDORS');
   const [showSmartPO, setShowSmartPO] = useState(false);
   const [poGenerating, setPoGenerating] = useState(false);
@@ -30,44 +30,9 @@ const ProcurementView: React.FC = () => {
     { id: 'v4', name: 'Premier Timber', category: 'Wood', contact: 'Lucy West', email: 'lucy@premiertimber.com', rating: 97, performance: 97, activeOrders: 1, spend: '£28,400', status: 'Preferred', reliabilityScore: 99, averageDeliveryDays: 4 }
   ];
 
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
-    {
-      id: 'po1',
-      number: 'PO-2025-895',
-      vendor: 'Premier Steel',
-      date: '2025-12-02',
-      amount: 45000,
-      status: 'pending_approval',
-      createdBy: 'John Anderson',
-      items: [
-        { description: 'Structural Steel Beams (Grade A)', quantity: 50, unitPrice: 800, total: 40000 },
-        { description: 'Bolts & Fasteners Kit', quantity: 10, unitPrice: 500, total: 5000 }
-      ],
-      approvers: [
-        { id: 'a1', name: 'Sarah Mitchell', role: 'Finance Manager', status: 'pending' },
-        { id: 'a2', name: 'Mike Thompson', role: 'Project Manager', status: 'pending' }
-      ],
-      notes: 'Urgent: Required for Phase 2 foundation work'
-    },
-    {
-      id: 'po2',
-      number: 'PO-2025-894',
-      vendor: 'City Lumber Supply',
-      date: '2025-12-01',
-      amount: 28500,
-      status: 'approved',
-      createdBy: 'Emma Wilson',
-      items: [
-        { description: 'Treated Lumber (2x4x8)', quantity: 200, unitPrice: 120, total: 24000 },
-        { description: 'Plywood Sheets (3/4")', quantity: 50, unitPrice: 90, total: 4500 }
-      ],
-      approvers: [
-        { id: 'a3', name: 'Sarah Mitchell', role: 'Finance Manager', status: 'approved', timestamp: '2025-12-01 10:30', comment: 'Approved. Budget allocated.' },
-        { id: 'a4', name: 'Mike Thompson', role: 'Project Manager', status: 'approved', timestamp: '2025-12-01 11:00' }
-      ],
-      notes: 'Standard materials reorder'
-    }
-  ]);
+  // const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
+  //   // Mock data removed - sourced from context
+  // ]);
 
   const analyzeLogisticsRisks = async () => {
     const activeOrders = purchaseOrders.filter(po => po.status === 'approved' || po.status === 'completed');
@@ -114,16 +79,17 @@ const ProcurementView: React.FC = () => {
   );
 
   const handleApprove = async (po: PurchaseOrder, approverId: string) => {
-    const updatedOrders = purchaseOrders.map(p => {
-      if (p.id !== po.id) return p;
-      const updatedApprovers = p.approvers.map(a =>
-        a.id === approverId ? { ...a, status: 'approved' as const, timestamp: new Date().toLocaleString(), comment: approverComment } : a
-      );
-      const allApproved = updatedApprovers.every(a => a.status !== 'pending' && a.status !== 'rejected');
-      const updatedPO = { ...p, approvers: updatedApprovers, status: (allApproved ? 'approved' : 'pending_approval') as any };
+    const updatedApprovers = po.approvers.map(a =>
+      a.id === approverId ? { ...a, status: 'approved' as const, timestamp: new Date().toLocaleString(), comment: approverComment } : a
+    );
+    const allApproved = updatedApprovers.every(a => a.status !== 'pending' && a.status !== 'rejected');
+    const newStatus = allApproved ? 'approved' : 'pending_approval';
+
+    try {
+      await updatePurchaseOrder(po.id, { approvers: updatedApprovers, status: newStatus as any });
 
       if (allApproved) {
-        addTransaction({
+        await addTransaction({
           id: `txn-${Date.now()}`,
           companyId: 'c1',
           projectId: po.projectId || 'p1',
@@ -136,11 +102,13 @@ const ProcurementView: React.FC = () => {
           linkedPurchaseOrderId: po.id
         });
         addToast(`PO ${po.number} approved and transaction recorded.`, "success");
+        setApproverComment('');
+      } else {
+        addToast(`Approval recorded for ${po.number}`, "success");
       }
-      return updatedPO;
-    });
-    setPurchaseOrders(updatedOrders);
-    setApproverComment('');
+    } catch (e) {
+      addToast("Failed to update approval", "error");
+    }
   };
 
   return (
@@ -307,7 +275,33 @@ const ProcurementView: React.FC = () => {
                     <p className="text-xs text-zinc-500 italic">{v.reason}</p>
                   </div>
                 ))}
-                <button onClick={() => setShowSmartPO(false)} className="w-full py-3 bg-[#0f5c82] text-white rounded-xl font-bold mt-4">Generate Suggested PO</button>
+                <button onClick={async () => {
+                  const vendor = recommendedVendors[0];
+                  if (!vendor) return;
+                  const item = lowStockItems[0];
+
+                  const newPO: PurchaseOrder = {
+                    id: crypto.randomUUID(),
+                    number: `PO-2025-${Math.floor(Math.random() * 1000)}`,
+                    vendor: vendor.name,
+                    date: new Date().toISOString().split('T')[0],
+                    amount: (item.costPerUnit || 100) * 100, // Assuming reorder of 100 units
+                    status: 'pending_approval',
+                    createdBy: 'Smart Reorder AI',
+                    items: [
+                      { description: item.name, quantity: 100, unitPrice: item.costPerUnit || 100, total: (item.costPerUnit || 100) * 100 }
+                    ],
+                    notes: 'Auto-generated by Smart Reorder',
+                    approvers: [
+                      { id: 'a1', name: 'Finance Mgr', role: 'Finance', status: 'pending' }
+                    ],
+                    projectId: projects[0]?.id || 'p1',
+                    createdAt: new Date().toISOString()
+                  };
+                  await addPurchaseOrder(newPO);
+                  addToast(`Smart PO created for ${vendor.name}`, "success");
+                  setShowSmartPO(false);
+                }} className="w-full py-3 bg-[#0f5c82] text-white rounded-xl font-bold mt-4">Generate Suggested PO</button>
               </div>
             )}
             <button onClick={() => setShowSmartPO(false)} className="w-full py-2 text-zinc-500 text-sm mt-2">Close</button>
