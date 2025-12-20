@@ -63,15 +63,25 @@ export async function initializeDatabase() {
     // We do NOT want to fall back to ephemeral SQLite in production as it leads to data loss.
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-      if (!connectionString) {
-        throw new Error(
-          'DATABASE_URL or POSTGRES_URL is missing! ' +
-          'Production requires a real PostgreSQL database. ' +
-          'Please configure this in your Vercel Project Settings.'
-        );
+
+      if (connectionString) {
+        console.log('Initializing PostgreSQL connection for Production...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
+        console.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
+        try {
+          const sqlite3 = require('sqlite3');
+          const { open } = require('sqlite');
+          const dbPath = './buildpro_db.sqlite';
+          const db = await open({ filename: dbPath, driver: sqlite3.Database });
+          await db.exec('PRAGMA foreign_keys = ON;');
+          dbInstance = new SqliteAdapter(db);
+        } catch (error) {
+          console.error('SQLite Fallback Failed:', error);
+          throw new Error('Database initialization failed: No Postgres URL and SQLite failed.');
+        }
       }
-      console.log('Initializing PostgreSQL connection for Production...');
-      dbInstance = new PostgresAdapter(connectionString);
     } else {
       // Local development fallback
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;

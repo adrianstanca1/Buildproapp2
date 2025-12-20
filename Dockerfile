@@ -2,6 +2,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
+# Install build dependencies for native modules (sqlite3, etc.)
+RUN apk add --no-cache python3 make g++
+
 # Install dependencies
 COPY package*.json ./
 RUN npm ci
@@ -10,7 +13,6 @@ RUN npm ci
 COPY . .
 
 # Build Frontend
-# Set API URL to relative path (proxy) by default, or use build args if needed
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 RUN npm run build
