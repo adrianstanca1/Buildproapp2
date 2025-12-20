@@ -14,7 +14,7 @@ import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tena
 import { logger } from './utils/logger.js';
 
 const app = express();
-const port = process.env.PORT || 3002;
+const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
@@ -729,26 +729,29 @@ const httpServer = createServer(app);
 // Setup WebSockets
 setupWebSocketServer(httpServer);
 
+// Start server immediately to satisfy Cloud Run health checks
 const startServer = async () => {
-  try {
-    // Only initialize DB immediately if not in Vercel (Vercel does it via middleware)
-    if (!process.env.VERCEL) {
-      await ensureDbInitialized();
-      await seedDatabase();
+  // Listen strictly on 0.0.0.0 for Cloud Run
+  httpServer.listen(Number(port), '0.0.0.0', () => {
+    console.log(`Backend server running at http://0.0.0.0:${port}`);
+    console.log(`WebSocket server ready at ws://0.0.0.0:${port}/api/live`);
+  });
 
-      // Listen on the HTTP server, not the Express app
-      httpServer.listen(port, () => {
-        logger.info(`Backend server running at http://localhost:${port}`);
-        logger.info(`WebSocket server ready at ws://localhost:${port}/api/live`);
-      });
+  // Initialize DB in background
+  if (!process.env.VERCEL) {
+    try {
+      console.log('Starting DB initialization...');
+      await ensureDbInitialized();
+      console.log('DB Initialized. Seeding...');
+      await seedDatabase();
+      console.log('DB Ready.');
+    } catch (err) {
+      console.error('CRITICAL: DB Initialization failed:', err);
+      // Don't crash, just log. App will be online but DB features might fail.
     }
-  } catch (err) {
-    logger.error('Failed to start server:', err);
   }
 };
 
-// Start server
-// Only start the server if not running on Vercel (Vercel handles the server lifecycle)
 if (process.env.VERCEL !== '1') {
   startServer();
 }

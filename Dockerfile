@@ -1,13 +1,19 @@
-FROM node:20-alpine
+FROM node:20-slim
 
 WORKDIR /app
 
 # Install build dependencies for native modules (sqlite3, etc.)
-RUN apk add --no-cache python3 make g++
+# Debian usage: apt-get instead of apk
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+# Install ALL dependencies (including dev) so 'npm run build' (vite) works
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -23,3 +29,5 @@ EXPOSE 8080
 
 # Start Monolith (Express serves /api + Static)
 CMD ["npm", "start"]
+# CMD ["node", "server/diagnosis.js"]
+
