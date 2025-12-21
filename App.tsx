@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { TenantProvider } from '@/contexts/TenantContext';
 import ToastProvider from '@/contexts/ToastContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { WebSocketProvider } from '@/contexts/WebSocketContext';
 
 // Lazily loaded view components
 const LoginView = lazy(() => import('@/views/LoginView'));
@@ -158,9 +159,11 @@ const App: React.FC = () => {
         <NotificationProvider>
           <TenantProvider>
             <ProjectProvider>
-              <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50">Loading BuildPro...</div>}>
-                <AuthenticatedApp />
-              </Suspense>
+              <WebSocketProvider>
+                <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50">Loading BuildPro...</div>}>
+                  <AuthenticatedApp />
+                </Suspense>
+              </WebSocketProvider>
             </ProjectProvider>
           </TenantProvider>
         </NotificationProvider>
