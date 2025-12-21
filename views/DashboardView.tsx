@@ -17,6 +17,7 @@ import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';
 import { TenantUsageWidget } from '@/components/TenantUsageWidget';
 import { db } from '@/services/db';
+import { AddTenantModal } from '@/components/AddTenantModal';
 
 interface DashboardViewProps {
     setPage: (page: Page) => void;
@@ -250,48 +251,11 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
     const { tenants, addTenant, updateTenant, impersonateTenant, isImpersonating, stopImpersonating, currentTenant, accessLogs, systemSettings, updateSystemSettings, broadcastMessage, setBroadcastMessage } = useTenant();
     const { addToast } = useToast();
     const [localBroadcastMsg, setLocalBroadcastMsg] = useState('');
+    const [isAddTenantModalOpen, setIsAddTenantModalOpen] = useState(false);
 
-    // Handler for adding a new tenant
-    const handleAddTenant = async () => {
-        const name = prompt("Enter Company Name:");
-        if (!name) return;
-
-        const newTenant: Tenant = {
-            id: `c-${Date.now()}`,
-            companyId: `c-${Date.now()}`,
-            name: name,
-            plan: 'Business',
-            status: 'Active',
-            users: 1,
-            projects: 0,
-            mrr: 499,
-            joinedDate: new Date().toISOString().split('T')[0],
-            email: `admin@${name.toLowerCase().replace(/\s+/g, '')}.com`,
-            settings: {
-                timezone: 'UTC',
-                language: 'en',
-                dateFormat: 'YYYY-MM-DD',
-                currency: 'USD',
-                emailNotifications: true,
-                dataRetention: 365,
-                twoFactorAuth: false,
-                sso: false,
-                customBranding: false
-            },
-            subscription: {
-                id: `sub-${Date.now()}`,
-                planId: 'business',
-                status: 'active',
-                currentPeriodStart: new Date().toISOString(),
-                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                billingEmail: `billing@${name.toLowerCase().replace(/\s+/g, '')}.com`
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-
-        await addTenant(newTenant);
-        addToast(`Tenant "${name}" created successfully`, 'success');
+    // Handler for adding a new tenant - Now handled by Modal
+    const handleAddTenant = () => {
+        setIsAddTenantModalOpen(true);
     };
 
     const handleSuspend = async (id: string, currentStatus: string) => {
@@ -651,6 +615,10 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                     </table>
                 </div>
             </div>
+            <AddTenantModal
+                isOpen={isAddTenantModalOpen}
+                onClose={() => setIsAddTenantModalOpen(false)}
+            />
         </div>
     );
 };

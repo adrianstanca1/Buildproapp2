@@ -50,15 +50,15 @@ class DatabaseService {
     if (this.useMock) {
       console.log(`[MockDB] Fetching ${endpoint}`);
       // return (mockDb as any)[endpoint] || [];
-      if (endpoint === 'projects') return mockDb.getProjects() as any;
-      if (endpoint === 'tasks') return mockDb.getTasks() as any;
+      if (endpoint === 'projects') return mockDb.getProjects(this.tenantId || undefined) as any;
+      if (endpoint === 'tasks') return mockDb.getTasks(this.tenantId || undefined) as any;
       if (endpoint === 'team') return mockDb.getTeam() as any;
       if (endpoint === 'rfis') return mockDb.getRFIs() as any;
       if (endpoint === 'daily_logs') return mockDb.getDailyLogs() as any;
       if (endpoint === 'punch_items') return mockDb.getPunchItems() as any;
       if (endpoint === 'dayworks') return mockDb.getDayworks() as any;
       if (endpoint === 'companies') return mockDb.getCompanies() as any;
-      if (endpoint === 'documents') return mockDb.getDocuments() as any;
+      if (endpoint === 'documents') return mockDb.getDocuments(this.tenantId || undefined) as any;
       if (endpoint === 'inventory') return mockDb.getInventory() as any;
       if (endpoint === 'clients') return mockDb.getClients() as any;
 
@@ -398,6 +398,43 @@ class DatabaseService {
     });
     if (!res.ok) throw new Error("Failed to fetch user roles");
     return await res.json();
+  }
+
+  // --- System Settings (Admin) ---
+  async getSystemSettings(): Promise<any> {
+    if (this.useMock) {
+      return mockDb.getSystemSettings();
+    }
+    const res = await fetch(`${API_URL}/system-settings`, { headers: await this.getHeaders() });
+    if (!res.ok) return mockDb.getSystemSettings(); // Fallback
+    return await res.json();
+  }
+
+  async updateSystemSettings(settings: any): Promise<void> {
+    if (this.useMock) {
+      return mockDb.updateSystemSettings(settings);
+    }
+    try {
+      await this.put('system-settings', 'global', settings);
+    } catch (e) {
+      console.warn("API update failed, updating local mock", e);
+      mockDb.updateSystemSettings(settings); // Optimistic fallback
+    }
+  }
+
+  // --- Access Logs (Admin) ---
+  async getAccessLogs(): Promise<any[]> {
+    if (this.useMock) {
+      return mockDb.getAccessLogs();
+    }
+    return this.fetch('access-logs');
+  }
+
+  async addAccessLog(log: any): Promise<void> {
+    if (this.useMock) {
+      return mockDb.addAccessLog(log);
+    }
+    await this.post('access-logs', log);
   }
 }
 

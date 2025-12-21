@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Mail, User, Users, AlertCircle, CheckCircle, Save, Loader, Trash2 } from 'lucide-react';
 import { TeamMember } from '@/types';
 import { emailService } from '@/services/emailService';
+import { Modal } from './Modal';
 
 interface EditMemberModalProps {
   isOpen: boolean;
@@ -154,143 +155,96 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
     formData.status !== member.status;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-zinc-900">
-            {showDeleteConfirm ? 'Remove Member' : 'Edit Member'}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-zinc-400 hover:text-zinc-600 transition-colors"
-            disabled={loading}
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="px-6 py-4">
-          {/* Edit Step */}
-          {step === 'edit' && !showDeleteConfirm && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  <User size={14} className="inline mr-1" />
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  <Mail size={14} className="inline mr-1" />
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  <Users size={14} className="inline mr-1" />
-                  Role
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  {roles.map(role => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  Status
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  {statuses.map(status => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              {formData.role !== member.role && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={sendNotification}
-                      onChange={e => setSendNotification(e.target.checked)}
-                      className="w-4 h-4 rounded border-zinc-300"
-                    />
-                    <span className="text-sm text-zinc-700">
-                      Send role change notification email
-                    </span>
-                  </label>
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start gap-2">
-                  <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={showDeleteConfirm ? 'Remove Member' : 'Edit Member'}
+      size="md"
+    >
+      <div className="space-y-6">
+        {/* Edit Step */}
+        {step === 'edit' && !showDeleteConfirm && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                <User size={14} className="inline mr-1" />
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
             </div>
-          )}
 
-          {/* Delete Confirm Step */}
-          {showDeleteConfirm && (
-            <div className="space-y-4">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-sm text-red-800 font-medium mb-2">
-                  Are you sure you want to remove {formData.name}?
-                </p>
-                <p className="text-sm text-red-700">
-                  This action cannot be undone. They will lose access to all project resources.
-                </p>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                <Mail size={14} className="inline mr-1" />
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                <Users size={14} className="inline mr-1" />
+                Role
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                {roles.map(role => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                Status
+              </label>
+              <select
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                {statuses.map(status => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {formData.role !== member.role && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -299,41 +253,76 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
                     className="w-4 h-4 rounded border-zinc-300"
                   />
                   <span className="text-sm text-zinc-700">
-                    Send removal notification email
+                    Send role change notification email
                   </span>
                 </label>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Sending Step */}
-          {step === 'sending' && (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="animate-spin">
-                <Loader size={40} className="text-blue-500" />
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
               </div>
-              <p className="text-sm text-zinc-600 text-center">
-                Sending notification email to {formData.email}...
+            )}
+          </div>
+        )}
+
+        {/* Delete Confirm Step */}
+        {showDeleteConfirm && (
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800 font-medium mb-2">
+                Are you sure you want to remove {formData.name}?
+              </p>
+              <p className="text-sm text-red-700">
+                This action cannot be undone. They will lose access to all project resources.
               </p>
             </div>
-          )}
 
-          {/* Success Step */}
-          {step === 'success' && (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="bg-green-100 rounded-full p-3">
-                <CheckCircle size={40} className="text-green-600" />
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900">Changes Saved!</h3>
-              <p className="text-sm text-zinc-600 text-center">
-                {formData.name}'s profile has been updated
-              </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendNotification}
+                  onChange={e => setSendNotification(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300"
+                />
+                <span className="text-sm text-zinc-700">
+                  Send removal notification email
+                </span>
+              </label>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-zinc-50 border-t border-zinc-200 px-6 py-4 flex justify-between gap-3">
+        {/* Sending Step */}
+        {step === 'sending' && (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="animate-spin">
+              <Loader size={40} className="text-blue-500" />
+            </div>
+            <p className="text-sm text-zinc-600 text-center">
+              Sending notification email to {formData.email}...
+            </p>
+          </div>
+        )}
+
+        {/* Success Step */}
+        {step === 'success' && (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="bg-green-100 rounded-full p-3">
+              <CheckCircle size={40} className="text-green-600" />
+            </div>
+            <h3 className="text-lg font-bold text-zinc-900">Changes Saved!</h3>
+            <p className="text-sm text-zinc-600 text-center">
+              {formData.name}'s profile has been updated
+            </p>
+          </div>
+        )}
+
+        {/* Footer Buttons */}
+        <div className="flex justify-between gap-3 pt-4 border-t border-zinc-100 mt-6">
           {!showDeleteConfirm && step === 'edit' && (
             <>
               <button
@@ -392,7 +381,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 

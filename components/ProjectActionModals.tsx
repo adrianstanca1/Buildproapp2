@@ -7,7 +7,7 @@ import {
 import { useProjects } from '../contexts/ProjectContext';
 import { RFI, PunchItem, DailyLog, Daywork, ProjectDocument, DayworkLabor, DayworkMaterial, DayworkAttachment } from '@/types';
 import { runRawPrompt } from '../services/geminiService';
-// import { uploadFile } from '../services/supabaseClient';
+import { Modal } from './Modal';
 
 type ModalType = 'RFI' | 'PUNCH' | 'LOG' | 'DAYWORK' | 'PHOTO';
 
@@ -49,6 +49,15 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
     const [photoPreview, setPhotoPreview] = useState<string | null>(null);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+
+    const inputClass = "w-full p-3 bg-white border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0f5c82] focus:border-[#0f5c82] outline-none transition-all text-zinc-900 placeholder:text-zinc-400";
+
+    const InputGroup = ({ label, children }: any) => (
+        <div className="mb-4">
+            <label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">{label}</label>
+            {children}
+        </div>
+    );
 
     if (!type) return null;
 
@@ -114,7 +123,6 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
     const generateLogWithAI = async () => {
         setIsGeneratingLog(true);
         try {
-            // Mock context - in real app pass actual tasks/events
             const prompt = `Generate a realistic construction daily log summary for today (${logData.date}). Assume sunny weather, 15 workers, and progress on structural framing and electrical rough-in. Return JSON: { "weather": "string", "workPerformed": "string", "notes": "string" }`;
             const res = await runRawPrompt(prompt, { model: 'gemini-2.5-flash', responseMimeType: 'application/json' });
             const data = JSON.parse(res);
@@ -126,7 +134,6 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
         }
     };
 
-    // Daywork Handlers
     const addLaborRow = () => setLaborRows([...laborRows, { name: '', trade: '', hours: 0, rate: 30 }]);
     const removeLaborRow = (i: number) => setLaborRows(laborRows.filter((_, idx) => idx !== i));
     const updateLaborRow = (i: number, field: keyof DayworkLabor, val: any) => {
@@ -196,7 +203,6 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
 
         await addDaywork(newDW);
 
-        // Integrate into Documents Library
         if (dayworkAttachments.length > 0) {
             const project = getProject(projectId);
             for (const att of dayworkAttachments) {
@@ -250,7 +256,6 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
             const dataUrl = canvas.toDataURL('image/jpeg');
             setPhotoPreview(dataUrl);
 
-            // Stop stream
             const stream = videoRef.current.srcObject as MediaStream;
             stream?.getTracks().forEach(t => t.stop());
             setIsCameraOpen(false);
@@ -291,62 +296,12 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
         onClose();
     };
 
-    // --- Components ---
-
-    const ModalWrapper = ({ title, icon: Icon, children }: any) => (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[90vh]">
-                <div className="px-6 py-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white border border-zinc-200 rounded-lg text-[#0f5c82] shadow-sm">
-                            <Icon size={20} />
-                        </div>
-                        <h3 className="text-lg font-bold text-zinc-900">{title}</h3>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-zinc-200 rounded-full text-zinc-500 transition-colors"><X size={20} /></button>
-                </div>
-                <div className="p-6 overflow-y-auto custom-scrollbar">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-
-    const DayWorkModalWrapper = ({ children }: any) => (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 flex flex-col max-h-[95vh]">
-                <div className="px-6 py-4 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-white border border-zinc-200 rounded-lg text-[#0f5c82] shadow-sm">
-                            <Hammer size={20} />
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-zinc-900">Daywork Sheet</h3>
-                            <p className="text-xs text-zinc-500">Record labor, materials, and costs</p>
-                        </div>
-                    </div>
-                    <button onClick={onClose} className="p-2 hover:bg-zinc-200 rounded-full text-zinc-500 transition-colors"><X size={20} /></button>
-                </div>
-                <div className="p-6 overflow-y-auto custom-scrollbar flex-1 bg-zinc-50/50">
-                    {children}
-                </div>
-            </div>
-        </div>
-    );
-
-    const InputGroup = ({ label, children }: any) => (
-        <div className="mb-4">
-            <label className="block text-xs font-bold text-zinc-500 uppercase mb-1.5">{label}</label>
-            {children}
-        </div>
-    );
-
-    const inputClass = "w-full p-3 bg-white border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0f5c82] focus:border-[#0f5c82] outline-none transition-all text-zinc-900 placeholder:text-zinc-400";
-
-    // --- Render Switch ---
-
     if (type === 'RFI') return (
-        <ModalWrapper title="New Request for Information" icon={HelpCircle}>
+        <Modal isOpen={!!type} onClose={onClose} title="New Request for Information" size="md">
+            <div className="flex items-center gap-3 mb-4 text-[#0f5c82] bg-blue-50 p-3 rounded-lg border border-blue-100">
+                <HelpCircle size={24} />
+                <span className="text-sm font-medium text-blue-900">Request information or clarification from the project team.</span>
+            </div>
             <form onSubmit={handleSubmitRFI}>
                 <InputGroup label="Subject">
                     <input type="text" className={inputClass} placeholder="e.g. Clarification on steel spec" value={rfiData.subject} onChange={e => setRfiData({ ...rfiData, subject: e.target.value })} required />
@@ -366,11 +321,15 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
                     {isSubmitting ? 'Submitting...' : 'Create RFI'}
                 </button>
             </form>
-        </ModalWrapper>
+        </Modal>
     );
 
     if (type === 'PUNCH') return (
-        <ModalWrapper title="Log Punch Item" icon={CheckSquare}>
+        <Modal isOpen={!!type} onClose={onClose} title="Log Punch Item" size="md">
+            <div className="flex items-center gap-3 mb-4 text-orange-600 bg-orange-50 p-3 rounded-lg border border-orange-100">
+                <CheckSquare size={24} />
+                <span className="text-sm font-medium text-orange-900">Record defects or outstanding items.</span>
+            </div>
             <form onSubmit={handleSubmitPunch}>
                 <InputGroup label="Item Title">
                     <input type="text" className={inputClass} placeholder="e.g. Paint scratch" value={punchData.title} onChange={e => setPunchData({ ...punchData, title: e.target.value })} required />
@@ -394,11 +353,15 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
                     {isSubmitting ? 'Saving...' : 'Add Item'}
                 </button>
             </form>
-        </ModalWrapper>
+        </Modal>
     );
 
     if (type === 'LOG') return (
-        <ModalWrapper title="Daily Site Log" icon={Clipboard}>
+        <Modal isOpen={!!type} onClose={onClose} title="Daily Site Log" size="md">
+            <div className="flex items-center gap-3 mb-4 text-purple-600 bg-purple-50 p-3 rounded-lg border border-purple-100">
+                <Clipboard size={24} />
+                <span className="text-sm font-medium text-purple-900">Record daily site progress and conditions.</span>
+            </div>
             <form onSubmit={handleSubmitLog}>
                 <div className="flex justify-end mb-2">
                     <button type="button" onClick={generateLogWithAI} disabled={isGeneratingLog} className="text-xs flex items-center gap-1 text-purple-600 hover:bg-purple-50 px-2 py-1 rounded font-bold transition-colors">
@@ -426,11 +389,11 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
                     {isSubmitting ? 'Saving...' : 'Submit Log'}
                 </button>
             </form>
-        </ModalWrapper>
+        </Modal>
     );
 
     if (type === 'DAYWORK') return (
-        <DayWorkModalWrapper>
+        <Modal isOpen={!!type} onClose={onClose} title="Daywork Sheet" size="xl">
             <form onSubmit={handleSubmitDaywork} className="space-y-6">
 
                 {/* Section 1: General Info */}
@@ -553,11 +516,11 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
                     </div>
                 </div>
             </form>
-        </DayWorkModalWrapper>
+        </Modal>
     );
 
     if (type === 'PHOTO') return (
-        <ModalWrapper title="Add Project Photo" icon={Camera}>
+        <Modal isOpen={!!type} onClose={onClose} title="Add Project Photo" size="md">
             <div className="space-y-6">
                 {!isCameraOpen && !photoPreview && (
                     <div className="grid grid-cols-2 gap-4">
@@ -593,7 +556,7 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
                     </div>
                 )}
             </div>
-        </ModalWrapper>
+        </Modal>
     );
 
     return null;

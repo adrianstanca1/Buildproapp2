@@ -40,6 +40,8 @@ const tabs: Tab[] = [
   { id: 'audit', label: 'Audit Log', icon: <Activity size={18} /> },
 ];
 
+import { AddTenantMemberModal } from '@/components/AddTenantMemberModal';
+
 export const TenantManagementView: React.FC = () => {
   const { currentTenant, tenants, tenantMembers, tenantUsage, getTenantAuditLogs, isLoading, requireRole, addTenantMember } = useTenant();
   const { user } = useAuth();
@@ -47,6 +49,7 @@ export const TenantManagementView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(currentTenant);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
   const auditLogs = selectedTenant ? getTenantAuditLogs(selectedTenant.id) : [];
 
@@ -280,32 +283,19 @@ export const TenantManagementView: React.FC = () => {
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Team Members</h3>
                         <button
-                          onClick={async () => {
-                            const email = prompt("Enter email address to invite:");
-                            if (email && selectedTenant) {
-                              try {
-                                await addTenantMember({
-                                  id: `mem-${Date.now()}`,
-                                  tenantId: selectedTenant.id,
-                                  userId: email, // Placeholder until real user lookup
-                                  name: email.split('@')[0],
-                                  email: email,
-                                  role: 'member',
-                                  joinedAt: new Date().toISOString(),
-                                  isActive: false // Pending status
-                                });
-                                addToast(`Invitation sent to ${email}`, 'success');
-                              } catch (e) {
-                                addToast('Failed to add member', 'error');
-                              }
-                            }
-                          }}
+                          onClick={() => setIsAddMemberModalOpen(true)}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
                         >
                           <Plus size={16} />
                           Add Member
                         </button>
                       </div>
+
+                      <AddTenantMemberModal
+                        isOpen={isAddMemberModalOpen}
+                        onClose={() => setIsAddMemberModalOpen(false)}
+                        tenantId={selectedTenant?.id || ''}
+                      />
 
                       <div className="overflow-x-auto">
                         <table className="w-full">

@@ -186,6 +186,8 @@ const DB_KEYS = {
   DAILY_LOGS: 'buildpro_daily_logs',
   DAYWORKS: 'buildpro_dayworks',
   COMPANIES: 'buildpro_companies',
+  SYSTEM_SETTINGS: 'buildpro_system_settings',
+  ACCESS_LOGS: 'buildpro_access_logs',
 };
 
 // Helper
@@ -219,9 +221,13 @@ class MockDatabase {
   }
 
   // --- Projects ---
-  async getProjects(): Promise<Project[]> {
+  async getProjects(tenantId?: string): Promise<Project[]> {
     await delay(300);
-    return this.getItems<Project>(DB_KEYS.PROJECTS);
+    const projects = this.getItems<Project>(DB_KEYS.PROJECTS);
+    if (tenantId) {
+      return projects.filter(p => p.companyId === tenantId);
+    }
+    return projects;
   }
 
   async addProject(project: Project): Promise<void> {
@@ -243,9 +249,17 @@ class MockDatabase {
   }
 
   // --- Tasks ---
-  async getTasks(): Promise<Task[]> {
+  async getTasks(tenantId?: string): Promise<Task[]> {
     await delay(200);
-    return this.getItems<Task>(DB_KEYS.TASKS);
+    const tasks = this.getItems<Task>(DB_KEYS.TASKS);
+    if (tenantId) {
+      // Need to find projects for this tenant first to filter tasks
+      const projectIds = this.getItems<Project>(DB_KEYS.PROJECTS)
+        .filter(p => p.companyId === tenantId)
+        .map(p => p.id);
+      return tasks.filter(t => projectIds.includes(t.projectId));
+    }
+    return tasks;
   }
 
   async addTask(task: Task): Promise<void> {
@@ -275,13 +289,27 @@ class MockDatabase {
   }
 
   // --- Docs ---
-  async getDocuments(): Promise<ProjectDocument[]> {
+  async getDocuments(tenantId?: string): Promise<ProjectDocument[]> {
     await delay(200);
+    let docs: ProjectDocument[];
     const data = localStorage.getItem(DB_KEYS.DOCS);
-    return data ? JSON.parse(data) : [
-      { id: 'd1', name: 'City Centre - Structural Plans', type: 'CAD', projectId: 'p1', projectName: 'City Centre Plaza', size: '12.5 MB', date: '2025-10-15', status: 'Approved', linkedTaskIds: ['t4'] },
-      { id: 'd2', name: 'Building Permit - Phase 1', type: 'Document', projectId: 'p1', projectName: 'City Centre Plaza', size: '2.3 MB', date: '2025-09-20', status: 'Approved', linkedTaskIds: [] }
-    ];
+
+    if (data) {
+      docs = JSON.parse(data);
+    } else {
+      docs = [
+        { id: 'd1', name: 'City Centre - Structural Plans', type: 'CAD', projectId: 'p1', projectName: 'City Centre Plaza', size: '12.5 MB', date: '2025-10-15', status: 'Approved', linkedTaskIds: ['t4'] },
+        { id: 'd2', name: 'Building Permit - Phase 1', type: 'Document', projectId: 'p1', projectName: 'City Centre Plaza', size: '2.3 MB', date: '2025-09-20', status: 'Approved', linkedTaskIds: [] }
+      ];
+    }
+
+    if (tenantId) {
+      const projectIds = this.getItems<Project>(DB_KEYS.PROJECTS)
+        .filter(p => p.companyId === tenantId)
+        .map(p => p.id);
+      return docs.filter(d => projectIds.includes(d.projectId));
+    }
+    return docs;
   }
 
   async addDocument(doc: ProjectDocument): Promise<void> {
@@ -392,6 +420,36 @@ class MockDatabase {
     return [];
   }
   async addProjectRisk(item: ProjectRisk) { /* no-op */ }
+
+  // --- System Settings ---
+  async getSystemSettings(): Promise<any> { // Weak type for now to avoid circular deps if types not updated
+    await delay(100);
+    const data = localStorage.getItem(DB_KEYS.SYSTEM_SETTINGS);
+    return data ? JSON.parse(data) : {
+      maintenance: false,
+      betaFeatures: true,
+      registrations: true,
+      aiEngine: true
+    };
+  }
+
+  async updateSystemSettings(settings: any): Promise<void> {
+    await delay(100);
+    const current = await this.getSystemSettings();
+    this.setItems(DB_KEYS.SYSTEM_SETTINGS, { ...current, ...settings });
+  }
+
+  // --- Access Logs ---
+  async getAccessLogs(): Promise<any[]> {
+    await delay(100);
+    return this.getItems(DB_KEYS.ACCESS_LOGS);
+  }
+
+  async addAccessLog(log: any): Promise<void> {
+    await delay(100);
+    const items = this.getItems<any>(DB_KEYS.ACCESS_LOGS);
+    this.setItems(DB_KEYS.ACCESS_LOGS, [log, ...items].slice(0, 100)); // Keep last 100
+  }
 }
 
 export const db = new MockDatabase();

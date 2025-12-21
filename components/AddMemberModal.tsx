@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Mail, User, Users, AlertCircle, CheckCircle, Send, Loader } from 'lucide-react';
 import { TeamMember } from '@/types';
 import { emailService } from '@/services/emailService';
+import { Modal } from './Modal';
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -127,199 +128,194 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
+  const getTitle = () => {
+    switch (step) {
+      case 'form': return 'Add Team Member';
+      case 'review': return 'Review & Send Invitation';
+      case 'sending': return 'Sending Invitation';
+      case 'success': return 'Member Added!';
+      default: return 'Add Member';
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-zinc-200 px-6 py-4 flex justify-between items-center">
-          <h2 className="text-lg font-bold text-zinc-900">
-            {step === 'form' && 'Add Team Member'}
-            {step === 'review' && 'Review & Send Invitation'}
-            {step === 'sending' && 'Sending Invitation'}
-            {step === 'success' && 'Member Added!'}
-          </h2>
-          <button
-            onClick={handleClose}
-            className="text-zinc-400 hover:text-zinc-600 transition-colors"
-            disabled={loading}
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={getTitle()}
+      size="md"
+    >
+      <div className="space-y-6">
+        {/* Form Step */}
+        {step === 'form' && (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                <User size={14} className="inline mr-1" />
+                Full Name *
+              </label>
+              <input
+                type="text"
+                name="name"
+                value={formData.name}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
 
-        {/* Content */}
-        <div className="px-6 py-4">
-          {/* Form Step */}
-          {step === 'form' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  <User size={14} className="inline mr-1" />
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="John Doe"
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                <Mail size={14} className="inline mr-1" />
+                Email Address *
+              </label>
+              <input
+                type="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="john@company.com"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                <Users size={14} className="inline mr-1" />
+                Role *
+              </label>
+              <select
+                name="role"
+                value={formData.role}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                {roles.map(role => (
+                  <option key={role} value={role}>
+                    {role}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="(555) 123-4567"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-zinc-700 mb-1">
+                Skills (comma-separated)
+              </label>
+              <input
+                type="text"
+                name="skills"
+                value={formData.skills}
+                onChange={handleChange}
+                placeholder="e.g. Carpentry, Safety Training"
+                className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              />
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
               </div>
+            )}
+          </div>
+        )}
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  <Mail size={14} className="inline mr-1" />
-                  Email Address *
-                </label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="john@company.com"
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
+        {/* Review Step */}
+        {step === 'review' && (
+          <div className="space-y-4">
+            <div className="bg-zinc-50 rounded-lg p-4 space-y-3">
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-600">Name:</span>
+                <span className="text-sm font-medium text-zinc-900">{formData.name}</span>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  <Users size={14} className="inline mr-1" />
-                  Role *
-                </label>
-                <select
-                  name="role"
-                  value={formData.role}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                >
-                  {roles.map(role => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-600">Email:</span>
+                <span className="text-sm font-medium text-zinc-900">{formData.email}</span>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  Phone Number
-                </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="(555) 123-4567"
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
+              <div className="flex justify-between">
+                <span className="text-sm text-zinc-600">Role:</span>
+                <span className="text-sm font-medium text-zinc-900">{formData.role}</span>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">
-                  Skills (comma-separated)
-                </label>
-                <input
-                  type="text"
-                  name="skills"
-                  value={formData.skills}
-                  onChange={handleChange}
-                  placeholder="e.g. Carpentry, Safety Training"
-                  className="w-full px-3 py-2 border border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                />
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start gap-2">
-                  <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
+              {formData.phone && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-zinc-600">Phone:</span>
+                  <span className="text-sm font-medium text-zinc-900">{formData.phone}</span>
+                </div>
+              )}
+              {formData.skills && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-zinc-600">Skills:</span>
+                  <span className="text-sm font-medium text-zinc-900">{formData.skills}</span>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Review Step */}
-          {step === 'review' && (
-            <div className="space-y-4">
-              <div className="bg-zinc-50 rounded-lg p-4 space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-zinc-600">Name:</span>
-                  <span className="text-sm font-medium text-zinc-900">{formData.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-zinc-600">Email:</span>
-                  <span className="text-sm font-medium text-zinc-900">{formData.email}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-zinc-600">Role:</span>
-                  <span className="text-sm font-medium text-zinc-900">{formData.role}</span>
-                </div>
-                {formData.phone && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-zinc-600">Phone:</span>
-                    <span className="text-sm font-medium text-zinc-900">{formData.phone}</span>
-                  </div>
-                )}
-                {formData.skills && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-zinc-600">Skills:</span>
-                    <span className="text-sm font-medium text-zinc-900">{formData.skills}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={sendEmail}
-                    onChange={e => setSendEmail(e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-300"
-                  />
-                  <span className="text-sm text-zinc-700">
-                    Send invitation email with project details
-                  </span>
-                </label>
-              </div>
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start gap-2">
-                  <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={e => setSendEmail(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300"
+                />
+                <span className="text-sm text-zinc-700">
+                  Send invitation email with project details
+                </span>
+              </label>
             </div>
-          )}
 
-          {/* Sending Step */}
-          {step === 'sending' && (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="animate-spin">
-                <Loader size={40} className="text-blue-500" />
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-lg text-sm flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
               </div>
-              <p className="text-sm text-zinc-600 text-center">
-                Sending invitation email to {formData.email}...
-              </p>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {/* Success Step */}
-          {step === 'success' && (
-            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-              <div className="bg-green-100 rounded-full p-3">
-                <CheckCircle size={40} className="text-green-600" />
-              </div>
-              <h3 className="text-lg font-bold text-zinc-900">Member Added Successfully!</h3>
-              <p className="text-sm text-zinc-600 text-center">
-                {formData.name} has been added to your team
-                {sendEmail && ' and sent an invitation email'}
-              </p>
+        {/* Sending Step */}
+        {step === 'sending' && (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="animate-spin">
+              <Loader size={40} className="text-blue-500" />
             </div>
-          )}
-        </div>
+            <p className="text-sm text-zinc-600 text-center">
+              Sending invitation email to {formData.email}...
+            </p>
+          </div>
+        )}
 
-        {/* Footer */}
-        <div className="sticky bottom-0 bg-zinc-50 border-t border-zinc-200 px-6 py-4 flex justify-end gap-3">
+        {/* Success Step */}
+        {step === 'success' && (
+          <div className="flex flex-col items-center justify-center py-8 space-y-4">
+            <div className="bg-green-100 rounded-full p-3">
+              <CheckCircle size={40} className="text-green-600" />
+            </div>
+            <h3 className="text-lg font-bold text-zinc-900">Member Added Successfully!</h3>
+            <p className="text-sm text-zinc-600 text-center">
+              {formData.name} has been added to your team
+              {sendEmail && ' and sent an invitation email'}
+            </p>
+          </div>
+        )}
+
+        {/* Footer Buttons */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-zinc-100 mt-6">
           {step === 'form' && (
             <>
               <button
@@ -367,7 +363,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };
 
