@@ -17,9 +17,84 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // ... (rest of state)
+  const [showSOS, setShowSOS] = useState(false);
+  const [sosMessage, setSosMessage] = useState('');
+  const [sosSent, setSosSent] = useState(false);
+  const { addToast } = useToast();
+  const { tenant } = useTenant();
+  const { projects, tasks, teamMembers, defects, safetyIncidents } = useProjects();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
-  // ... (hooks and handlers)
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [showResults, setShowResults] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const searchRef = React.useRef<HTMLDivElement>(null);
+  const notificationRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowResults(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 3) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    setIsSearching(true);
+    setShowResults(true);
+
+    // Debounce search would be better, but for now simple trigger
+    const results = await searchService.semanticSearch(query, {
+      projects,
+      tasks,
+      team: teamMembers,
+      defects,
+      safety: safetyIncidents
+    });
+
+    setSearchResults(results);
+    setIsSearching(false);
+  };
+
+  useEffect(() => {
+    const handleOnline = () => { setIsOnline(true); offlineQueue.processQueue(); };
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleEmergency = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSosSent(true);
+    // In a real app, this would send to an endpoint immediately or queue it with high priority
+    setTimeout(() => {
+      setSosSent(false);
+      setShowSOS(false);
+      setSosMessage('');
+      addToast("EMERGENCY ALERT: Site Safety Team and Emergency Services Notified.", "error");
+    }, 2000);
+  };
 
   return (
     <>
