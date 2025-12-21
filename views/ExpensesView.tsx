@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Modal } from '@/components/Modal';
 
 const ExpensesView: React.FC = () => {
-    const { expenseClaims, addExpenseClaim } = useProjects();
+    const { expenseClaims, addExpenseClaim, costCodes } = useProjects();
     const { addToast } = useToast();
     const [filter, setFilter] = useState<'All' | 'My Claims' | 'Pending Approval'>('All');
 
@@ -28,7 +28,8 @@ const ExpensesView: React.FC = () => {
             amount: parseFloat(formData.get('amount') as string),
             category: formData.get('category') as ExpenseClaim['category'],
             status: 'Pending',
-            receiptUrl: undefined
+            receiptUrl: undefined,
+            costCodeId: formData.get('costCodeId') as string
         };
         await addExpenseClaim(newClaim);
         addToast("Expense claim submitted for approval", "success");
@@ -186,11 +187,19 @@ const ExpensesView: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-zinc-700 mb-1">Amount</label>
+                        <label className="block text-sm font-bold text-zinc-700 mb-1">Total Amount</label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">£</span>
                             <input type="number" step="0.01" name="amount" required placeholder="0.00" className="w-full pl-8 pr-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none font-mono" />
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-1">Cost Code (Optional)</label>
+                        <select name="costCodeId" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none bg-white">
+                            <option value="">No Cost Code</option>
+                            {costCodes.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.description}</option>)}
+                        </select>
                     </div>
 
                     {/* Placeholder for receipt upload */}

@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { Modal } from '@/components/Modal';
 
 const InvoicingView: React.FC = () => {
-    const { invoices, addInvoice, activeProject } = useProjects();
+    const { invoices, addInvoice, activeProject, costCodes } = useProjects();
     const { addToast } = useToast();
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState<'All' | Invoice['status']>('All');
@@ -24,11 +24,12 @@ const InvoicingView: React.FC = () => {
             date: new Date().toISOString().split('T')[0],
             dueDate: formData.get('dueDate') as string,
             total: parseFloat(formData.get('total') as string),
-            amount: parseFloat(formData.get('total') as string), // Assuming tax inclusive or 0 tax for quick entry
+            amount: parseFloat(formData.get('total') as string),
             tax: 0,
             status: 'Pending',
             attachments: [],
-            lineItems: []
+            lineItems: [],
+            costCodeId: formData.get('costCodeId') as string
         };
         await addInvoice(newInvoice);
         addToast("Invoice created successfully", "success");
@@ -178,6 +179,14 @@ const InvoicingView: React.FC = () => {
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">£</span>
                             <input type="number" step="0.01" name="total" required placeholder="0.00" className="w-full pl-8 pr-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none font-mono" />
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-1">Cost Code (Optional)</label>
+                        <select name="costCodeId" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none bg-white">
+                            <option value="">No Cost Code</option>
+                            {costCodes.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.description}</option>)}
+                        </select>
                     </div>
 
                     <div className="pt-4 flex gap-3">

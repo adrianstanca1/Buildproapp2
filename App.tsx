@@ -71,6 +71,7 @@ const ClientPortalView = lazyWithReload(() => import('@/views/ClientPortalView')
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
   const { user } = useAuth();
   const { broadcastMessage, setBroadcastMessage, systemSettings } = useTenant();
 
@@ -140,12 +141,28 @@ const AuthenticatedApp: React.FC = () => {
         </div>
       )}
 
+      {/* Mobile Sidebar Backdrop */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
-      <Sidebar currentPage={page} setPage={setPage} />
+      <Sidebar
+        currentPage={page}
+        setPage={(p) => {
+          setPage(p);
+          setIsSidebarOpen(false); // Close on selection on mobile
+        }}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col h-full relative overflow-hidden transition-all duration-300 ${broadcastMessage ? 'pt-12' : ''}`}>
-        <TopBar setPage={setPage} />
+        <TopBar setPage={setPage} onMenuClick={() => setIsSidebarOpen(true)} />
 
         <main className="flex-1 overflow-y-auto bg-zinc-50/50 relative">
           <ErrorBoundary>

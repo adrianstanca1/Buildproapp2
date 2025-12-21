@@ -265,6 +265,8 @@ export interface Task {
   dependencies?: string[]; // Array of Task IDs that must be completed before this task. Used for blocking logic.
   latitude?: number;
   longitude?: number;
+  startDate?: string; // ISO date string
+  duration?: number; // Number of days
 }
 
 export interface Certification {
@@ -349,6 +351,18 @@ export interface ProjectDocument {
   url?: string;
   linkedTaskIds?: string[]; // Linked tasks for easy reference
   linkedDayworkId?: string; // Link to Daywork for auto-generated docs
+  // Version Control
+  currentVersion: number;
+  versions?: {
+    id: string; // unique version ID
+    version: number;
+    url: string;
+    date: string;
+    author: string;
+    size: string;
+  }[];
+  // Markup
+  markupLayers?: string; // JSON string for Fabric.js/Canvas data containing annotations
 }
 
 export interface Client {
@@ -417,6 +431,12 @@ export interface MarketplaceApp {
   installed: boolean;
 }
 
+export interface PlanMetadata {
+  documentId: string;
+  x: number;
+  y: number;
+}
+
 export interface RFI {
   id: string;
   projectId: string;
@@ -428,6 +448,7 @@ export interface RFI {
   dueDate: string;
   createdAt: string;
   answer?: string;
+  planMetadata?: PlanMetadata;
 }
 
 export interface PunchItem {
@@ -440,6 +461,7 @@ export interface PunchItem {
   status: 'Open' | 'Closed' | 'Resolved';
   createdAt: string;
   assignedTo?: string;
+  planMetadata?: PlanMetadata;
 }
 
 export interface DailyLog {
@@ -580,6 +602,9 @@ export interface Transaction {
   status: 'completed' | 'pending';
   invoice?: string;
   linkedPurchaseOrderId?: string;
+  costCodeId?: string;
+  isExported?: boolean;
+  exportDate?: string;
 }
 
 // --- Procurement & Supply Chain ---
@@ -665,11 +690,14 @@ export interface ProjectRisk {
 }
 
 export interface CostCode {
+  id: string;
+  projectId: string;
+  companyId: string;
   code: string;
-  desc: string;
+  description: string;
   budget: number;
   spent: number;
-  var: number;
+  var?: number;
 }
 
 export interface Invoice {
@@ -684,6 +712,7 @@ export interface Invoice {
   total: number;
   status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
   costCode?: string;
+  costCodeId?: string;
   linkedPoId?: string;
   lineItems: {
     desc: string;
@@ -706,6 +735,7 @@ export interface ExpenseClaim {
   amount: number;
   receiptUrl?: string; // Image/PDF
   status: 'Pending' | 'Approved' | 'Rejected' | 'Paid';
+  costCodeId?: string;
   approvedBy?: string;
   approvedAt?: string;
   companyId: string;

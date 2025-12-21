@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk, Invoice, ExpenseClaim } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk, Invoice, ExpenseClaim, Transaction } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 
@@ -92,25 +92,47 @@ const initialProjects: Project[] = [
 ];
 
 const initialTasks: Task[] = [
-  { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check including scaffolding tags and fall protection systems before concrete pour.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeName: 'Mike T.', assigneeType: 'user', dueDate: '2025-11-12' },
-  { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium. Requires pump truck coordination.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', dependencies: ['t1', 't3'] },
-  { id: 't3', title: 'Complete foundation excavation', description: 'Finalize earthworks for the North wing foundation footings.', projectId: 'p1', status: 'In Progress', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-15' },
-  { id: 't4', title: 'Install steel framework', description: 'Erect primary steel columns for sectors 1-4.', projectId: 'p1', status: 'Done', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-08' },
-  { id: 't5', title: 'Quality control inspection', description: 'Verify rebar spacing and cover depth prior to pour.', projectId: 'p3', status: 'To Do', priority: 'High', assigneeName: 'John Anderson', assigneeType: 'user', dueDate: '2025-11-14' },
-  { id: 't6', title: 'Install electrical conduits', projectId: 'p3', status: 'In Progress', priority: 'Medium', assigneeName: 'James W.', assigneeType: 'user', dueDate: '2025-11-18' },
-  { id: 't7', title: 'Plumbing rough-in', projectId: 'p2', status: 'To Do', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-22' },
-  { id: 't8', title: 'HVAC system installation', projectId: 'p2', status: 'In Progress', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-25' },
-  { id: 't9', title: 'Prepare material estimates', projectId: 'p2', status: 'Done', priority: 'Medium', assigneeName: 'Sarah M.', assigneeType: 'user', dueDate: '2025-11-10' },
-  { id: 't10', title: 'Landscaping preparation', projectId: 'p4', status: 'In Progress', priority: 'Low', assigneeName: 'Sam B.', assigneeType: 'user', dueDate: '2025-11-30' },
+  { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeName: 'Mike T.', assigneeType: 'user', dueDate: '2025-11-12', startDate: '2025-11-10', duration: 2 },
+  { id: 't2', title: 'Concrete pouring - Level 2', description: 'Requires pump truck coordination.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', dependencies: ['t1', 't3'], startDate: '2025-11-18', duration: 3 },
+  { id: 't3', title: 'Complete foundation excavation', description: 'Finalize earthworks.', projectId: 'p1', status: 'In Progress', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-15', startDate: '2025-11-05', duration: 10 },
+  { id: 't4', title: 'Install steel framework', description: 'Erect primary steel columns.', projectId: 'p1', status: 'Done', priority: 'High', assigneeName: 'David Chen', assigneeType: 'user', dueDate: '2025-11-08', startDate: '2025-11-01', duration: 7 },
+  { id: 't5', title: 'Quality control inspection', description: 'Verify rebar spacing.', projectId: 'p3', status: 'To Do', priority: 'High', assigneeName: 'John Anderson', assigneeType: 'user', dueDate: '2025-11-14', startDate: '2025-11-13', duration: 1 },
+  { id: 't6', title: 'Install electrical conduits', projectId: 'p3', status: 'In Progress', priority: 'Medium', assigneeName: 'James W.', assigneeType: 'user', dueDate: '2025-11-18', startDate: '2025-11-15', duration: 3 },
+  { id: 't7', title: 'Plumbing rough-in', projectId: 'p2', status: 'To Do', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-22', startDate: '2025-11-18', duration: 4 },
+  { id: 't8', title: 'HVAC system installation', projectId: 'p2', status: 'In Progress', priority: 'Medium', assigneeName: 'Emma J.', assigneeType: 'user', dueDate: '2025-11-25', startDate: '2025-11-20', duration: 5 },
+  { id: 't9', title: 'Prepare material estimates', projectId: 'p2', status: 'Done', priority: 'Medium', assigneeName: 'Sarah M.', assigneeType: 'user', dueDate: '2025-11-10', startDate: '2025-11-05', duration: 5 },
+  { id: 't10', title: 'Landscaping preparation', projectId: 'p4', status: 'In Progress', priority: 'Low', assigneeName: 'Sam B.', assigneeType: 'user', dueDate: '2025-11-30', startDate: '2025-11-25', duration: 5 },
 ];
 
 const initialRFIs: RFI[] = [
-  { id: 'rfi-1', projectId: 'p1', number: 'RFI-001', subject: 'Clarification on Curtain Wall Anchors', question: 'The specs for anchors on level 4 seem to conflict with structural drawings.', assignedTo: 'Sarah Mitchell', status: 'Open', dueDate: '2025-11-15', createdAt: '2025-11-08' },
+  {
+    id: 'rfi-1',
+    projectId: 'p1',
+    number: 'RFI-001',
+    subject: 'Clarification on Curtain Wall Anchors',
+    question: 'The specs for anchors on level 4 seem to conflict with structural drawings.',
+    assignedTo: 'Sarah Mitchell',
+    status: 'Open',
+    dueDate: '2025-11-15',
+    createdAt: '2025-11-08',
+    planMetadata: { documentId: 'd1', x: 25, y: 40 }
+  },
   { id: 'rfi-2', projectId: 'p1', number: 'RFI-002', subject: 'Lobby Flooring Material', question: 'Is the marble finish confirmed for the main entrance?', answer: 'Yes, specs confirmed in Rev 3.', assignedTo: 'John Anderson', status: 'Closed', dueDate: '2025-10-30', createdAt: '2025-10-25' },
 ];
 
 const initialPunchList: PunchItem[] = [
-  { id: 'pi-1', projectId: 'p1', title: 'Paint scratch in hallway', location: 'Level 3, Corridor B', description: 'Minor scuff marks on north wall.', status: 'Open', priority: 'Low', assignedTo: 'David Chen', createdAt: '2025-11-09' },
+  {
+    id: 'pi-1',
+    projectId: 'p1',
+    title: 'Paint scratch in hallway',
+    location: 'Level 3, Corridor B',
+    description: 'Minor scuff marks on north wall.',
+    status: 'Open',
+    priority: 'Low',
+    assignedTo: 'David Chen',
+    createdAt: '2025-11-09',
+    planMetadata: { documentId: 'd1', x: 70, y: 65 }
+  },
   { id: 'pi-2', projectId: 'p1', title: 'Loose electrical socket', location: 'Unit 402', description: 'Socket not flush with wall.', status: 'Resolved', priority: 'Medium', assignedTo: 'Robert Garcia', createdAt: '2025-11-05' },
 ];
 
@@ -139,6 +161,14 @@ const initialDayworks: Daywork[] = [
     grandTotal: 520
   },
 
+];
+
+const initialCostCodes = [
+  { id: 'cc1', projectId: 'p1', companyId: 'c1', code: '03-3000', description: 'Concrete', budget: 250000, spent: 0 },
+  { id: 'cc2', projectId: 'p1', companyId: 'c1', code: '05-1200', description: 'Structural Steel', budget: 400000, spent: 0 },
+  { id: 'cc3', projectId: 'p1', companyId: 'c1', code: '09-2000', description: 'Plaster & Gypsum', budget: 120000, spent: 0 },
+  { id: 'cc4', projectId: 'p1', companyId: 'c1', code: '15-4000', description: 'Plumbing', budget: 180000, spent: 0 },
+  { id: 'cc5', projectId: 'p1', companyId: 'c1', code: '16-1000', description: 'Electrical', budget: 220000, spent: 0 },
 ];
 
 const initialCompanies: Tenant[] = [
@@ -190,6 +220,8 @@ const DB_KEYS = {
   ACCESS_LOGS: 'buildpro_access_logs',
   INVOICES: 'buildpro_invoices',
   EXPENSES: 'buildpro_expenses',
+  COST_CODES: 'buildpro_cost_codes',
+  TRANSACTIONS: 'buildpro_transactions',
 };
 
 // Helper
@@ -206,6 +238,8 @@ class MockDatabase {
     if (!localStorage.getItem(DB_KEYS.PUNCH_LIST)) localStorage.setItem(DB_KEYS.PUNCH_LIST, JSON.stringify(initialPunchList));
     if (!localStorage.getItem(DB_KEYS.DAILY_LOGS)) localStorage.setItem(DB_KEYS.DAILY_LOGS, JSON.stringify(initialDailyLogs));
     if (!localStorage.getItem(DB_KEYS.DAYWORKS)) localStorage.setItem(DB_KEYS.DAYWORKS, JSON.stringify(initialDayworks));
+    if (!localStorage.getItem(DB_KEYS.COST_CODES)) localStorage.setItem(DB_KEYS.COST_CODES, JSON.stringify(initialCostCodes));
+    if (!localStorage.getItem(DB_KEYS.TRANSACTIONS)) localStorage.setItem(DB_KEYS.TRANSACTIONS, JSON.stringify([]));
     if (!localStorage.getItem(DB_KEYS.COMPANIES)) localStorage.setItem(DB_KEYS.COMPANIES, JSON.stringify(initialCompanies));
 
     // Ensure basics exist (simplified check)
@@ -300,8 +334,9 @@ class MockDatabase {
       docs = JSON.parse(data);
     } else {
       docs = [
-        { id: 'd1', name: 'City Centre - Structural Plans', type: 'CAD', projectId: 'p1', projectName: 'City Centre Plaza', size: '12.5 MB', date: '2025-10-15', status: 'Approved', linkedTaskIds: ['t4'] },
-        { id: 'd2', name: 'Building Permit - Phase 1', type: 'Document', projectId: 'p1', projectName: 'City Centre Plaza', size: '2.3 MB', date: '2025-09-20', status: 'Approved', linkedTaskIds: [] }
+
+        { id: 'd1', name: 'City Centre - Structural Plans', type: 'CAD', projectId: 'p1', projectName: 'City Centre Plaza', size: '12.5 MB', date: '2025-10-15', status: 'Approved', linkedTaskIds: ['t4'], currentVersion: 1 },
+        { id: 'd2', name: 'Building Permit - Phase 1', type: 'Document', projectId: 'p1', projectName: 'City Centre Plaza', size: '2.3 MB', date: '2025-09-20', status: 'Approved', linkedTaskIds: [], currentVersion: 1 }
       ];
     }
 
@@ -468,6 +503,22 @@ class MockDatabase {
     await delay(100);
     const items = this.getItems<ExpenseClaim>(DB_KEYS.EXPENSES);
     this.setItems(DB_KEYS.EXPENSES, items.map(i => i.id === id ? { ...i, ...updates } : i));
+  }
+
+  async getCostCodes(): Promise<any[]> { return this.getAll<any>(DB_KEYS.COST_CODES); }
+  async addCostCode(item: any) { return this.add(DB_KEYS.COST_CODES, item); }
+  async updateCostCode(id: string, updates: any) {
+    await delay(100);
+    const items = this.getItems<any>(DB_KEYS.COST_CODES);
+    this.setItems(DB_KEYS.COST_CODES, items.map(i => i.id === id ? { ...i, ...updates } : i));
+  }
+
+  async getTransactions(): Promise<Transaction[]> { return this.getAll<Transaction>(DB_KEYS.TRANSACTIONS); }
+  async addTransaction(item: Transaction) { return this.add(DB_KEYS.TRANSACTIONS, item); }
+  async updateTransaction(id: string, updates: Partial<Transaction>) {
+    await delay(100);
+    const items = this.getItems<Transaction>(DB_KEYS.TRANSACTIONS);
+    this.setItems(DB_KEYS.TRANSACTIONS, items.map(i => i.id === id ? { ...i, ...updates } : i));
   }
 }
 

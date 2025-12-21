@@ -75,6 +75,7 @@ interface ProjectContextType {
 
   // Financials
   addTransaction: (transaction: Transaction) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
 
   // Defects
   addDefect: (defect: Defect) => Promise<void>;
@@ -89,7 +90,7 @@ interface ProjectContextType {
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => Promise<void>;
 
   // Financials Meta
-  updateCostCode: (code: CostCode) => void;
+  updateCostCode: (id: string, updates: Partial<CostCode>) => Promise<void>;
 
   // Invoicing
   addInvoice: (invoice: Invoice) => Promise<void>;
@@ -134,11 +135,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [projectRisks, setProjectRisks] = useState<ProjectRisk[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [costCodes, setCostCodes] = useState<CostCode[]>([
-    { code: '03-3000', desc: 'Concrete', budget: 250000, spent: 210000, var: 16 },
-    { code: '05-1200', desc: 'Structural Steel', budget: 400000, spent: 380000, var: 5 },
-    { code: '09-2000', desc: 'Plaster & Gypsum', budget: 120000, spent: 45000, var: -62 },
-    { code: '15-4000', desc: 'Plumbing', budget: 180000, spent: 175000, var: 3 },
-    { code: '16-1000', desc: 'Electrical', budget: 220000, spent: 235000, var: 7 }
+    { id: 'cc1', projectId: 'p1', companyId: 'c1', code: '03-3000', description: 'Concrete', budget: 250000, spent: 210000 },
+    { id: 'cc2', projectId: 'p1', companyId: 'c1', code: '05-1200', description: 'Structural Steel', budget: 400000, spent: 380000 },
+    { id: 'cc3', projectId: 'p1', companyId: 'c1', code: '09-2000', description: 'Plaster & Gypsum', budget: 120000, spent: 45000 },
+    { id: 'cc4', projectId: 'p1', companyId: 'c1', code: '15-4000', description: 'Plumbing', budget: 180000, spent: 175000 },
+    { id: 'cc5', projectId: 'p1', companyId: 'c1', code: '16-1000', description: 'Electrical', budget: 220000, spent: 235000 }
   ]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expenseClaims, setExpenseClaims] = useState<ExpenseClaim[]>([]);
@@ -211,6 +212,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         db.getPurchaseOrders().then(setPurchaseOrders).catch(console.error);
         db.getInvoices().then(setInvoices).catch(console.error);
         db.getExpenseClaims().then(setExpenseClaims).catch(console.error);
+        db.getCostCodes().then(setCostCodes).catch(console.error);
 
       } catch (e) {
         console.error("Critical Data Load Failed", e);
@@ -298,8 +300,36 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [safetyIncidents, visibleProjectIds]);
 
   const visibleTransactions = useMemo(() => {
-    return transactions.filter(t => visibleProjectIds.includes(t.projectId || '')); // Added fallback
+    return transactions.filter(t => visibleProjectIds.includes(t.projectId || ''));
   }, [transactions, visibleProjectIds]);
+
+  const visibleCostCodes = useMemo(() => {
+    return costCodes.filter(c => visibleProjectIds.includes(c.projectId));
+  }, [costCodes, visibleProjectIds]);
+
+  // Aggregate "Spent" for each cost code dynamically
+  const managedCostCodes = useMemo(() => {
+    return visibleCostCodes.map(code => {
+      // Logic: Spent = Approved/Completed (Transactions + Invoices + ExpenseClaims)
+      const txnSpent = transactions
+        .filter(t => t.costCodeId === code.id && t.type === 'expense' && t.status === 'completed')
+        .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+      const invSpent = invoices
+        .filter(i => i.costCodeId === code.id && (i.status === 'Approved' || i.status === 'Paid'))
+        .reduce((sum, i) => sum + (i.total || i.amount), 0);
+
+      const expSpent = expenseClaims
+        .filter(e => e.costCodeId === code.id && (e.status === 'Approved' || e.status === 'Paid'))
+        .reduce((sum, e) => sum + e.amount, 0);
+
+      return {
+        ...code,
+        spent: txnSpent + invSpent + expSpent,
+        var: code.budget > 0 ? Math.round(((txnSpent + invSpent + expSpent - code.budget) / code.budget) * 100) : 0
+      };
+    });
+  }, [visibleCostCodes, transactions, invoices, expenseClaims]);
 
   const visibleInvoices = useMemo(() => {
     return invoices.filter(i => visibleProjectIds.includes(i.projectId));
@@ -527,6 +557,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
   };
 
+  const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    await db.updateTransaction(id, updates);
+  };
+
   const addDefect = async (item: Defect) => {
     const itemWithTenant = { ...item, companyId: user?.companyId || 'c1' };
     setDefects(prev => [itemWithTenant, ...prev]);
@@ -598,8 +633,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.updateDocument(id, updates);
   };
 
-  const updateCostCode = (updatedCode: CostCode) => {
-    setCostCodes(prev => prev.map(c => c.code === updatedCode.code ? updatedCode : c));
+  const updateCostCode = async (id: string, updates: Partial<CostCode>) => {
+    setCostCodes(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+    await db.updateCostCode(id, updates);
   };
 
   const addInvoice = async (invoice: Invoice) => {
@@ -688,7 +724,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       updateInvoice,
       expenseClaims: visibleExpenseClaims,
       addExpenseClaim,
-      updateExpenseClaim
+      updateExpenseClaim,
+      updateTransaction
     }}>
       {children}
     </ProjectContext.Provider>

@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder, Invoice, ExpenseClaim } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder, Invoice, ExpenseClaim, CostCode } from '@/types';
 import { db as mockDb } from './mockDb';
 import { supabase } from './supabaseClient';
 
@@ -288,6 +288,13 @@ class DatabaseService {
     if (this.useMock) return;
     await this.post('transactions', item);
   }
+  async updateTransaction(id: string, updates: Partial<Transaction>) {
+    if (this.useMock) {
+      // Mock update if needed
+      return;
+    }
+    await this.put('transactions', id, updates);
+  }
 
   // --- Purchase Orders ---
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
@@ -476,6 +483,24 @@ class DatabaseService {
       return;
     }
     await this.put('expense_claims', id, u);
+  }
+
+  async getCostCodes(): Promise<CostCode[]> {
+    return this.fetch<CostCode>('cost_codes');
+  }
+  async addCostCode(item: CostCode) {
+    if (this.useMock) {
+      await (mockDb as any).addCostCode(item);
+      return;
+    }
+    await this.post('cost_codes', item);
+  }
+  async updateCostCode(id: string, u: Partial<CostCode>) {
+    if (this.useMock) {
+      await (mockDb as any).updateCostCode(id, u);
+      return;
+    }
+    await this.put('cost_codes', id, u);
   }
 }
 

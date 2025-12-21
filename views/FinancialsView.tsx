@@ -34,6 +34,7 @@ const FinancialsView: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [isAnalyzingVariance, setIsAnalyzingVariance] = useState(false);
   const [varianceExplanation, setVarianceExplanation] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const stats = useMemo(() => {
     const totalRev = transactions.reduce((sum, t) => t.type === 'income' ? sum + t.amount : sum, 0);
@@ -79,9 +80,42 @@ const FinancialsView: React.FC = () => {
       category: formData.get('category') as string,
       status: 'completed',
       projectId: formData.get('projectId') as string,
+      costCodeId: formData.get('costCodeId') as string,
     };
     await addTransaction(newTxn);
     setShowAddModal(false);
+  };
+
+  const { updateTransaction } = useProjects();
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Simulate sync with accounting (e.g. Xero/Quickbooks)
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      const unexported = filteredTransactions.filter(t => !t.isExported);
+      for (const t of unexported) {
+        await updateTransaction(t.id, { isExported: true, exportDate: new Date().toISOString() });
+      }
+
+      // Generate CSV simulation
+      const csvContent = "Date,Description,Amount,Category,CostCode\n" +
+        unexported.map(t => `${t.date},${t.description},${t.amount},${t.category},${t.costCodeId || ''}`).join("\n");
+
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `accounting-export-${filterMonth}.csv`;
+      a.click();
+
+      addToast(`Sync complete. ${unexported.length} items exported to CSV.`, "success");
+    } catch (e) {
+      addToast("Accounting sync failed.", "error");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const runAIForecast = async () => {
@@ -148,7 +182,7 @@ const FinancialsView: React.FC = () => {
       const base64 = url.startsWith('data:') ? url.split(',')[1] : null;
       if (!base64) throw new Error("Could not get image data");
 
-      const prompt = `Extract construction invoice details. Total Amount, Vendor Name, Date, and suggest a Cost Code from: ${JSON.stringify(costCodes.map(c => c.desc))}. Return JSON: { amount: number, vendor: string, date: string, suggestedCode: string, confidence: number }`;
+      const prompt = `Extract construction invoice details. Total Amount, Vendor Name, Date, and suggest a Cost Code from: ${JSON.stringify(costCodes.map(c => c.description))}. Return JSON: { amount: number, vendor: string, date: string, suggestedCode: string, confidence: number }`;
       const res = await runRawPrompt(prompt, { model: 'gemini-1.5-flash', responseMimeType: 'application/json' }, base64);
       setInvoiceAnalysis(parseAIJSON(res));
     } catch (e) {
@@ -215,8 +249,8 @@ const FinancialsView: React.FC = () => {
               key={mode}
               onClick={() => setViewMode(mode as any)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${viewMode === mode
-                  ? 'bg-white text-[#0f5c82] shadow-sm'
-                  : 'text-zinc-500 hover:text-zinc-700'
+                ? 'bg-white text-[#0f5c82] shadow-sm'
+                : 'text-zinc-500 hover:text-zinc-700'
                 }`}
             >
               {mode.charAt(0) + mode.slice(1).toLowerCase()}
@@ -378,7 +412,7 @@ const FinancialsView: React.FC = () => {
             {costCodes.map((item, i) => (
               <div key={i} className="group cursor-pointer">
                 <div className="flex justify-between text-sm font-bold text-zinc-900 mb-1 leading-none">
-                  <span>{item.desc}</span>
+                  <span>{item.description}</span>
                   <span className="font-mono text-[10px] text-zinc-500 pr-4">£{(item.spent / 1000).toFixed(0)}k</span>
                 </div>
                 <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden mb-1 relative border border-zinc-50">
@@ -439,6 +473,14 @@ const FinancialsView: React.FC = () => {
                 className="flex items-center gap-2 px-3 py-2 border border-[#0f5c82] text-[#0f5c82] rounded-lg text-sm font-medium hover:bg-blue-50 transition-colors"
               >
                 <Zap size={16} /> AI Invoice Scan
+              </button>
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex items-center gap-2 px-3 py-2 border border-green-600 text-green-600 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors disabled:opacity-50"
+              >
+                {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                Sync to Accounting
               </button>
               <button
                 onClick={() => setShowAddModal(true)}
@@ -561,6 +603,125 @@ const FinancialsView: React.FC = () => {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+      {/* Add Transaction Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-8 max-w-md w-full shadow-2xl animate-in zoom-in-95">
+            <h2 className="text-xl font-bold text-zinc-900 mb-6">Record Transaction</h2>
+            <form onSubmit={handleAddTransaction} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Description</label>
+                <input name="description" required className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5c82]/20" placeholder="e.g. Steel Beam Delivery" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Amount (£)</label>
+                  <input name="amount" type="number" step="0.01" required className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5c82]/20" placeholder="0.00" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Date</label>
+                  <input name="date" type="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5c82]/20" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Type</label>
+                <select name="type" className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5c82]/20">
+                  <option value="expense">Expense</option>
+                  <option value="income">Income / Progress Claim</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Project</label>
+                <select name="projectId" defaultValue={projects[0]?.id} className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5c82]/20">
+                  {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Cost Code (Optional)</label>
+                <select name="costCodeId" className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0f5c82]/20">
+                  <option value="">No Cost Code</option>
+                  {costCodes.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.description}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2 text-zinc-500 font-medium hover:bg-zinc-50 rounded-lg border border-zinc-200 transition-colors">Cancel</button>
+                <button type="submit" className="flex-1 py-2 bg-[#0f5c82] text-white font-bold rounded-lg hover:bg-[#0c4a6e] transition-all shadow-lg shadow-[#0f5c82]/20">Save Transaction</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Budget Management Tab */}
+      {viewMode === 'BUDGET' && (
+        <div className="space-y-6">
+          <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-200 flex justify-between items-center">
+              <h3 className="font-bold text-zinc-800">Budget Allocation & Tracking</h3>
+              <div className="flex gap-2 text-[10px] font-bold uppercase">
+                <span className="flex items-center gap-1.5 text-green-600"><CheckCircle2 size={12} /> Under Budget</span>
+                <span className="flex items-center gap-1.5 text-amber-600"><AlertCircle size={12} /> Near Limit</span>
+                <span className="flex items-center gap-1.5 text-red-600"><ShieldAlert size={12} /> Over Budget</span>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="text-[10px] font-black text-zinc-400 uppercase tracking-widest bg-zinc-50/50">
+                  <tr>
+                    <th className="px-6 py-4">Cost Code</th>
+                    <th className="px-6 py-4">Description</th>
+                    <th className="px-6 py-4">Total Budget</th>
+                    <th className="px-6 py-4">Actual Spent</th>
+                    <th className="px-6 py-4">Variance</th>
+                    <th className="px-6 py-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 italic">
+                  {costCodes.map((cc) => (
+                    <tr key={cc.id} className="hover:bg-zinc-50 transition-colors group">
+                      <td className="px-6 py-4 font-mono text-xs text-zinc-500 font-bold">{cc.code}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-zinc-900">{cc.description}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-zinc-900">£{cc.budget.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-zinc-900">£{cc.spent.toLocaleString()}</td>
+                      <td className={`px-6 py-4 text-sm font-bold ${(cc.var || 0) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        {(cc.var || 0) > 0 ? `+${cc.var}%` : `${cc.var}%`}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="w-32 bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${(cc.var || 0) > 10 ? 'bg-red-500' : (cc.var || 0) > 0 ? 'bg-amber-500' : 'bg-green-500'}`}
+                            style={{ width: `${Math.min(100, (cc.spent / cc.budget) * 100)}%` }}
+                          ></div>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-[#0f5c82]/5 border border-[#0f5c82]/20 rounded-xl p-6">
+              <h4 className="font-black text-[10px] text-[#0f5c82] uppercase mb-4 flex items-center gap-2">
+                <Brain size={12} /> Strategic Recommendation
+              </h4>
+              <p className="text-sm text-zinc-800 leading-relaxed italic">
+                Based on current progress and historical material trends, we recommend adjusting the "Plaster & Gypsum" contingency by 12% to account for upcoming seasonal logistics delays. Overall project health remains stable.
+              </p>
+            </div>
+            <div className="bg-zinc-900 rounded-xl p-6 text-white shadow-xl flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold text-zinc-400 uppercase">Available Funds</p>
+                <h4 className="text-2xl font-black italic">£{(stats.netProfit / 1000).toFixed(0)}k</h4>
+              </div>
+              <button className="px-4 py-2 bg-white text-zinc-900 rounded-lg text-xs font-black uppercase hover:bg-zinc-100 transition-all">
+                Request Reallocation
+              </button>
+            </div>
           </div>
         </div>
       )}

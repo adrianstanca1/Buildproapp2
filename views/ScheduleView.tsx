@@ -1,10 +1,10 @@
 
 import React, { useState, useMemo } from 'react';
 import {
-Calendar as CalendarIcon, Filter, Plus, ChevronRight, ChevronDown,
-MoreHorizontal, Zap, Flag, ArrowRight, Search,
-LayoutGrid, List, Clock, User, AlertCircle, CheckCircle2, Loader2, Paperclip,
-ChevronLeft
+    Calendar as CalendarIcon, Filter, Plus, ChevronRight, ChevronDown,
+    MoreHorizontal, Zap, Flag, ArrowRight, Search,
+    LayoutGrid, List, Clock, User, AlertCircle, CheckCircle2, Loader2, Paperclip,
+    ChevronLeft
 } from 'lucide-react';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -14,12 +14,44 @@ interface ScheduleViewProps {
 }
 
 const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
-    const { tasks, documents } = useProjects();
+    const { tasks, documents, projects, addTask, updateTask } = useProjects();
     const [viewMode, setViewMode] = useState<'GANTT' | 'LIST' | 'CALENDAR'>('GANTT');
     const [showAIOptimizer, setShowAIOptimizer] = useState(false);
     const [optimizing, setOptimizing] = useState(false);
     const [optimizationResult, setOptimizationResult] = useState<any>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [showTaskModal, setShowTaskModal] = useState(false);
+    const [editingTask, setEditingTask] = useState<any>(null);
+    const [taskForm, setTaskForm] = useState({
+        title: '',
+        assigneeName: '',
+        status: 'To Do',
+        priority: 'Medium',
+        startDate: new Date().toISOString().split('T')[0],
+        duration: 5,
+        dueDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+        projectId: projectId || ''
+    });
+
+    const handleSaveTask = async () => {
+        if (!taskForm.title) return;
+
+        const taskData = {
+            ...taskForm,
+            id: editingTask?.id || `t-${Date.now()}`,
+            assigneeType: 'user' as const,
+            projectId: taskForm.projectId || projectId || 'p1',
+            dependencies: editingTask?.dependencies || []
+        } as any;
+
+        if (editingTask) {
+            await updateTask(editingTask.id, taskData);
+        } else {
+            await addTask(taskData);
+        }
+        setShowTaskModal(false);
+        setEditingTask(null);
+    };
 
     // Helper to check docs
     const hasLinkedDocs = (taskId: string) => {
@@ -27,6 +59,10 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
     };
 
     // Base tasks filtered by project
+    const currentProject = useMemo(() => {
+        return projects.find(p => p.id === projectId);
+    }, [projects, projectId]);
+
     const projectTasks = useMemo(() => {
         return projectId ? tasks.filter(t => t.projectId === projectId) : tasks;
     }, [tasks, projectId]);
@@ -34,20 +70,18 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
     // Filter tasks for Gantt/List visualization
     const filteredTasks = useMemo(() => {
         if (projectTasks.length > 0) {
-            return projectTasks.map((t, index) => {
-                // Simple logic to convert due date to relative day for demo Gantt
-                const today = new Date();
-                const due = new Date(t.dueDate);
-                const diffTime = Math.abs(due.getTime() - today.getTime());
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                // Assuming start date was 5 days ago for demo visual
-                const startDay = Math.max(1, diffDays - 5);
+            const projectStart = currentProject?.startDate ? new Date(currentProject.startDate) : new Date();
+
+            return projectTasks.map((t) => {
+                const taskStart = t.startDate ? new Date(t.startDate) : new Date(t.dueDate);
+                const diffTime = taskStart.getTime() - projectStart.getTime();
+                const startDay = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1);
 
                 return {
                     id: t.id,
                     name: t.title,
                     start: startDay,
-                    duration: 5, // Default duration for visual
+                    duration: t.duration || 1,
                     progress: t.status === 'Done' ? 100 : t.status === 'In Progress' ? 50 : 0,
                     type: 'construction',
                     dependencies: t.dependencies || [],
@@ -55,12 +89,13 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                     status: t.status,
                     priority: t.priority,
                     hasDocs: hasLinkedDocs(t.id),
-                    dueDate: t.dueDate
+                    dueDate: t.dueDate,
+                    startDate: t.startDate
                 };
-            });
+            }).sort((a, b) => a.start - b.start);
         }
         return [];
-    }, [projectTasks, documents]);
+    }, [projectTasks, documents, currentProject]);
 
     const runOptimizer = async () => {
         setOptimizing(true);
@@ -219,7 +254,23 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                     >
                         <Zap size={16} className={showAIOptimizer ? 'fill-purple-700' : ''} /> AI Optimizer
                     </button>
-                    <button className="flex items-center gap-2 px-3 py-2 bg-[#0f5c82] text-white rounded-lg text-sm font-medium hover:bg-[#0c4a6e] shadow-sm">
+                    <button
+                        onClick={() => {
+                            setEditingTask(null);
+                            setTaskForm({
+                                title: '',
+                                assigneeName: '',
+                                status: 'To Do',
+                                priority: 'Medium',
+                                startDate: new Date().toISOString().split('T')[0],
+                                duration: 5,
+                                dueDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
+                                projectId: projectId || 'p1'
+                            });
+                            setShowTaskModal(true);
+                        }}
+                        className="flex items-center gap-2 px-3 py-2 bg-[#0f5c82] text-white rounded-lg text-sm font-medium hover:bg-[#0c4a6e] shadow-sm"
+                    >
                         <Plus size={16} /> Add Task
                     </button>
                 </div>
@@ -355,13 +406,66 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                     </div>
                                 </div>
 
+                                {/* Dependency Arrows */}
+                                <svg className="absolute inset-0 pointer-events-none z-10 overflow-visible" style={{ top: 60 }}>
+                                    {filteredTasks.flatMap(task =>
+                                        (task.dependencies || []).map(depId => {
+                                            const depTask = filteredTasks.find(t => t.id === depId);
+                                            if (!depTask) return null;
+
+                                            // Find index in filteredTasks to get row
+                                            const depIdx = filteredTasks.findIndex(t => t.id === depId);
+                                            const taskIdx = filteredTasks.findIndex(t => t.id === task.id);
+                                            if (depIdx === -1 || taskIdx === -1) return null;
+
+                                            const startY = depIdx * rowHeight + rowHeight / 2;
+                                            const endY = taskIdx * rowHeight + rowHeight / 2;
+                                            const startX = (depTask.start + depTask.duration - 1) * dayWidth;
+                                            const endX = (task.start - 1) * dayWidth;
+
+                                            // Draw a stepped line (Z-shape)
+                                            return (
+                                                <path
+                                                    key={`${task.id}-${depId}`}
+                                                    d={`M ${startX} ${startY} L ${startX + 10} ${startY} L ${startX + 10} ${endY} L ${endX} ${endY}`}
+                                                    fill="none"
+                                                    stroke="#0f5c82"
+                                                    strokeWidth="1.5"
+                                                    strokeDasharray="4 2"
+                                                    markerEnd="url(#arrowhead)"
+                                                    opacity="0.4"
+                                                />
+                                            );
+                                        })
+                                    )}
+                                    <defs>
+                                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#0f5c82" />
+                                        </marker>
+                                    </defs>
+                                </svg>
+
                                 {/* Task Bars */}
                                 <div className="relative pt-0">
                                     {filteredTasks.map((task, i) => (
                                         <div key={i} className="relative group" style={{ height: rowHeight }}>
                                             {/* Bar */}
                                             <div
-                                                className={`absolute top-1/2 -translate-y-1/2 rounded-md shadow-sm border border-white/20 flex items-center px-2 overflow-hidden transition-all hover:shadow-md cursor-pointer ${task.type === 'milestone' ? 'bg-amber-500 w-6 h-6 rotate-45 rounded-sm' :
+                                                onClick={() => {
+                                                    setEditingTask(task);
+                                                    setTaskForm({
+                                                        title: task.name,
+                                                        assigneeName: task.assignee,
+                                                        status: task.status,
+                                                        priority: task.priority,
+                                                        startDate: task.startDate || new Date().toISOString().split('T')[0],
+                                                        duration: task.duration,
+                                                        dueDate: task.dueDate,
+                                                        projectId: projectId || 'p1'
+                                                    });
+                                                    setShowTaskModal(true);
+                                                }}
+                                                className={`absolute top-1/2 -translate-y-1/2 rounded-md shadow-sm border border-white/20 flex items-center px-2 overflow-hidden transition-all hover:shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${task.type === 'milestone' ? 'bg-amber-500 w-6 h-6 rotate-45 rounded-sm' :
                                                     'bg-[#0f5c82] h-7'
                                                     }`}
                                                 style={{
@@ -440,7 +544,23 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                                 {task.duration} days
                                             </td>
                                             <td className="px-6 py-4 text-right">
-                                                <button className="text-zinc-400 hover:text-[#0f5c82]">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingTask(task);
+                                                        setTaskForm({
+                                                            title: task.name,
+                                                            assigneeName: task.assignee,
+                                                            status: task.status,
+                                                            priority: task.priority,
+                                                            startDate: task.startDate || new Date().toISOString().split('T')[0],
+                                                            duration: task.duration,
+                                                            dueDate: task.dueDate,
+                                                            projectId: projectId || 'p1'
+                                                        });
+                                                        setShowTaskModal(true);
+                                                    }}
+                                                    className="text-zinc-400 hover:text-[#0f5c82]"
+                                                >
                                                     <MoreHorizontal size={16} />
                                                 </button>
                                             </td>
@@ -521,6 +641,118 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                     </div>
                 )}
             </div>
+            {/* Task Create/Edit Modal */}
+            {showTaskModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+                            <h3 className="text-lg font-bold text-zinc-900">{editingTask ? 'Edit Task' : 'New Schedule Task'}</h3>
+                            <button onClick={() => setShowTaskModal(false)} className="text-zinc-400 hover:text-zinc-600">
+                                <ArrowRight className="rotate-180" size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Task Title</label>
+                                <input
+                                    type="text"
+                                    value={taskForm.title}
+                                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                                    className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent transition-all outline-none"
+                                    placeholder="e.g., Concrete Pouring"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Assignee</label>
+                                    <input
+                                        type="text"
+                                        value={taskForm.assigneeName}
+                                        onChange={(e) => setTaskForm({ ...taskForm, assigneeName: e.target.value })}
+                                        className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Status</label>
+                                    <select
+                                        value={taskForm.status}
+                                        onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value as any })}
+                                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-lg outline-none"
+                                    >
+                                        <option>To Do</option>
+                                        <option>In Progress</option>
+                                        <option>Done</option>
+                                        <option>Blocked</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Priority</label>
+                                    <select
+                                        value={taskForm.priority}
+                                        onChange={(e) => setTaskForm({ ...taskForm, priority: e.target.value as any })}
+                                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-lg outline-none"
+                                    >
+                                        <option>Low</option>
+                                        <option>Medium</option>
+                                        <option>High</option>
+                                        <option>Critical</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Duration (Days)</label>
+                                    <input
+                                        type="number"
+                                        value={taskForm.duration}
+                                        onChange={(e) => setTaskForm({ ...taskForm, duration: parseInt(e.target.value) })}
+                                        className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Start Date</label>
+                                    <input
+                                        type="date"
+                                        value={taskForm.startDate}
+                                        onChange={(e) => setTaskForm({ ...taskForm, startDate: e.target.value })}
+                                        className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Due Date</label>
+                                    <input
+                                        type="date"
+                                        value={taskForm.dueDate}
+                                        onChange={(e) => setTaskForm({ ...taskForm, dueDate: e.target.value })}
+                                        className="w-full px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg outline-none"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex gap-3">
+                            <button
+                                onClick={() => setShowTaskModal(false)}
+                                className="flex-1 py-2.5 border border-zinc-200 text-zinc-600 rounded-xl font-bold hover:bg-white transition-all shadow-sm"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSaveTask}
+                                className="flex-1 py-2.5 bg-[#0f5c82] text-white rounded-xl font-bold hover:bg-[#0c4a6e] transition-all shadow-lg active:scale-95"
+                            >
+                                {editingTask ? 'Update Schedule' : 'Create Task'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -5,7 +5,7 @@ import {
   Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
   ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
   HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-  BrainCircuit, Building2
+  BrainCircuit, Building2, X
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,9 +14,11 @@ import { useTenant } from '@/contexts/TenantContext';
 interface SidebarProps {
   currentPage: Page;
   setPage: (page: Page) => void;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false, onClose }) => {
   const { user, logout } = useAuth();
   const { systemSettings } = useTenant();
 
@@ -87,15 +89,29 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
   ];
 
   return (
-    <div className="w-64 h-screen bg-white border-r border-zinc-200 flex flex-col flex-shrink-0 overflow-y-auto">
+    <div className={`
+      fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 flex flex-col flex-shrink-0 overflow-y-auto transform transition-transform duration-300 ease-in-out
+      md:relative md:translate-x-0
+      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+    `}>
       {/* Logo Area */}
-      <div className="p-6 flex items-center gap-3 sticky top-0 bg-white z-10 border-b border-zinc-100">
-        <div className="text-[#166ba1]">
-          <LogoIcon size={28} strokeWidth={2.5} fill="#166ba1" className="text-white" />
+      <div className="p-6 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-zinc-100">
+        <div className="flex items-center gap-3">
+          <div className="text-[#166ba1]">
+            <LogoIcon size={28} strokeWidth={2.5} fill="#166ba1" className="text-white" />
+          </div>
+          <span className="font-bold text-xl text-[#166ba1] tracking-tight">
+            BuildPro
+          </span>
         </div>
-        <span className="font-bold text-xl text-[#166ba1] tracking-tight">
-          BuildPro
-        </span>
+
+        {/* Mobile Close Button */}
+        <button
+          onClick={onClose}
+          className="md:hidden text-zinc-400 hover:text-zinc-600 p-1 hover:bg-zinc-100 rounded-lg transition-colors"
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* User Role Badge */}

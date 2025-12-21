@@ -176,6 +176,8 @@ async function initSchema(db: IDatabase) {
       latitude REAL,
       longitude REAL,
       dependencies TEXT, -- JSON array string
+      startDate TEXT,
+      duration INTEGER,
       FOREIGN KEY(projectId) REFERENCES projects(id)
     );
 
@@ -241,7 +243,10 @@ async function initSchema(db: IDatabase) {
       date TEXT,
       status TEXT,
       url TEXT,
-      linkedTaskIds TEXT -- JSON array
+      linkedTaskIds TEXT, -- JSON array
+      currentVersion INTEGER DEFAULT 1,
+      versions TEXT, -- JSON array of history
+      markupLayers TEXT -- JSON string for annotations
     );
 
     CREATE TABLE IF NOT EXISTS clients (
@@ -283,7 +288,8 @@ async function initSchema(db: IDatabase) {
       assignedTo TEXT,
       status TEXT,
       dueDate TEXT,
-      createdAt TEXT
+      createdAt TEXT,
+      planMetadata TEXT -- JSON string
     );
 
     CREATE TABLE IF NOT EXISTS punch_items (
@@ -296,7 +302,8 @@ async function initSchema(db: IDatabase) {
       status TEXT,
       priority TEXT,
       assignedTo TEXT,
-      createdAt TEXT
+      createdAt TEXT,
+      planMetadata TEXT -- JSON string
     );
 
     CREATE TABLE IF NOT EXISTS daily_logs (
@@ -397,7 +404,55 @@ async function initSchema(db: IDatabase) {
       type TEXT,
       category TEXT,
       status TEXT,
-      invoice TEXT
+      invoice TEXT,
+      costCodeId TEXT,
+      isExported INTEGER DEFAULT 0,
+      exportDate TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS cost_codes (
+      id TEXT PRIMARY KEY,
+      projectId TEXT,
+      companyId TEXT,
+      code TEXT,
+      description TEXT,
+      budget REAL,
+      spent REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      projectId TEXT,
+      companyId TEXT,
+      number TEXT,
+      vendor TEXT,
+      date TEXT,
+      dueDate TEXT,
+      amount REAL,
+      tax REAL,
+      total REAL,
+      status TEXT,
+      costCodeId TEXT,
+      linkedPoId TEXT,
+      lineItems TEXT, -- JSON array
+      attachments TEXT -- JSON array
+    );
+
+    CREATE TABLE IF NOT EXISTS expense_claims (
+      id TEXT PRIMARY KEY,
+      projectId TEXT,
+      companyId TEXT,
+      userId TEXT,
+      userName TEXT,
+      date TEXT,
+      category TEXT,
+      description TEXT,
+      amount REAL,
+      receiptUrl TEXT,
+      status TEXT,
+      costCodeId TEXT,
+      approvedBy TEXT,
+      approvedAt TEXT
     );
 
     CREATE TABLE IF NOT EXISTS audit_logs (
@@ -501,4 +556,22 @@ async function initSchema(db: IDatabase) {
       // Column likely exists
     }
   }
+
+  // Migration: Add Versioning to documents
+  try { await db.exec('ALTER TABLE documents ADD COLUMN currentVersion INTEGER DEFAULT 1'); } catch (e) { }
+  try { await db.exec('ALTER TABLE documents ADD COLUMN versions TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE documents ADD COLUMN markupLayers TEXT'); } catch (e) { }
+
+  // Migration: Add planMetadata to RFIs and Punch Items
+  try { await db.exec('ALTER TABLE rfis ADD COLUMN planMetadata TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE punch_items ADD COLUMN planMetadata TEXT'); } catch (e) { }
+
+  // Migration: Add startDate and duration to tasks
+  try { await db.exec('ALTER TABLE tasks ADD COLUMN startDate TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE tasks ADD COLUMN duration INTEGER'); } catch (e) { }
+
+  // Migration: Add costCodeId and export info to transactions
+  try { await db.exec('ALTER TABLE transactions ADD COLUMN costCodeId TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE transactions ADD COLUMN isExported INTEGER DEFAULT 0'); } catch (e) { }
+  try { await db.exec('ALTER TABLE transactions ADD COLUMN exportDate TEXT'); } catch (e) { }
 }
