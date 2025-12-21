@@ -113,7 +113,7 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
           <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${isSearching ? 'text-blue-500 animate-pulse' : 'text-zinc-400'}`} size={16} />
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search projects, tasks, team..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             onFocus={() => searchQuery.length >= 3 && setShowResults(true)}
