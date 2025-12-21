@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
-import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk, PurchaseOrder, CostCode } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk, PurchaseOrder, CostCode, Invoice, ExpenseClaim } from '@/types';
 import { useAuth } from './AuthContext';
 import { useTenant } from './TenantContext';
 import { db } from '@/services/db';
@@ -12,9 +12,7 @@ interface ProjectContextType {
   activeProject: Project | null;
   setActiveProject: (project: Project | null) => void;
   tasks: Task[];
-  teamMembers: TeamMember[];
   documents: ProjectDocument[];
-  clients: Client[];
   inventory: InventoryItem[];
   rfis: RFI[];
   punchItems: PunchItem[];
@@ -32,6 +30,8 @@ interface ProjectContextType {
   projectRisks: ProjectRisk[];
   purchaseOrders: PurchaseOrder[];
   costCodes: CostCode[];
+  invoices: Invoice[];
+  expenseClaims: ExpenseClaim[];
   isLoading: boolean;
 
   // Project CRUD
@@ -45,15 +45,9 @@ interface ProjectContextType {
   addTask: (task: Task) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
 
-  // Team CRUD
-  addTeamMember: (member: TeamMember) => void;
-
   // Document CRUD
   addDocument: (doc: ProjectDocument) => void;
   updateDocument: (id: string, updates: Partial<ProjectDocument>) => void;
-
-  // Client CRUD
-  addClient: (client: Client) => void;
 
   // Inventory CRUD
   addInventoryItem: (item: InventoryItem) => void;
@@ -95,6 +89,14 @@ interface ProjectContextType {
 
   // Financials Meta
   updateCostCode: (code: CostCode) => void;
+
+  // Invoicing
+  addInvoice: (invoice: Invoice) => Promise<void>;
+  updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<void>;
+
+  // Expenses
+  addExpenseClaim: (claim: ExpenseClaim) => Promise<void>;
+  updateExpenseClaim: (id: string, updates: Partial<ExpenseClaim>) => Promise<void>;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -114,9 +116,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [documents, setDocuments] = useState<ProjectDocument[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [rfis, setRFIs] = useState<RFI[]>([]);
   const [punchItems, setPunchItems] = useState<PunchItem[]>([]);
@@ -139,6 +139,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     { code: '15-4000', desc: 'Plumbing', budget: 180000, spent: 175000, var: 3 },
     { code: '16-1000', desc: 'Electrical', budget: 220000, spent: 235000, var: 7 }
   ]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [expenseClaims, setExpenseClaims] = useState<ExpenseClaim[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Supabase Realtime Subscription
@@ -183,18 +185,15 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       setIsLoading(true);
       try {
         // Core Data (Critical) - Fail nicely if these break
-        const [p, t, tm] = await Promise.all([
+        const [p, t] = await Promise.all([
           db.getProjects().catch(e => { console.error('Projects failed', e); return []; }),
-          db.getTasks().catch(e => { console.error('Tasks failed', e); return []; }),
-          db.getTeam().catch(e => { console.error('Team failed', e); return []; })
+          db.getTasks().catch(e => { console.error('Tasks failed', e); return []; })
         ]);
         setProjects(p);
         setTasks(t);
-        setTeamMembers(tm);
 
         // Secondary Data - Load independently so they don't block critical UI
         db.getDocuments().then(setDocuments).catch(console.error);
-        db.getClients().then(setClients).catch(console.error);
         db.getInventory().then(setInventory).catch(console.error);
         db.getRFIs().then(setRFIs).catch(console.error);
         db.getPunchItems().then(setPunchItems).catch(console.error);
@@ -219,13 +218,19 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [currentTenant?.id, user]);
 
   // --- RBAC & Multi-tenant Filtering ---
+  // Determine the active scope:
+  // 1. If a tenant is selected in TenantContext (Super Admin switching views), use that.
+  // 2. Fallback to the user's assigned companyId.
+  const activeScopeId = currentTenant?.id || user?.companyId;
+
   const visibleProjects = useMemo(() => {
-    if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) {
-      return projects;
-    }
-    return projects.filter(p => p.companyId === user.companyId);
-  }, [projects, user]);
+    if (!activeScopeId) return [];
+
+    // If we are in restricted mock mode, we might get ALL projects. Filter them client-side.
+    // Even for Super Admin, we usually want to see the "Current Context" (Selected Tenant).
+    // If "Global View" is needed, distinct UI should be used (like TenantAnalytics).
+    return projects.filter(p => p.companyId === activeScopeId);
+  }, [projects, activeScopeId]);
 
   const visibleProjectIds = useMemo(() => visibleProjects.map(p => p.id), [visibleProjects]);
 
@@ -233,27 +238,14 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     return tasks.filter(t => visibleProjectIds.includes(t.projectId));
   }, [tasks, visibleProjectIds]);
 
-  const visibleTeam = useMemo(() => {
-    if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return teamMembers;
-    return teamMembers.filter(m => m.companyId === user.companyId);
-  }, [teamMembers, user]);
-
   const visibleDocs = useMemo(() => {
     return documents.filter(d => visibleProjectIds.includes(d.projectId));
   }, [documents, visibleProjectIds]);
 
-  const visibleClients = useMemo(() => {
-    if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return clients;
-    return clients.filter(c => c.companyId === user.companyId);
-  }, [clients, user]);
-
   const visibleInventory = useMemo(() => {
-    if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return inventory;
-    return inventory.filter(i => i.companyId === user.companyId);
-  }, [inventory, user]);
+    if (!activeScopeId) return [];
+    return inventory.filter(i => i.companyId === activeScopeId);
+  }, [inventory, activeScopeId]);
 
   // Note: Safety, Equipment, Timesheets filtered in views or here if they have companyId
   // Assuming seed data uses 'c1' for companyId where possible or inferred from project.
@@ -302,8 +294,16 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   }, [safetyIncidents, visibleProjectIds]);
 
   const visibleTransactions = useMemo(() => {
-    return transactions.filter(t => visibleProjectIds.includes(t.projectId));
+    return transactions.filter(t => visibleProjectIds.includes(t.projectId || '')); // Added fallback
   }, [transactions, visibleProjectIds]);
+
+  const visibleInvoices = useMemo(() => {
+    return invoices.filter(i => visibleProjectIds.includes(i.projectId));
+  }, [invoices, visibleProjectIds]);
+
+  const visibleExpenseClaims = useMemo(() => {
+    return expenseClaims.filter(e => visibleProjectIds.includes(e.projectId));
+  }, [expenseClaims, visibleProjectIds]);
 
   // Channels are tenant-global.
   const visibleChannels = useMemo(() => {
@@ -405,31 +405,6 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     });
 
     await db.updateTask(id, updates);
-  };
-
-  // --- Team Methods ---
-  const addTeamMember = async (member: TeamMember) => {
-    const memberWithTenant = { ...member, companyId: user?.companyId || 'c1' };
-    setTeamMembers(prev => [memberWithTenant, ...prev]);
-    await db.addTeamMember(memberWithTenant);
-  };
-
-  // --- Document Methods ---
-  const addDocument = async (doc: ProjectDocument) => {
-    setDocuments(prev => [doc, ...prev]);
-    await db.addDocument(doc);
-  };
-
-  const updateDocument = async (id: string, updates: Partial<ProjectDocument>) => {
-    setDocuments(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
-    await db.updateDocument(id, updates);
-  };
-
-  // --- Client Methods ---
-  const addClient = async (client: Client) => {
-    const clientWithTenant = { ...client, companyId: user?.companyId || 'c1' };
-    setClients(prev => [...prev, clientWithTenant]);
-    await db.addClient(clientWithTenant);
   };
 
   // --- Inventory Methods ---
@@ -613,13 +588,33 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     setCostCodes(prev => prev.map(c => c.code === updatedCode.code ? updatedCode : c));
   };
 
+  const addInvoice = async (invoice: Invoice) => {
+    const itemWithTenant = { ...invoice, companyId: user?.companyId || 'c1' };
+    setInvoices(prev => [itemWithTenant, ...prev]);
+    // await db.addInvoice(itemWithTenant); // Placeholder for DB
+  };
+
+  const updateInvoice = async (id: string, updates: Partial<Invoice>) => {
+    setInvoices(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
+    // await db.updateInvoice(id, updates);
+  };
+
+  const addExpenseClaim = async (claim: ExpenseClaim) => {
+    const itemWithTenant = { ...claim, companyId: user?.companyId || 'c1' };
+    setExpenseClaims(prev => [itemWithTenant, ...prev]);
+    // await db.addExpenseClaim(itemWithTenant);
+  };
+
+  const updateExpenseClaim = async (id: string, updates: Partial<ExpenseClaim>) => {
+    setExpenseClaims(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
+    // await db.updateExpenseClaim(id, updates);
+  };
+
   return (
     <ProjectContext.Provider value={{
       projects: visibleProjects,
       tasks: visibleTasks,
-      teamMembers: visibleTeam,
       documents: visibleDocs,
-      clients: visibleClients,
       inventory: visibleInventory,
       rfis: visibleRFIs,
       punchItems: visiblePunchItems,
@@ -643,10 +638,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addZone,
       addTask,
       updateTask,
-      addTeamMember,
       addDocument,
-      updateDocument,
-      addClient,
       addInventoryItem,
       updateInventoryItem,
       addRFI,
@@ -674,7 +666,13 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addPurchaseOrder,
       updatePurchaseOrder,
       costCodes,
-      updateCostCode
+      updateCostCode,
+      invoices: visibleInvoices,
+      addInvoice,
+      updateInvoice,
+      expenseClaims: visibleExpenseClaims,
+      addExpenseClaim,
+      updateExpenseClaim
     }}>
       {children}
     </ProjectContext.Provider>

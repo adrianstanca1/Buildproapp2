@@ -10,13 +10,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
 import BudgetForecasting from '@/components/BudgetForecasting';
 import FileUploadZone from '@/components/FileUploadZone';
+import InvoicingView from './InvoicingView';
+import ExpensesView from './ExpensesView';
+import DayworksView from './DayworksView';
 
 const FinancialsView: React.FC = () => {
   const { addToast } = useToast();
   const { transactions, projects, addTransaction, costCodes, activeProject: contextActiveProject } = useProjects();
   const { requireRole, currentTenant } = useTenant();
   const { user } = useAuth();
-  const [viewMode, setViewMode] = useState<'CASHFLOW' | 'BUDGET' | 'TRANSACTIONS'>('CASHFLOW');
+  const [viewMode, setViewMode] = useState<'CASHFLOW' | 'BUDGET' | 'TRANSACTIONS' | 'INVOICING' | 'EXPENSES' | 'DAYWORKS'>('CASHFLOW');
   const [filterMonth, setFilterMonth] = useState('2025-12');
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -206,25 +209,19 @@ const FinancialsView: React.FC = () => {
           </h1>
           <p className="text-zinc-500">Real-time budget tracking and cost control.</p>
         </div>
-        <div className="flex gap-2 bg-zinc-100 p-1 rounded-lg">
-          <button
-            onClick={() => setViewMode('CASHFLOW')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'CASHFLOW' ? 'bg-white text-[#0f5c82] shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-          >
-            Cash Flow
-          </button>
-          <button
-            onClick={() => setViewMode('BUDGET')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'BUDGET' ? 'bg-white text-[#0f5c82] shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-          >
-            Budget Variance
-          </button>
-          <button
-            onClick={() => setViewMode('TRANSACTIONS')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'TRANSACTIONS' ? 'bg-white text-[#0f5c82] shadow-sm' : 'text-zinc-500 hover:text-zinc-700'}`}
-          >
-            Transactions
-          </button>
+        <div className="flex gap-2 bg-zinc-100 p-1 rounded-lg overflow-x-auto">
+          {['CASHFLOW', 'BUDGET', 'TRANSACTIONS', 'INVOICING', 'EXPENSES', 'DAYWORKS'].map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode as any)}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${viewMode === mode
+                  ? 'bg-white text-[#0f5c82] shadow-sm'
+                  : 'text-zinc-500 hover:text-zinc-700'
+                }`}
+            >
+              {mode.charAt(0) + mode.slice(1).toLowerCase()}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -567,7 +564,12 @@ const FinancialsView: React.FC = () => {
           </div>
         </div>
       )}
-      {/* AI Invoice Scan Modal */}
+      {/* New Modules */}
+      {viewMode === 'INVOICING' && <InvoicingView />}
+      {viewMode === 'EXPENSES' && <ExpensesView />}
+      {viewMode === 'DAYWORKS' && <DayworksView />}
+
+      {/* AI Invoice Scan Modal (Legacy - moved to InvoicingView but kept here if triggered from old buttons) */}
       {showInvoiceScan && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in zoom-in-95">

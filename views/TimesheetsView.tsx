@@ -2,12 +2,14 @@
 import React, { useState } from 'react';
 import { Check, X, Clock, Plus } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Timesheet } from '@/types';
 
 const TimesheetsView: React.FC = () => {
     const { user } = useAuth();
     const { timesheets, updateTimesheet, addTimesheet } = useProjects();
+    const { workforce } = useTenant();
     const [activeTab, setActiveTab] = useState<'PENDING' | 'APPROVED'>('PENDING');
     const [showLogModal, setShowLogModal] = useState(false);
 
@@ -16,8 +18,18 @@ const TimesheetsView: React.FC = () => {
         date: new Date().toISOString().split('T')[0],
         startTime: '08:00',
         endTime: '17:00',
-        employeeName: user?.name || 'Current User'
+        employeeName: '' // Default to empty to force selection
     });
+
+    // Auto-select current user if matched in workforce
+    React.useEffect(() => {
+        if (user && workforce.length > 0 && !newEntry.employeeName) {
+            const match = workforce.find(m => m.email === user.email || m.name === user.name);
+            if (match) {
+                setNewEntry(prev => ({ ...prev, employeeName: match.name }));
+            }
+        }
+    }, [user, workforce]);
 
     const filteredSheets = timesheets.filter(t =>
         activeTab === 'PENDING' ? t.status === 'Pending' : t.status === 'Approved'
@@ -134,6 +146,19 @@ const TimesheetsView: React.FC = () => {
                     <div className="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 animate-in zoom-in-95">
                         <h3 className="text-lg font-bold text-zinc-900 mb-4">Log Work Hours</h3>
                         <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Employee</label>
+                                <select
+                                    className="w-full p-2 border border-zinc-200 rounded-lg"
+                                    value={newEntry.employeeName}
+                                    onChange={e => setNewEntry({ ...newEntry, employeeName: e.target.value })}
+                                >
+                                    <option value="">Select Employee...</option>
+                                    {workforce.map(m => (
+                                        <option key={m.id} value={m.name}>{m.name} ({m.role})</option>
+                                    ))}
+                                </select>
+                            </div>
                             <div>
                                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Project</label>
                                 <input type="text" className="w-full p-2 border border-zinc-200 rounded-lg" value={newEntry.projectName || ''} onChange={e => setNewEntry({ ...newEntry, projectName: e.target.value })} placeholder="Project Name" />

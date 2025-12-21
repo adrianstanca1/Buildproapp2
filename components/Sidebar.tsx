@@ -23,6 +23,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
       title: 'Main',
       items: [
         { id: Page.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.CLIENT_PORTAL, label: 'My Project Portal', icon: LayoutDashboard, roles: [UserRole.CLIENT] },
         { id: Page.PROJECTS, label: 'Projects', icon: FolderOpen, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.TASKS, label: 'Tasks', icon: CheckSquare, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.SCHEDULE, label: 'Schedule', icon: Calendar, roles: [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },

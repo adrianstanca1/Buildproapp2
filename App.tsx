@@ -158,6 +158,7 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.RESOURCE_OPTIMIZATION && <ResourceOptimizationView />}
               {page === Page.DAILY_LOGS && <DailyLogsView />}
               {page === Page.RFI && <RFIView />}
+              {page === Page.CLIENT_PORTAL && <ClientPortalView />}
             </Suspense>
           </ErrorBoundary>
         </main>

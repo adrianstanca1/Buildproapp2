@@ -12,11 +12,14 @@ import {
     BarChart3
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
 
 export const ResourceOptimizationView: React.FC = () => {
-    const { projects, teamMembers, tasks, equipment } = useProjects();
+    const { projects, tasks, equipment } = useProjects();
+    const { workforce } = useTenant();
+    const teamMembers = workforce; // Map for compatibility
     const { user } = useAuth();
 
     // Metrics calculation

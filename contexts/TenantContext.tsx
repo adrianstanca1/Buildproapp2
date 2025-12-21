@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '@/services/db';
-import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings, AccessLog } from '@/types';
+import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings, AccessLog, Vendor, TeamMember, Client } from '@/types';
 
 interface TenantContextType {
   // Current tenant (simplified API)
@@ -57,6 +57,21 @@ interface TenantContextType {
   impersonateTenant: (tenantId: string) => Promise<void>;
   stopImpersonating: () => void;
 
+  // Supply Chain
+  vendors: Vendor[];
+  addVendor: (vendor: Vendor) => Promise<void>;
+  updateVendor: (id: string, updates: Partial<Vendor>) => Promise<void>;
+
+  // Workforce (HR)
+  workforce: TeamMember[];
+  addTeamMember: (member: TeamMember) => Promise<void>;
+  updateTeamMember: (id: string, updates: Partial<TeamMember>) => Promise<void>;
+
+  // Client CRM
+  clients: Client[];
+  addClient: (client: Client) => Promise<void>;
+  updateClient: (id: string, updates: Partial<Client>) => Promise<void>;
+
   // Feature Flagging & Limits
   checkFeature: (featureName: string) => boolean;
   canAddResource: (resourceType: 'users' | 'projects') => boolean;
@@ -69,6 +84,8 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [currentTenant, setCurrentTenant] = useState<Tenant | null>(null);
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [tenantMembers, setTenantMembers] = useState<TenantMember[]>([]);
+  const [workforce, setWorkforce] = useState<TeamMember[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [auditLogs, setAuditLogs] = useState<TenantAuditLog[]>([]);
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([
     { id: 1, user: 'John Anderson', event: 'Login Success', ip: '192.168.1.45', time: 'Just now', status: 'success' },
@@ -79,6 +96,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tenantUsage, setTenantUsage] = useState<TenantUsage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Supply Chain State
+  const [vendors, setVendors] = useState<Vendor[]>([
+    { id: 'v1', name: 'Elite Steel Co.', category: 'Metal', contact: 'Mark Evans', email: 'mark@elitesteel.com', rating: 95, performance: 95, activeOrders: 3, spend: '£45,200', status: 'Preferred', reliabilityScore: 98, averageDeliveryDays: 3 },
+    { id: 'v2', name: 'Global Concrete', category: 'Aggregates', contact: 'Sarah Chen', email: 'sarah@globalconcrete.com', rating: 92, performance: 92, activeOrders: 5, spend: '£32,100', status: 'Active', reliabilityScore: 94, averageDeliveryDays: 2 },
+    { id: 'v3', name: 'BuildRight Supplies', category: 'General', contact: 'Tom Harris', email: 'tom@buildright.com', rating: 88, performance: 88, activeOrders: 2, spend: '£12,800', status: 'Review', reliabilityScore: 85, averageDeliveryDays: 5 },
+    { id: 'v4', name: 'Premier Timber', category: 'Wood', contact: 'Lucy West', email: 'lucy@premiertimber.com', rating: 97, performance: 97, activeOrders: 1, spend: '£28,400', status: 'Preferred', reliabilityScore: 99, averageDeliveryDays: 4 }
+  ]);
 
   // Initialize with real data from DB
   useEffect(() => {
@@ -107,13 +132,17 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           db.setTenantId(activeTenant.id);
           localStorage.setItem('selectedTenantId', activeTenant.id);
 
-          // 4. Fetch Usage & Audit Logs for active tenant
-          const [usage, logs] = await Promise.all([
+          // 4. Fetch Usage, Audit Logs, Workforce, & Clients for active tenant
+          const [usage, logs, team, clientList] = await Promise.all([
             db.getTenantUsage(activeTenant.id),
-            db.getAuditLogs(activeTenant.id)
+            db.getAuditLogs(activeTenant.id),
+            db.getTeam(), // In a real app, pass activeTenant.id
+            db.getClients() // In a real app, pass activeTenant.id
           ]);
           setTenantUsage(usage);
           setAuditLogs(logs);
+          setWorkforce(team);
+          setClients(clientList);
 
           // 5. Apply Dynamic Branding
           applyBranding(activeTenant.settings);
@@ -463,6 +492,35 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setAccessLogs(prev => [newLog, ...prev].slice(0, 50));
   }, []);
 
+  // Workforce State (Loaded from DB)
+  // Clients State (Loaded from DB)
+
+  const addVendor = async (vendor: Vendor) => {
+    setVendors(prev => [...prev, vendor]);
+  };
+
+  const updateVendor = async (id: string, updates: Partial<Vendor>) => {
+    setVendors(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+  };
+
+  // Workforce Actions
+  const addTeamMember = async (member: TeamMember) => {
+    setWorkforce(prev => [...prev, member]);
+  };
+
+  const updateTeamMember = async (id: string, updates: Partial<TeamMember>) => {
+    setWorkforce(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+  };
+
+  // Client Actions
+  const addClient = async (client: Client) => {
+    setClients(prev => [...prev, client]);
+  };
+
+  const updateClient = async (id: string, updates: Partial<Client>) => {
+    setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
   // Simplified tenant setter with localStorage
   const setTenantWithPersistence = useCallback((t: Tenant | null) => {
     setCurrentTenant(t);
@@ -521,7 +579,16 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         stopImpersonating,
         checkFeature,
         canAddResource,
-        requireRole
+        requireRole,
+        vendors,
+        addVendor,
+        updateVendor,
+        workforce,
+        addTeamMember,
+        updateTeamMember,
+        clients,
+        addClient,
+        updateClient
       }}
     >
       {children}

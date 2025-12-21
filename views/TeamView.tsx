@@ -105,9 +105,9 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 // ... existing imports ...
 
 const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
-    const { teamMembers, isLoading, addTeamMember } = useProjects();
-    const { user } = useAuth();
-    const { canAddResource, currentTenant, requireRole } = useTenant();
+    const { isLoading } = useProjects();
+    const { workforce, addTeamMember, canAddResource, currentTenant, requireRole } = useTenant();
+    const teamMembers = workforce; // Map to local var for compatibility
     const { addToast } = useToast();
     const { joinRoom, lastMessage } = useWebSocket();
 
@@ -242,7 +242,7 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
             email: newMemberData.email || '',
             color: randomColor,
             location: newMemberData.location || '',
-            skills: newMemberData.skills ? newMemberData.skills.split(',').map(s => s.trim()).filter(s => s.length > 0) : [],
+            skills: newMemberData.skills ? newMemberData.skills.split(',').map(s => ({ name: s.trim(), level: 1, verified: false })) : [],
             joinDate: new Date().toISOString().split('T')[0],
             performanceRating: 100,
             completedProjects: 0,
@@ -641,12 +641,12 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                                             <Tag size={16} /> Skills & Competencies
                                         </h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {selectedMember.skills.map((skill, i) => (
+                                            {selectedMember.skills?.map((skill, i) => (
                                                 <span
                                                     key={i}
                                                     className="px-3 py-1.5 bg-white text-zinc-700 rounded-lg text-xs font-medium border border-zinc-200 shadow-sm"
                                                 >
-                                                    {skill}
+                                                    {skill.name} <span className="text-zinc-400 ml-1">L{skill.level}</span>
                                                 </span>
                                             ))}
                                         </div>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
+import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { UserRole, Task, ProjectDocument } from '@/types';
@@ -19,7 +20,9 @@ interface TasksViewProps {
 const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
     const { addToast } = useToast();
     const { user } = useAuth();
-    const { tasks, projects, teamMembers, documents, addTask, updateTask, updateDocument, addDocument } = useProjects();
+    const { tasks, projects, documents, addTask, updateTask, updateDocument, addDocument } = useProjects();
+    const { workforce } = useTenant();
+    const teamMembers = workforce; // Map for compatibility
     const [showModal, setShowModal] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
 

@@ -40,14 +40,16 @@ export enum Page {
   TENANT_ANALYTICS = 'TENANT_ANALYTICS',
   RESOURCE_OPTIMIZATION = 'RESOURCE_OPTIMIZATION',
   DAILY_LOGS = 'DAILY_LOGS',
-  RFI = 'RFI'
+  RFI = 'RFI',
+  CLIENT_PORTAL = 'CLIENT_PORTAL'
 }
 
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
   COMPANY_ADMIN = 'company_admin',
   SUPERVISOR = 'supervisor',
-  OPERATIVE = 'operative'
+  OPERATIVE = 'operative',
+  CLIENT = 'client'
 }
 
 export interface Company {
@@ -272,6 +274,25 @@ export interface Certification {
   fileData?: string; // Base64 encoded string
 }
 
+export interface Skill {
+  name: string;
+  level: 1 | 2 | 3 | 4 | 5; // 1=Novice, 5=Expert
+  verified: boolean;
+}
+
+export interface PayRates {
+  standard: number;
+  overtime: number;
+  currency: string;
+}
+
+export interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string;
+}
+
 export interface TeamMember {
   id: string;
   companyId: string; // Multi-tenant segregation
@@ -288,11 +309,25 @@ export interface TeamMember {
   bio?: string;
   location?: string;
   joinDate?: string;
-  skills?: string[];
+  skills?: Skill[];
   certifications?: Certification[];
   performanceRating?: number; // 0-100
   completedProjects?: number;
-  hourlyRate?: number;
+  rates?: PayRates; // Replaces hourlyRate
+  hourlyRate?: number; // Deprecated, kept for backward compat temporarily
+  // Enhanced Workforce Metrics
+  experience?: number; // Years
+  safetyIncidents?: number;
+  hoursWorked?: number;
+  availability?: string; // Denormalized status label if needed, or alias for status
+  emergencyContact?: EmergencyContact;
+  department?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
 }
 
 export interface ProjectDocument {
@@ -564,7 +599,7 @@ export interface PurchaseOrder {
   vendor: string;
   date: string;
   amount: number;
-  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'completed';
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'completed' | 'received';
   items: OrderItem[];
   createdBy: string;
   approvers: Approver[];
@@ -628,6 +663,45 @@ export interface CostCode {
   budget: number;
   spent: number;
   var: number;
+}
+
+export interface Invoice {
+  id: string;
+  projectId: string;
+  number: string;
+  vendor: string;
+  date: string;
+  dueDate: string;
+  amount: number;
+  tax: number;
+  total: number;
+  status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
+  costCode?: string;
+  linkedPoId?: string;
+  lineItems: {
+    desc: string;
+    qty: number;
+    rate: number;
+    amount: number;
+  }[];
+  attachments?: string[];
+  companyId: string;
+}
+
+export interface ExpenseClaim {
+  id: string;
+  projectId: string;
+  userId: string;
+  userName: string;
+  date: string;
+  category: 'Travel' | 'Materials' | 'Food' | 'Accommodation' | 'Other';
+  description: string;
+  amount: number;
+  receiptUrl?: string; // Image/PDF
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Paid';
+  approvedBy?: string;
+  approvedAt?: string;
+  companyId: string;
 }
 
 export interface AccessLog {

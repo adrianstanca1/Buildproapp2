@@ -1,9 +1,11 @@
 
 import React, { useState } from 'react';
 import { useProjects } from '@/contexts/ProjectContext';
-import { AlertTriangle, Award, Calendar, CheckCircle2, Briefcase, Loader2, Sparkles, RefreshCw, Brain, BookOpen, GraduationCap, TrendingUp, Target, Users, Clock, Zap, Shield, TrendingDown } from 'lucide-react';
+import { useTenant } from '@/contexts/TenantContext';
+import { AlertTriangle, Award, Calendar, CheckCircle2, Briefcase, Loader2, Sparkles, RefreshCw, Brain, BookOpen, GraduationCap, TrendingUp, Target, Users, Clock, Zap, Shield, TrendingDown, Plus, UserPlus, X } from 'lucide-react';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';
+import { TeamMember } from '@/types';
 
 interface TeamMemberProfile {
     id: string;
@@ -40,9 +42,18 @@ interface StaffingRecommendation {
 
 const WorkforceView: React.FC = () => {
     const { addToast } = useToast();
-    const { teamMembers, isLoading } = useProjects();
+    const { isLoading } = useProjects();
+    const { workforce, addTeamMember } = useTenant();
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
+    const [showAddMember, setShowAddMember] = useState(false);
+
+    // New Member State
+    const [newMember, setNewMember] = useState<Partial<TeamMember>>({
+        status: 'On Site',
+        skills: [],
+        certifications: []
+    });
 
     // Training Recommendation State
     const [trainingLoading, setTrainingLoading] = useState(false);
@@ -50,27 +61,10 @@ const WorkforceView: React.FC = () => {
 
     // Performance & Analytics State
     const [selectedTab, setSelectedTab] = useState<'overview' | 'performance' | 'staffing'>('overview');
-    const [selectedMember, setSelectedMember] = useState<TeamMemberProfile | null>(null);
+    const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
-    // Generate Enhanced Member Profiles
-    const memberProfiles: TeamMemberProfile[] = teamMembers.map(m => ({
-        id: m.id,
-        name: m.name,
-        role: m.role || 'Team Member',
-        experience: Math.floor(Math.random() * 20) + 1,
-        performanceScore: Math.floor(Math.random() * 40) + 60,
-        availability: m.status as 'Available' | 'On Site' | 'Off Site' | 'Leave',
-        specialties: m.skills || ['General Labor'],
-        certifications: (m.certifications || []).map(c => ({
-            name: c.name,
-            expiryDate: c.expiryDate,
-            status: c.status as 'Valid' | 'Expiring' | 'Expired'
-        })),
-        hoursWorked: Math.floor(Math.random() * 200) + 40,
-        projectsCompleted: Math.floor(Math.random() * 15) + 2,
-        safetyIncidents: Math.floor(Math.random() * 3),
-        lastAssigned: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toLocaleDateString()
-    }));
+    // Use Valid Data
+    const memberProfiles = workforce;
 
     // Generate Performance Metrics
     const performanceMetrics: PerformanceMetric[] = [
@@ -120,23 +114,22 @@ const WorkforceView: React.FC = () => {
     ];
 
     // --- Derived Stats ---
-    const totalMembers = teamMembers.length;
-    const activeMembers = teamMembers.filter(m => m.status === 'On Site').length;
+    const totalMembers = workforce.length;
+    const activeMembers = workforce.filter(m => m.status === 'On Site').length;
     const utilizationRate = totalMembers > 0 ? Math.round((activeMembers / totalMembers) * 100) : 0;
 
     // Skill Gaps (Mock logic for simulation)
-    const allSkills = teamMembers.flatMap(m => m.skills || []);
+    const allSkills = workforce.flatMap(m => m.skills?.map(s => s.name) || []);
     const uniqueSkills = Array.from(new Set(allSkills)) as string[];
     const skillCounts = uniqueSkills.reduce((acc, skill) => {
         acc[skill] = allSkills.filter(s => s === skill).length;
         return acc;
     }, {} as Record<string, number>);
 
-    // Identify "Low Supply" skills (less than 2 people have it)
     const skillGaps = Object.entries(skillCounts).filter(([_, count]) => count < 2).map(([skill]) => skill);
 
     // Expiring Certifications
-    const expiringCerts = teamMembers.flatMap(m =>
+    const expiringCerts = workforce.flatMap(m =>
         (m.certifications || [])
             .filter(c => c.status === 'Expiring' || c.status === 'Expired')
             .map(c => ({ member: m.name, cert: c.name, date: c.expiryDate, status: c.status }))
@@ -144,9 +137,9 @@ const WorkforceView: React.FC = () => {
 
     // Advanced Metrics
     const avgPerformanceScore = memberProfiles.length > 0
-        ? Math.round(memberProfiles.reduce((sum, m) => sum + m.performanceScore, 0) / memberProfiles.length)
+        ? Math.round(memberProfiles.reduce((sum, m) => sum + (m.performanceRating || 0), 0) / memberProfiles.length)
         : 0;
-    const totalHoursWorked = memberProfiles.reduce((sum, m) => sum + m.hoursWorked, 0);
+    const totalHoursWorked = memberProfiles.reduce((sum, m) => sum + (m.hoursWorked || 0), 0);
     const criticalStaffingGaps = staffingRecommendations.reduce((count, rec) =>
         count + rec.rolesNeeded.filter(r => r.priority === 'high').length, 0
     );
@@ -243,6 +236,12 @@ const WorkforceView: React.FC = () => {
                     >
                         {analyzing ? <Loader2 size={16} className="animate-spin" /> : <Brain size={16} />}
                         {analyzing ? 'Thinking...' : 'AI Analysis'}
+                    </button>
+                    <button
+                        onClick={() => setShowAddMember(true)}
+                        className="flex items-center gap-2 bg-[#0f5c82] text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-[#0c4a6e] shadow-lg ml-3"
+                    >
+                        <UserPlus size={16} /> Add Member
                     </button>
                 </div>
 
@@ -412,7 +411,7 @@ const WorkforceView: React.FC = () => {
                             <button className="text-xs font-bold text-[#0f5c82] hover:underline">View Full Schedule</button>
                         </div>
                         <div className="space-y-4">
-                            {teamMembers.slice(0, 5).map(member => (
+                            {workforce.slice(0, 5).map(member => (
                                 <div key={member.id} className="flex items-center gap-4">
                                     <div className={`w-8 h-8 rounded-full ${member.color} flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white`}>
                                         {member.initials}
@@ -468,7 +467,7 @@ const WorkforceView: React.FC = () => {
                             <h3 className="font-bold text-zinc-800 mb-6 flex items-center gap-2"><Award className="text-[#0f5c82]" size={20} /> Top Performers</h3>
                             <div className="space-y-3">
                                 {memberProfiles
-                                    .sort((a, b) => b.performanceScore - a.performanceScore)
+                                    .sort((a, b) => (b.performanceRating || 0) - (a.performanceRating || 0))
                                     .slice(0, 6)
                                     .map(member => (
                                         <div
@@ -478,12 +477,14 @@ const WorkforceView: React.FC = () => {
                                         >
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="font-bold text-sm text-zinc-900">{member.name}</div>
-                                                <div className="text-sm font-bold text-blue-600">{member.performanceScore}/100</div>
+                                                <div className="text-sm font-bold text-blue-600">{member.performanceRating}/100</div>
                                             </div>
                                             <div className="text-xs text-zinc-600 mb-2">{member.role} • {member.experience} yrs exp</div>
                                             <div className="flex flex-wrap gap-1">
-                                                {member.specialties.slice(0, 2).map((spec, i) => (
-                                                    <span key={i} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded">{spec}</span>
+                                                {member.skills?.slice(0, 2).map((spec, i) => (
+                                                    <span key={i} className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                                                        {spec.name} (L{spec.level})
+                                                    </span>
                                                 ))}
                                             </div>
                                         </div>
@@ -511,7 +512,7 @@ const WorkforceView: React.FC = () => {
 
                                 <div className="grid grid-cols-2 gap-4 mb-6">
                                     <div className="p-4 bg-blue-50 rounded-lg">
-                                        <div className="text-2xl font-bold text-blue-600">{selectedMember.performanceScore}</div>
+                                        <div className="text-2xl font-bold text-blue-600">{selectedMember.performanceRating}</div>
                                         <div className="text-xs text-blue-600/60 font-bold">Performance Score</div>
                                     </div>
                                     <div className="p-4 bg-green-50 rounded-lg">
@@ -519,7 +520,7 @@ const WorkforceView: React.FC = () => {
                                         <div className="text-xs text-green-600/60 font-bold">Hours Worked</div>
                                     </div>
                                     <div className="p-4 bg-amber-50 rounded-lg">
-                                        <div className="text-2xl font-bold text-amber-600">{selectedMember.projectsCompleted}</div>
+                                        <div className="text-2xl font-bold text-amber-600">{selectedMember.completedProjects}</div>
                                         <div className="text-xs text-amber-600/60 font-bold">Projects Completed</div>
                                     </div>
                                     <div className="p-4 bg-red-50 rounded-lg">
@@ -529,10 +530,12 @@ const WorkforceView: React.FC = () => {
                                 </div>
 
                                 <div className="mb-6">
-                                    <h3 className="font-bold text-zinc-900 mb-3">Specialties</h3>
+                                    <h3 className="font-bold text-zinc-900 mb-3">Skills & Specialties</h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {selectedMember.specialties.map((spec, i) => (
-                                            <span key={i} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold">{spec}</span>
+                                        {selectedMember.skills?.map((spec, i) => (
+                                            <span key={i} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-sm font-bold">
+                                                {spec.name} <span className="opacity-50 text-xs">L{spec.level}</span>
+                                            </span>
                                         ))}
                                     </div>
                                 </div>
@@ -576,7 +579,7 @@ const WorkforceView: React.FC = () => {
                             <div className="text-xs text-zinc-400 mt-2">High priority roles</div>
                         </div>
                         <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                            <div className="text-3xl font-bold text-green-600 mb-1">{Math.round((memberProfiles.filter(m => m.availability === 'Available').length / memberProfiles.length) * 100)}%</div>
+                            <div className="text-3xl font-bold text-green-600 mb-1">{Math.round((memberProfiles.filter(m => m.status === 'Off Site').length / memberProfiles.length) * 100)}%</div>
                             <div className="text-xs text-zinc-500 uppercase font-bold">Available for Assignment</div>
                             <div className="text-xs text-zinc-400 mt-2">Ready to deploy</div>
                         </div>
@@ -612,13 +615,88 @@ const WorkforceView: React.FC = () => {
                                                 </span>
                                             </div>
                                             <div className="text-xs text-zinc-600">
-                                                {memberProfiles.filter(m => m.specialties.some(s => s.toLowerCase().includes(role.role.toLowerCase()))).length} qualified
+                                                {memberProfiles.filter(m => m.skills?.some(s => s.name.toLowerCase().includes(role.role.toLowerCase()))).length} qualified
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+            {/* Add Member Modal */}
+            {showAddMember && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in">
+                    <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
+                            <h3 className="text-xl font-bold text-zinc-900 flex items-center gap-2"><UserPlus className="text-[#0f5c82]" /> Add Team Member</h3>
+                            <button onClick={() => setShowAddMember(false)}><X size={20} className="text-zinc-400 hover:text-zinc-600" /></button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Name</label>
+                                    <input type="text" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" value={newMember.name || ''} onChange={e => setNewMember({ ...newMember, name: e.target.value })} placeholder="Full Name" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Role</label>
+                                    <input type="text" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" value={newMember.role || ''} onChange={e => setNewMember({ ...newMember, role: e.target.value })} placeholder="e.g. Electrician" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Email</label>
+                                    <input type="email" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" value={newMember.email || ''} onChange={e => setNewMember({ ...newMember, email: e.target.value })} placeholder="email@company.com" />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Phone</label>
+                                    <input type="text" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" value={newMember.phone || ''} onChange={e => setNewMember({ ...newMember, phone: e.target.value })} placeholder="(555) 555-5555" />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Hourly Rate ($)</label>
+                                    <input type="number" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" value={newMember.hourlyRate || ''} onChange={e => setNewMember({ ...newMember, hourlyRate: parseFloat(e.target.value) })} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Experience (Yrs)</label>
+                                    <input type="number" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" placeholder="5" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-zinc-500 uppercase block mb-1">Primary Skills (Comma separated)</label>
+                                <input type="text" className="w-full p-2 border border-zinc-200 rounded-lg text-sm" placeholder="Wiring, Safety, Blueprint Reading" onChange={e => setNewMember({
+                                    ...newMember,
+                                    skills: e.target.value.split(',').map(s => ({ name: s.trim(), level: 3, verified: false }))
+                                })} />
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-zinc-100 bg-zinc-50 flex justify-end gap-3">
+                            <button onClick={() => setShowAddMember(false)} className="px-4 py-2 text-zinc-600 font-medium hover:bg-zinc-100 rounded-lg transition-colors">Cancel</button>
+                            <button onClick={() => {
+                                if (newMember.name && newMember.role) {
+                                    addTeamMember({
+                                        id: `tm-${Date.now()}`,
+                                        companyId: 'c1',
+                                        name: newMember.name,
+                                        initials: newMember.name.split(' ').map(n => n[0]).join(''),
+                                        role: newMember.role,
+                                        status: 'On Site',
+                                        phone: newMember.phone || '',
+                                        email: newMember.email || '',
+                                        color: 'bg-blue-500',
+                                        skills: newMember.skills || [],
+                                        performanceRating: 80, // Default start
+                                        completedProjects: 0,
+                                        hourlyRate: newMember.hourlyRate || 30,
+                                        certifications: []
+                                    } as TeamMember);
+                                    setShowAddMember(false);
+                                    addToast(`Added ${newMember.name} to workforce`, 'success');
+                                }
+                            }} disabled={!newMember.name || !newMember.role} className="px-6 py-2 bg-[#0f5c82] text-white font-bold rounded-lg hover:bg-[#0c4a6e] disabled:opacity-50">Create Member</button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -3,12 +3,14 @@ import { ShoppingCart, Package, Truck, BarChart3, Plus, Search, Filter, Check, A
 import { useToast } from '@/contexts/ToastContext';
 import { useProjects } from '@/contexts/ProjectContext';
 import { PurchaseOrder, Vendor, Transaction } from '@/types';
+import { useTenant } from '@/contexts/TenantContext';
 import SupplyChainIntelligence from '@/components/SupplyChainIntelligence';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 
 const ProcurementView: React.FC = () => {
   const { addToast } = useToast();
-  const { inventory, transactions, addTransaction, purchaseOrders, addPurchaseOrder, updatePurchaseOrder, projects } = useProjects();
+  const { inventory, updateInventoryItem, transactions, addTransaction, purchaseOrders, addPurchaseOrder, updatePurchaseOrder, projects } = useProjects();
+  const { vendors } = useTenant();
   const [activeTab, setActiveTab] = useState<'VENDORS' | 'ORDERS' | 'APPROVALS' | 'LOGISTICS'>('VENDORS');
   const [showSmartPO, setShowSmartPO] = useState(false);
   const [poGenerating, setPoGenerating] = useState(false);
@@ -21,14 +23,12 @@ const ProcurementView: React.FC = () => {
   const [recommendedVendors, setRecommendedVendors] = useState<any[]>([]);
   const [isFindingVendors, setIsFindingVendors] = useState(false);
 
+
+
   const lowStockItems = inventory.filter(item => item.stock <= item.threshold);
 
-  const VENDORS: Vendor[] = [
-    { id: 'v1', name: 'Elite Steel Co.', category: 'Metal', contact: 'Mark Evans', email: 'mark@elitesteel.com', rating: 95, performance: 95, activeOrders: 3, spend: '£45,200', status: 'Preferred', reliabilityScore: 98, averageDeliveryDays: 3 },
-    { id: 'v2', name: 'Global Concrete', category: 'Aggregates', contact: 'Sarah Chen', email: 'sarah@globalconcrete.com', rating: 92, performance: 92, activeOrders: 5, spend: '£32,100', status: 'Active', reliabilityScore: 94, averageDeliveryDays: 2 },
-    { id: 'v3', name: 'BuildRight Supplies', category: 'General', contact: 'Tom Harris', email: 'tom@buildright.com', rating: 88, performance: 88, activeOrders: 2, spend: '£12,800', status: 'Review', reliabilityScore: 85, averageDeliveryDays: 5 },
-    { id: 'v4', name: 'Premier Timber', category: 'Wood', contact: 'Lucy West', email: 'lucy@premiertimber.com', rating: 97, performance: 97, activeOrders: 1, spend: '£28,400', status: 'Preferred', reliabilityScore: 99, averageDeliveryDays: 4 }
-  ];
+  // Use vendors from context instead of hardcoded list
+  // const VENDORS: Vendor[] = ... (removed)
 
   // const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([
   //   // Mock data removed - sourced from context
@@ -54,12 +54,12 @@ const ProcurementView: React.FC = () => {
   const findRecommendedVendors = async (item: string) => {
     setIsFindingVendors(true);
     try {
-      const prompt = `Recommend top 2 vendors for "${item}" from: ${JSON.stringify(VENDORS)}. Return JSON: { recommendations: [{name, reason, score}] }`;
+      const prompt = `Recommend top 2 vendors for "${item}" from: ${JSON.stringify(vendors)}. Return JSON: { recommendations: [{name, reason, score}] }`;
       const res = await runRawPrompt(prompt, { model: 'gemini-1.5-flash', responseMimeType: 'application/json' });
       const data = parseAIJSON(res);
       setRecommendedVendors(data.recommendations || []);
     } catch (e) {
-      setRecommendedVendors(VENDORS.slice(0, 2).map(v => ({ name: v.name, reason: "Historical preferred vendor", score: v.rating * 10 })));
+      setRecommendedVendors(vendors.slice(0, 2).map(v => ({ name: v.name, reason: "Historical preferred vendor", score: v.rating * 10 })));
     } finally {
       setIsFindingVendors(false);
     }
@@ -108,6 +108,37 @@ const ProcurementView: React.FC = () => {
       }
     } catch (e) {
       addToast("Failed to update approval", "error");
+    }
+  };
+
+  const handleMarkReceived = async (po: PurchaseOrder) => {
+    try {
+      // 1. Update PO status
+      await updatePurchaseOrder(po.id, { status: 'received' });
+
+      // 2. Update Inventory Stock
+      // Try to find matching inventory item by name/description
+      const matchingItem = inventory.find(i =>
+        po.items.some(poItem => poItem.description.toLowerCase().includes(i.name.toLowerCase()) || i.name.toLowerCase().includes(poItem.description.toLowerCase()))
+      );
+
+      if (matchingItem) {
+        // Assume first item qty for simplicity in this proto, or sum if multiple
+        const receivedQty = po.items.reduce((acc, item) => acc + item.quantity, 0);
+        const newStock = matchingItem.stock + receivedQty;
+
+        await updateInventoryItem(matchingItem.id, {
+          stock: newStock,
+          status: newStock > matchingItem.threshold ? 'In Stock' : 'Low Stock',
+          lastOrderDate: new Date().toISOString().split('T')[0]
+        });
+        addToast(`Goods received. Updated stock for ${matchingItem.name}.`, "success");
+      } else {
+        addToast(`Goods received. (No matching inventory item found to update automatically)`, "warning");
+      }
+
+    } catch (e) {
+      addToast("Failed to process receipt", "error");
     }
   };
 
@@ -161,7 +192,7 @@ const ProcurementView: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {VENDORS.map((v, i) => (
+              {vendors.map((v, i) => (
                 <tr key={i} className="hover:bg-zinc-50 transition-colors group">
                   <td className="px-6 py-4 font-bold text-zinc-800">{v.name}</td>
                   <td className="px-6 py-4">
@@ -187,7 +218,17 @@ const ProcurementView: React.FC = () => {
               <div key={po.id} className="border border-zinc-200 rounded-lg p-4 hover:shadow-md cursor-pointer">
                 <div className="flex justify-between items-start">
                   <h4 className="font-semibold">{po.number} - {po.vendor}</h4>
-                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase">{po.status}</span>
+                  <div className="flex gap-2">
+                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded text-[10px] font-bold uppercase">{po.status}</span>
+                    {po.status === 'approved' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleMarkReceived(po); }}
+                        className="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-blue-700"
+                      >
+                        Receive
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm font-mono mt-2 text-zinc-900">£{po.amount.toLocaleString()}</p>
               </div>
@@ -229,7 +270,7 @@ const ProcurementView: React.FC = () => {
                     <span className="text-white font-mono text-xs">EN ROUTE: PO-2025-894</span>
                   </div>
                   <div className="flex gap-4 overflow-x-auto pb-2">
-                    {VENDORS.slice(0, 3).map((v, i) => (
+                    {vendors.slice(0, 3).map((v, i) => (
                       <div key={i} className="min-w-[150px] bg-white/5 border border-white/10 p-2 rounded-lg backdrop-blur-md">
                         <p className="text-[10px] text-white font-bold truncate">{v.name}</p>
                         <p className="text-[9px] text-zinc-400">ETA: {i + 3} Days</p>
