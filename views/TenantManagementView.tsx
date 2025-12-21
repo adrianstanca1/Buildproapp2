@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/contexts/ToastContext';
 import { Tenant, TenantMember, TenantAuditLog, UserRole } from '@/types';
 
 interface Tab {
@@ -42,6 +43,7 @@ const tabs: Tab[] = [
 export const TenantManagementView: React.FC = () => {
   const { currentTenant, tenants, tenantMembers, tenantUsage, getTenantAuditLogs, isLoading, requireRole, addTenantMember } = useTenant();
   const { user } = useAuth();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(currentTenant);

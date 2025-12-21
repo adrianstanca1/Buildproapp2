@@ -32,6 +32,7 @@ interface ProjectContextType {
   costCodes: CostCode[];
   invoices: Invoice[];
   expenseClaims: ExpenseClaim[];
+  teamMembers: TeamMember[];
   isLoading: boolean;
 
   // Project CRUD
@@ -141,6 +142,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   ]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expenseClaims, setExpenseClaims] = useState<ExpenseClaim[]>([]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Supabase Realtime Subscription
@@ -584,6 +586,16 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.updatePurchaseOrder(id, updates);
   };
 
+  const addDocument = async (doc: ProjectDocument) => {
+    setDocuments(prev => [doc, ...prev]);
+    await db.addDocument(doc);
+  };
+
+  const updateDocument = async (id: string, updates: Partial<ProjectDocument>) => {
+    setDocuments(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+    await db.updateDocument(id, updates);
+  };
+
   const updateCostCode = (updatedCode: CostCode) => {
     setCostCodes(prev => prev.map(c => c.code === updatedCode.code ? updatedCode : c));
   };
@@ -626,6 +638,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       timesheets: visibleTimesheets,
       channels: visibleChannels,
       teamMessages,
+      teamMembers,
       transactions: visibleTransactions,
       financials: visibleTransactions,
       activeProject,
@@ -639,6 +652,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addTask,
       updateTask,
       addDocument,
+      updateDocument,
       addInventoryItem,
       updateInventoryItem,
       addRFI,

@@ -138,9 +138,11 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
     const [companyFilter, setCompanyFilter] = useState('All');
     const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
+    const { user } = useAuth();
     const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
 
-    // Add Member State
+    const { activeProject } = useProjects();
+
     const [showAddModal, setShowAddModal] = useState(false);
     const [isGeneratingSkills, setIsGeneratingSkills] = useState(false);
     const [newMemberData, setNewMemberData] = useState({

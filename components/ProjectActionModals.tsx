@@ -102,6 +102,7 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
             crewCount: logData.crewCount,
             workPerformed: logData.workPerformed,
             notes: logData.notes,
+            status: 'Draft',
             author: 'Current User', // Should come from Auth
             createdAt: new Date().toISOString().split('T')[0]
         };
