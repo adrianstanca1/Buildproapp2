@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Cloud, Users, FileText, Plus, Sun, CloudRain, Wind, Thermometer, Save } from 'lucide-react';
+import { Calendar, Cloud, Users, FileText, Plus, Sun, CloudRain, Wind, Thermometer, Save, PenTool } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -20,9 +20,13 @@ const DailyLogsView: React.FC = () => {
     const [notes, setNotes] = useState('');
     const [workPerformed, setWorkPerformed] = useState('');
 
-    const handleSave = async () => {
+    const handleSignAndSubmit = async () => {
         if (!selectedProject) {
             addToast("Please select a project", "error");
+            return;
+        }
+        if (!workPerformed.trim() || crewCount === 0) {
+            addToast("Please fill in Work Performed and Crew Count before signing.", "error");
             return;
         }
 
@@ -35,13 +39,18 @@ const DailyLogsView: React.FC = () => {
             workPerformed,
             notes,
             author: user?.name || 'Unknown',
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            status: 'Signed',
+            signedBy: user?.name || 'Unknown',
+            signedAt: new Date().toISOString()
         };
 
         try {
             await addDailyLog(log);
-            addToast("Daily Log saved successfully", "success");
-            // Optional: reset form or keep it to verify persistence
+            addToast("Daily Log Signed & Submitted", "success");
+            // Reset form for next day/entry
+            setWorkPerformed('');
+            setNotes('');
         } catch (error) {
             console.error("Failed to save daily log", error);
             addToast("Failed to save daily log", "error");
@@ -175,11 +184,11 @@ const DailyLogsView: React.FC = () => {
                         <p className="text-blue-100 text-sm mb-6">Ensure all sections are filled out before signing off.</p>
 
                         <button
-                            onClick={handleSave}
-                            className="w-full py-4 bg-white text-[#0f5c82] rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
+                            onClick={handleSignAndSubmit}
+                            className="w-full py-4 bg-white text-[#0f5c82] rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors shadow-lg"
                         >
-                            <Save size={20} />
-                            Save & Sign Log
+                            <PenTool size={20} />
+                            Sign & Submit Log
                         </button>
                     </div>
 

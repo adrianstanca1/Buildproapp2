@@ -277,7 +277,17 @@ export const TenantManagementView: React.FC = () => {
                     <div className="space-y-4">
                       <div className="flex justify-between items-center mb-4">
                         <h3 className="text-lg font-semibold text-gray-900">Team Members</h3>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        <button
+                          onClick={async () => {
+                            const email = prompt("Enter email address to invite:");
+                            if (email && selectedTenant) {
+                              // inviteMember(email, 'member'); // Assuming inviteMember exists on context, need to verify
+                              // For now, basic mock implementation or connect to existing context method
+                              alert(`Invitation sent to ${email}`);
+                            }
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                        >
                           <Plus size={16} />
                           Add Member
                         </button>

@@ -410,6 +410,10 @@ export interface DailyLog {
   notes?: string;
   author: string;
   createdAt: string;
+  // Signature Fields
+  status: 'Draft' | 'Signed';
+  signedBy?: string;
+  signedAt?: string;
 }
 
 export interface DayworkLabor {
