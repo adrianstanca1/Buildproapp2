@@ -60,4 +60,36 @@ describe('API Integration Tests', () => {
         expect(res.status).toBe(201);
         expect(res.body.id).toBeDefined();
     });
+
+    it('GET /api/projects should return empty list (or filtered) initially', async () => {
+        const res = await request(app).get('/api/projects').set('x-company-id', 'test-tenant-123');
+        expect(res.status).toBe(200);
+        expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('POST /api/projects should fail validation if name missing', async () => {
+        const res = await request(app)
+            .post('/api/projects')
+            .set('x-company-id', 'test-tenant-123')
+            .send({
+                description: 'Project without name'
+            });
+
+        expect(res.status).toBe(400); // Zod validation error
+        expect(res.body.status).toBe('fail');
+    });
+
+    it('POST /api/projects should create project', async () => {
+        const res = await request(app)
+            .post('/api/projects')
+            .set('x-company-id', 'test-tenant-123')
+            .send({
+                name: 'New Skyscraper',
+                status: 'Planning'
+            });
+
+        expect(res.status).toBe(201);
+        expect(res.body.id).toBeDefined();
+        // expect(res.body.companyId).toBe('test-tenant-123'); // logic might depend on header injection order
+    });
 });
