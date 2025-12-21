@@ -21,6 +21,8 @@ COPY . .
 # Build Frontend
 ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
+# Critical: Set production mode so DB uses /tmp path
+ENV NODE_ENV=production
 RUN npm run build
 
 # Cloud Run sets PORT env var (default 8080)
@@ -28,6 +30,6 @@ ENV PORT=8080
 EXPOSE 8080
 
 # Start Monolith (Express serves /api + Static)
-CMD ["npm", "start"]
-# CMD ["node", "server/diagnosis.js"]
+# Start Monolith (Directly with tsx to avoid npm signal swallowing)
+CMD ["npx", "tsx", "server/index.ts"]
 

@@ -73,7 +73,8 @@ export async function initializeDatabase() {
         try {
           const sqlite3 = require('sqlite3');
           const { open } = require('sqlite');
-          const dbPath = './buildpro_db.sqlite';
+          // Cloud Run filesystem is Read-Only. Must use /tmp for ephemeral DB.
+          const dbPath = '/tmp/buildpro_db.sqlite';
           const db = await open({ filename: dbPath, driver: sqlite3.Database });
           await db.exec('PRAGMA foreign_keys = ON;');
           dbInstance = new SqliteAdapter(db);

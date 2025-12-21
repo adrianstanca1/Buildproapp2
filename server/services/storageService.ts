@@ -10,7 +10,10 @@ if (!supabaseUrl || !supabaseKey) {
     logger.warn('Supabase credentials missing. Storage service will fail.');
 }
 
-const supabase = createClient(supabaseUrl!, supabaseKey!);
+const supabase = createClient(
+    supabaseUrl || 'https://placeholder.supabase.co',
+    supabaseKey || 'placeholder-key'
+);
 
 export const uploadFile = async (
     bucket: string,
