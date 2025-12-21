@@ -12,6 +12,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { AddProjectModal } from '@/components/AddProjectModal';
 
 interface ProjectsViewProps {
     onProjectSelect?: (projectId: string) => void;
@@ -44,6 +45,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
     // Modal States
     const [editingProjectStatus, setEditingProjectStatus] = useState<Project | null>(null);
     const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     // Auto-launch logic
     React.useEffect(() => {
@@ -133,7 +135,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                 addToast(`Project limit reached for ${currentTenant?.plan} plan.`, 'error');
                                 return;
                             }
-                            setPage && setPage(Page.PROJECT_LAUNCHPAD);
+                            setIsCreateModalOpen(true);
                         }}
                         disabled={!canAddResource('projects')}
                         className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('projects')
@@ -292,7 +294,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                     addToast(`Project limit reached.`, 'error');
                                     return;
                                 }
-                                setPage && setPage(Page.PROJECT_LAUNCHPAD);
+                                setIsCreateModalOpen(true);
                             }}
                             className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center transition-all group min-h-[300px] ${canAddResource('projects')
                                 ? 'border-zinc-200 text-zinc-400 hover:border-[#0f5c82] hover:text-[#0f5c82] hover:bg-blue-50/30'
@@ -469,6 +471,8 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                     </div>
                 </div>
             </Modal>
+
+            <AddProjectModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
         </div>
     );
 };
