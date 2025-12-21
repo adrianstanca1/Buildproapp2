@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
     Search, Plus, Filter, Calendar, Users, MapPin,
     CheckSquare, Activity, Image as ImageIcon, ArrowRight, MoreVertical,
-    LayoutGrid, List as ListIcon, Briefcase, Clock, Building, AlertTriangle, X, Trash2
+    LayoutGrid, List as ListIcon, Briefcase, Clock, Building, AlertTriangle, X, Trash2, Sparkles, TrendingUp, BrainCircuit
 } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -223,7 +223,15 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                         </span>
                                     </div>
 
-                                    <p className="text-sm text-zinc-600 line-clamp-2 mb-4 flex-1">{project.description}</p>
+                                    <div className="mb-4 flex-1">
+                                        <p className="text-sm text-zinc-600 line-clamp-2">{project.aiExecutiveSummary || project.description}</p>
+                                        {project.timelineOptimizations && project.timelineOptimizations.length > 0 && (
+                                            <div className="mt-2 flex items-center gap-2 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg w-fit">
+                                                <Sparkles size={12} />
+                                                {project.timelineOptimizations.length} AI Optimizations Available
+                                            </div>
+                                        )}
+                                    </div>
 
                                     <div className="space-y-3 mb-4">
                                         <div className="flex justify-between text-xs text-zinc-500 mb-1">
@@ -252,6 +260,13 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                             </div>
                                         </div>
                                     </div>
+
+                                    {project.aiAnalysis && (
+                                        <div className="mt-0 mb-4 px-3 py-2 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-100 rounded-lg flex items-start gap-2">
+                                            <BrainCircuit size={14} className="text-indigo-500 mt-0.5 flex-shrink-0" />
+                                            <p className="text-[10px] text-zinc-600 leading-snug"><span className="font-bold text-indigo-700">AI Insight:</span> {project.aiAnalysis}</p>
+                                        </div>
+                                    )}
 
                                     {/* Quick Action Buttons (Visible on Hover) */}
                                     <div className="absolute bottom-6 left-6 right-6 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 z-30">
