@@ -621,3 +621,20 @@ export interface ProjectRisk {
   timestamp: string;
   trend: 'Improving' | 'Degrading' | 'Stable';
 }
+
+export interface CostCode {
+  code: string;
+  desc: string;
+  budget: number;
+  spent: number;
+  var: number;
+}
+
+export interface AccessLog {
+  id: number;
+  user: string;
+  event: string;
+  ip: string;
+  time: string;
+  status: 'success' | 'fail' | 'warning';
+}

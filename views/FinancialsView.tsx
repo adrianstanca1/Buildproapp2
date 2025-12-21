@@ -13,7 +13,7 @@ import FileUploadZone from '@/components/FileUploadZone';
 
 const FinancialsView: React.FC = () => {
   const { addToast } = useToast();
-  const { transactions, projects, addTransaction } = useProjects();
+  const { transactions, projects, addTransaction, costCodes, activeProject: contextActiveProject } = useProjects();
   const { requireRole, currentTenant } = useTenant();
   const { user } = useAuth();
   const [viewMode, setViewMode] = useState<'CASHFLOW' | 'BUDGET' | 'TRANSACTIONS'>('CASHFLOW');
@@ -59,13 +59,7 @@ const FinancialsView: React.FC = () => {
     });
   }, [transactions]);
 
-  const costCodes = useMemo(() => [
-    { code: '03-3000', desc: 'Concrete', budget: 250000, spent: transactions.filter(t => t.category === 'Materials' && t.description.includes('Concrete')).reduce((sum, t) => sum + Math.abs(t.amount), 0) || 210000, var: 16 },
-    { code: '05-1200', desc: 'Structural Steel', budget: 400000, spent: 380000, var: 5 },
-    { code: '09-2000', desc: 'Plaster & Gypsum', budget: 120000, spent: 45000, var: -62 },
-    { code: '15-4000', desc: 'Plumbing', budget: 180000, spent: 175000, var: 3 },
-    { code: '16-1000', desc: 'Electrical', budget: 220000, spent: 235000, var: 7 },
-  ], [transactions]);
+
 
   const filteredTransactions = transactions.filter(t => t.date.startsWith(filterMonth));
 

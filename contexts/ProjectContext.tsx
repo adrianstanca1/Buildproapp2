@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useMemo, useEffect } from 'react';
-import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk, PurchaseOrder } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, UserRole, Client, InventoryItem, Zone, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Channel, TeamMessage, Transaction, Defect, ProjectRisk, PurchaseOrder, CostCode } from '@/types';
 import { useAuth } from './AuthContext';
 import { useTenant } from './TenantContext';
 import { db } from '@/services/db';
@@ -9,6 +9,8 @@ import { useNotifications } from './NotificationContext';
 
 interface ProjectContextType {
   projects: Project[];
+  activeProject: Project | null;
+  setActiveProject: (project: Project | null) => void;
   tasks: Task[];
   teamMembers: TeamMember[];
   documents: ProjectDocument[];
@@ -29,6 +31,7 @@ interface ProjectContextType {
   defects: Defect[];
   projectRisks: ProjectRisk[];
   purchaseOrders: PurchaseOrder[];
+  costCodes: CostCode[];
   isLoading: boolean;
 
   // Project CRUD
@@ -89,6 +92,9 @@ interface ProjectContextType {
   // Procurement
   addPurchaseOrder: (po: PurchaseOrder) => Promise<void>;
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => Promise<void>;
+
+  // Financials Meta
+  updateCostCode: (code: CostCode) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -105,6 +111,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const { user, addProjectId } = useAuth();
   const { currentTenant } = useTenant();
 
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -125,6 +132,13 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [defects, setDefects] = useState<Defect[]>([]);
   const [projectRisks, setProjectRisks] = useState<ProjectRisk[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [costCodes, setCostCodes] = useState<CostCode[]>([
+    { code: '03-3000', desc: 'Concrete', budget: 250000, spent: 210000, var: 16 },
+    { code: '05-1200', desc: 'Structural Steel', budget: 400000, spent: 380000, var: 5 },
+    { code: '09-2000', desc: 'Plaster & Gypsum', budget: 120000, spent: 45000, var: -62 },
+    { code: '15-4000', desc: 'Plumbing', budget: 180000, spent: 175000, var: 3 },
+    { code: '16-1000', desc: 'Electrical', budget: 220000, spent: 235000, var: 7 }
+  ]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Supabase Realtime Subscription
@@ -595,6 +609,10 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.updatePurchaseOrder(id, updates);
   };
 
+  const updateCostCode = (updatedCode: CostCode) => {
+    setCostCodes(prev => prev.map(c => c.code === updatedCode.code ? updatedCode : c));
+  };
+
   return (
     <ProjectContext.Provider value={{
       projects: visibleProjects,
@@ -615,6 +633,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       teamMessages,
       transactions: visibleTransactions,
       financials: visibleTransactions,
+      activeProject,
+      setActiveProject,
       isLoading,
       addProject,
       updateProject,
@@ -652,7 +672,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       runHealthForecasting,
       purchaseOrders: visiblePurchaseOrders,
       addPurchaseOrder,
-      updatePurchaseOrder
+      updatePurchaseOrder,
+      costCodes,
+      updateCostCode
     }}>
       {children}
     </ProjectContext.Provider>

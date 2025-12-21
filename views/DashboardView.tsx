@@ -247,7 +247,7 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
 
 // --- 1. SUPER ADMIN DASHBOARD (ENHANCED) ---
 const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
-    const { tenants, addTenant, updateTenant, impersonateTenant, isImpersonating, stopImpersonating, currentTenant } = useTenant();
+    const { tenants, addTenant, updateTenant, impersonateTenant, isImpersonating, stopImpersonating, currentTenant, accessLogs } = useTenant();
 
     // Handler for adding a new tenant
     const handleAddTenant = async () => {
@@ -309,13 +309,7 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
         setSystemSettings(prev => ({ ...prev, [key]: !prev[key] }));
     };
 
-    // Access Logs Mock
-    const accessLogs = [
-        { id: 1, user: 'John Anderson', event: 'Login Success', ip: '192.168.1.45', time: 'Just now', status: 'success' },
-        { id: 2, user: 'Admin System', event: 'Backup Completed', ip: 'Localhost', time: '5m ago', status: 'success' },
-        { id: 3, user: 'Unknown', event: 'Failed Login', ip: '104.23.11.2', time: '12m ago', status: 'fail' },
-        { id: 4, user: 'Sarah Mitchell', event: 'API Key Generated', ip: '89.12.44.1', time: '1h ago', status: 'warning' },
-    ];
+
 
     return (
         <div className="p-8 max-w-[1600px] mx-auto space-y-8">
