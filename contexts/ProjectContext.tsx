@@ -209,6 +209,8 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
         db.getDefects().then(setDefects).catch(console.error);
         db.getProjectRisks().then(setProjectRisks).catch(console.error);
         db.getPurchaseOrders().then(setPurchaseOrders).catch(console.error);
+        db.getInvoices().then(setInvoices).catch(console.error);
+        db.getExpenseClaims().then(setExpenseClaims).catch(console.error);
 
       } catch (e) {
         console.error("Critical Data Load Failed", e);
@@ -603,23 +605,23 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addInvoice = async (invoice: Invoice) => {
     const itemWithTenant = { ...invoice, companyId: user?.companyId || 'c1' };
     setInvoices(prev => [itemWithTenant, ...prev]);
-    // await db.addInvoice(itemWithTenant); // Placeholder for DB
+    await db.addInvoice(itemWithTenant);
   };
 
   const updateInvoice = async (id: string, updates: Partial<Invoice>) => {
     setInvoices(prev => prev.map(i => i.id === id ? { ...i, ...updates } : i));
-    // await db.updateInvoice(id, updates);
+    await db.updateInvoice(id, updates);
   };
 
   const addExpenseClaim = async (claim: ExpenseClaim) => {
     const itemWithTenant = { ...claim, companyId: user?.companyId || 'c1' };
     setExpenseClaims(prev => [itemWithTenant, ...prev]);
-    // await db.addExpenseClaim(itemWithTenant);
+    await db.addExpenseClaim(itemWithTenant);
   };
 
   const updateExpenseClaim = async (id: string, updates: Partial<ExpenseClaim>) => {
     setExpenseClaims(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e));
-    // await db.updateExpenseClaim(id, updates);
+    await db.updateExpenseClaim(id, updates);
   };
 
   return (

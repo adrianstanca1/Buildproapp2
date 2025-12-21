@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk, Invoice, ExpenseClaim } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 
@@ -188,6 +188,8 @@ const DB_KEYS = {
   COMPANIES: 'buildpro_companies',
   SYSTEM_SETTINGS: 'buildpro_system_settings',
   ACCESS_LOGS: 'buildpro_access_logs',
+  INVOICES: 'buildpro_invoices',
+  EXPENSES: 'buildpro_expenses',
 };
 
 // Helper
@@ -449,6 +451,23 @@ class MockDatabase {
     await delay(100);
     const items = this.getItems<any>(DB_KEYS.ACCESS_LOGS);
     this.setItems(DB_KEYS.ACCESS_LOGS, [log, ...items].slice(0, 100)); // Keep last 100
+  }
+
+  // --- Financials ---
+  async getInvoices(): Promise<Invoice[]> { return this.getAll<Invoice>(DB_KEYS.INVOICES); }
+  async addInvoice(item: Invoice) { return this.add(DB_KEYS.INVOICES, item); }
+  async updateInvoice(id: string, updates: Partial<Invoice>) {
+    await delay(100);
+    const items = this.getItems<Invoice>(DB_KEYS.INVOICES);
+    this.setItems(DB_KEYS.INVOICES, items.map(i => i.id === id ? { ...i, ...updates } : i));
+  }
+
+  async getExpenseClaims(): Promise<ExpenseClaim[]> { return this.getAll<ExpenseClaim>(DB_KEYS.EXPENSES); }
+  async addExpenseClaim(item: ExpenseClaim) { return this.add(DB_KEYS.EXPENSES, item); }
+  async updateExpenseClaim(id: string, updates: Partial<ExpenseClaim>) {
+    await delay(100);
+    const items = this.getItems<ExpenseClaim>(DB_KEYS.EXPENSES);
+    this.setItems(DB_KEYS.EXPENSES, items.map(i => i.id === id ? { ...i, ...updates } : i));
   }
 }
 

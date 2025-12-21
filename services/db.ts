@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder, Invoice, ExpenseClaim } from '@/types';
 import { db as mockDb } from './mockDb';
 import { supabase } from './supabaseClient';
 
@@ -59,7 +59,11 @@ class DatabaseService {
       if (endpoint === 'companies') return mockDb.getCompanies() as any;
       if (endpoint === 'documents') return mockDb.getDocuments(this.tenantId || undefined) as any;
       if (endpoint === 'inventory') return mockDb.getInventory() as any;
+      if (endpoint === 'documents') return mockDb.getDocuments(this.tenantId || undefined) as any;
+      if (endpoint === 'inventory') return mockDb.getInventory() as any;
       if (endpoint === 'clients') return mockDb.getClients() as any;
+      if (endpoint === 'invoices') return mockDb.getInvoices() as any;
+      if (endpoint === 'expense_claims') return mockDb.getExpenseClaims() as any;
 
       // Default fallback
       return [];
@@ -434,6 +438,44 @@ class DatabaseService {
       return mockDb.addAccessLog(log);
     }
     await this.post('access-logs', log);
+  }
+
+
+  // --- Financials ---
+  async getInvoices(): Promise<Invoice[]> {
+    return this.fetch<Invoice>('invoices');
+  }
+  async addInvoice(item: Invoice) {
+    if (this.useMock) {
+      await mockDb.addInvoice(item);
+      return;
+    }
+    await this.post('invoices', item);
+  }
+  async updateInvoice(id: string, u: Partial<Invoice>) {
+    if (this.useMock) {
+      await mockDb.updateInvoice(id, u);
+      return;
+    }
+    await this.put('invoices', id, u);
+  }
+
+  async getExpenseClaims(): Promise<ExpenseClaim[]> {
+    return this.fetch<ExpenseClaim>('expense_claims');
+  }
+  async addExpenseClaim(item: ExpenseClaim) {
+    if (this.useMock) {
+      await mockDb.addExpenseClaim(item);
+      return;
+    }
+    await this.post('expense_claims', item);
+  }
+  async updateExpenseClaim(id: string, u: Partial<ExpenseClaim>) {
+    if (this.useMock) {
+      await mockDb.updateExpenseClaim(id, u);
+      return;
+    }
+    await this.put('expense_claims', id, u);
   }
 }
 
