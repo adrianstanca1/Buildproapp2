@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { ExpenseClaim } from '@/types';
-import { Plus, Search, Filter, Receipt, Calendar, User, CheckCircle2, XCircle, Clock, Camera } from 'lucide-react';
+import { Plus, Search, Filter, Receipt, Calendar, User, CheckCircle2, XCircle, Clock, Camera, FileText } from 'lucide-react';
 import { useToast } from '@/contexts/ToastContext';
+import { Modal } from '@/components/Modal';
 
 const ExpensesView: React.FC = () => {
     const { expenseClaims, addExpenseClaim } = useProjects();
@@ -11,6 +12,28 @@ const ExpensesView: React.FC = () => {
 
     // Mock current user ID for demo
     const currentUserId = 'u1';
+    const [showAddModal, setShowAddModal] = useState(false);
+
+    const handleAddExpense = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const formData = new FormData(e.currentTarget);
+        const newClaim: ExpenseClaim = {
+            id: `exp-${Date.now()}`,
+            projectId: 'p1', // Default
+            companyId: 'c1',
+            userId: currentUserId,
+            userName: 'Current User', // Demo
+            date: formData.get('date') as string,
+            description: formData.get('description') as string,
+            amount: parseFloat(formData.get('amount') as string),
+            category: formData.get('category') as ExpenseClaim['category'],
+            status: 'Pending',
+            receiptUrl: undefined
+        };
+        await addExpenseClaim(newClaim);
+        addToast("Expense claim submitted for approval", "success");
+        setShowAddModal(false);
+    };
 
     const filteredClaims = expenseClaims.filter(claim => {
         if (filter === 'My Claims') return claim.userId === currentUserId;
@@ -52,7 +75,10 @@ const ExpensesView: React.FC = () => {
                     <div className="text-[10px] text-zinc-400 mt-1">45% of annual allowance</div>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex items-center justify-center cursor-pointer hover:bg-zinc-50 transition-colors border-dashed border-zinc-300 hover:border-zinc-400 group">
+                <div
+                    onClick={() => setShowAddModal(true)}
+                    className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex items-center justify-center cursor-pointer hover:bg-zinc-50 transition-colors border-dashed border-zinc-300 hover:border-zinc-400 group"
+                >
                     <div className="text-center">
                         <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
                             <Camera size={24} />
@@ -128,6 +154,57 @@ const ExpensesView: React.FC = () => {
                     )}
                 </div>
             </div>
+
+            <Modal isOpen={showAddModal} onClose={() => setShowAddModal(false)} title="Submit Expense Claim">
+                <form onSubmit={handleAddExpense} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-1">Description</label>
+                        <div className="relative">
+                            <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                            <input name="description" required placeholder="e.g. Client Lunch" className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none" />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-bold text-zinc-700 mb-1">Category</label>
+                            <select name="category" className="w-full px-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none bg-white">
+                                <option>Travel</option>
+                                <option>Food</option>
+                                <option>Accommodation</option>
+                                <option>Materials</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-bold text-zinc-700 mb-1">Date</label>
+                            <div className="relative">
+                                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={16} />
+                                <input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full pl-10 pr-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-bold text-zinc-700 mb-1">Amount</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">£</span>
+                            <input type="number" step="0.01" name="amount" required placeholder="0.00" className="w-full pl-8 pr-4 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none font-mono" />
+                        </div>
+                    </div>
+
+                    {/* Placeholder for receipt upload */}
+                    <div className="border-2 border-dashed border-zinc-300 rounded-lg p-6 text-center cursor-pointer hover:bg-zinc-50">
+                        <Camera className="mx-auto text-zinc-300 mb-2" />
+                        <span className="text-xs text-zinc-500">Add Receipt Image (Optional)</span>
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                        <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 border border-zinc-300 text-zinc-700 font-bold rounded-lg hover:bg-zinc-50">Cancel</button>
+                        <button type="submit" className="flex-1 py-2.5 bg-[#0f5c82] text-white font-bold rounded-lg hover:bg-[#0c4a6e] shadow-lg">Submit Claim</button>
+                    </div>
+                </form>
+            </Modal>
         </div>
     );
 };
