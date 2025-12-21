@@ -292,9 +292,9 @@ export const TenantManagementView: React.FC = () => {
                                   joinedAt: new Date().toISOString(),
                                   isActive: false // Pending status
                                 });
-                                // alert(`Invitation sent to ${email}`); // Context handles updates
+                                addToast(`Invitation sent to ${email}`, 'success');
                               } catch (e) {
-                                alert('Failed to add member');
+                                addToast('Failed to add member', 'error');
                               }
                             }
                           }}

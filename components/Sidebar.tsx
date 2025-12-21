@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
+import { useTenant } from '@/contexts/TenantContext';
 
 interface SidebarProps {
   currentPage: Page;
@@ -17,6 +18,9 @@ interface SidebarProps {
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
   const { user, logout } = useAuth();
+  const { systemSettings } = useTenant();
+
+  const betaPages = [Page.IMAGINE, Page.ML_INSIGHTS, Page.RESOURCE_OPTIMIZATION, Page.AI_TOOLS];
 
   const menuGroups = [
     {
@@ -106,8 +110,16 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage }) => {
       {/* Navigation */}
       <nav className="flex-1 py-4 px-0 space-y-6">
         {menuGroups.map((group, groupIndex) => {
-          // Filter items in this group based on permission
-          const visibleItems = group.items.filter(item => user && item.roles.includes(user.role));
+          // Filter items based on Role and Beta Settings
+          const visibleItems = group.items.filter(item => {
+            const hasRole = user && item.roles.includes(user.role);
+            const isBeta = betaPages.includes(item.id);
+
+            // If beta features are disabled, hide beta pages
+            if (!systemSettings.betaFeatures && isBeta) return false;
+
+            return hasRole;
+          });
 
           if (visibleItems.length === 0) return null;
 

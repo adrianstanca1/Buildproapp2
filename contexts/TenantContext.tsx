@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '@/services/db';
-import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings, AccessLog, Vendor, TeamMember, Client } from '@/types';
+import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings, AccessLog, Vendor, TeamMember, Client, SystemSettings } from '@/types';
 
 interface TenantContextType {
   // Current tenant (simplified API)
@@ -76,6 +76,12 @@ interface TenantContextType {
   checkFeature: (featureName: string) => boolean;
   canAddResource: (resourceType: 'users' | 'projects') => boolean;
   requireRole: (allowedRoles: string[]) => boolean;
+
+  // Global System State
+  systemSettings: SystemSettings;
+  updateSystemSettings: (settings: Partial<SystemSettings>) => void;
+  broadcastMessage: string | null;
+  setBroadcastMessage: (msg: string | null) => void;
 }
 
 const TenantContext = createContext<TenantContextType | undefined>(undefined);
@@ -96,6 +102,19 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tenantUsage, setTenantUsage] = useState<TenantUsage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Global System State
+  const [systemSettings, setSystemState] = useState<SystemSettings>({
+    maintenance: false,
+    betaFeatures: true,
+    registrations: true,
+    aiEngine: true
+  });
+  const [broadcastMessage, setBroadcastMessage] = useState<string | null>(null);
+
+  const updateSystemSettings = useCallback((settings: Partial<SystemSettings>) => {
+    setSystemState(prev => ({ ...prev, ...settings }));
+  }, []);
 
   // Supply Chain State
   const [vendors, setVendors] = useState<Vendor[]>([
@@ -588,7 +607,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         updateTeamMember,
         clients,
         addClient,
-        updateClient
+        updateClient,
+        systemSettings,
+        updateSystemSettings,
+        broadcastMessage,
+        setBroadcastMessage
       }}
     >
       {children}

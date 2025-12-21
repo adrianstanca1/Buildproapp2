@@ -145,10 +145,36 @@ const MLInsightsView: React.FC = () => {
         ));
     };
 
-    // Fallback initial state if analysis not run
-    const score = analysisResult?.optimizationScore ?? 0;
-    const risk = analysisResult?.riskProbability ?? 0;
-    const savings = analysisResult?.projectedSavings ?? 0;
+    // Calculate real-time metrics from Project Context
+    const derivedMetrics = React.useMemo(() => {
+        if (projects.length === 0) return { score: 0, risk: 0 };
+
+        const totalBudget = projects.reduce((acc, p) => acc + p.budget, 0);
+        const totalSpent = projects.reduce((acc, p) => acc + p.spent, 0);
+        const budgetHealth = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
+
+        const overdueCount = tasks.filter(t => t.status !== 'Done' && new Date(t.dueDate) < new Date()).length;
+        const criticalProjects = projects.filter(p => p.health === 'Critical').length;
+        const atRiskProjects = projects.filter(p => p.health === 'At Risk').length;
+
+        // Simple heuristic algorithms for "Pre-AI" values
+        let riskScore = 0;
+        riskScore += (criticalProjects * 25);
+        riskScore += (atRiskProjects * 10);
+        riskScore += (overdueCount * 2);
+        riskScore = Math.min(99, riskScore);
+
+        let efficiencyScore = 100 - (riskScore * 0.5);
+        if (budgetHealth > 90) efficiencyScore -= 10; // Over budget penalty
+        efficiencyScore = Math.max(0, Math.min(99, efficiencyScore));
+
+        return { score: Math.round(efficiencyScore), risk: Math.round(riskScore) };
+    }, [projects, tasks]);
+
+    // Use AI result if available, otherwise use derived heuristics
+    const score = analysisResult?.optimizationScore ?? derivedMetrics.score;
+    const risk = analysisResult?.riskProbability ?? derivedMetrics.risk;
+    const savings = analysisResult?.projectedSavings ?? (projects.reduce((acc, p) => acc + p.budget, 0) * 0.05); // Est 5% savings default
     const deviation = analysisResult?.timelineDeviation ?? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 
     return (

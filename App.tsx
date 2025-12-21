@@ -1,13 +1,14 @@
 
 
+import { Megaphone, X, ShieldAlert } from 'lucide-react';
 import React, { useState, lazy, Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import { Page } from '@/types';
+import { Page, UserRole } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { TenantProvider } from '@/contexts/TenantContext';
+import { TenantProvider, useTenant } from '@/contexts/TenantContext';
 import ToastProvider from '@/contexts/ToastContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
@@ -65,14 +66,43 @@ const TenantAnalyticsView = lazyWithReload(() => import('@/views/TenantAnalytics
 const ResourceOptimizationView = lazyWithReload(() => import('@/views/ResourceOptimizationView'));
 const DailyLogsView = lazyWithReload(() => import('@/views/DailyLogsView'));
 const RFIView = lazyWithReload(() => import('@/views/RFIView'));
+const ClientPortalView = lazyWithReload(() => import('@/views/ClientPortalView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const { user } = useAuth();
+  const { broadcastMessage, setBroadcastMessage, systemSettings } = useTenant();
 
   // Shared State for Marketplace Apps
   const [installedApps, setInstalledApps] = useState<string[]>(['Procore', 'Slack', 'QuickBooks']);
+
+  // Maintenance Mode Check (Super Admins Bypass)
+  if (systemSettings.maintenance && user?.role !== UserRole.SUPER_ADMIN) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-zinc-900 text-white p-8">
+        <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
+          <ShieldAlert size={48} className="text-red-500" />
+        </div>
+        <h1 className="text-3xl font-bold mb-3">System Under Maintenance</h1>
+        <p className="text-zinc-400 text-center max-w-lg mb-8">
+          BuildPro is currently undergoing scheduled maintenance to improve performance and stability.
+          Please check back shortly.
+        </p>
+        <div className="text-xs font-mono text-zinc-600">ERROR_CODE: MAINTENANCE_MODE_ACTIVE</div>
+        <button onClick={() => window.location.reload()} className="mt-8 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors">
+          Refresh Status
+        </button>
+      </div>
+    );
+  }
+
+  // FORCE CLIENT PORTAL: If user is a Client, they CANNOT see anything else.
+  // This acts as a strict route guard.
+  if (user?.role === UserRole.CLIENT && page !== Page.CLIENT_PORTAL && page !== Page.LOGIN) {
+    setPage(Page.CLIENT_PORTAL);
+    return null; // Trigger re-render with correct page
+  }
 
   const toggleAppInstall = (appName: string) => {
     if (installedApps.includes(appName)) {
@@ -93,12 +123,28 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-50 text-zinc-900 overflow-hidden">
+    <div className="flex h-screen bg-zinc-50 text-zinc-900 overflow-hidden relative">
+      {/* Global Broadcast Banner */}
+      {broadcastMessage && (
+        <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-600 to-[#0f5c82] text-white px-4 py-3 shadow-lg flex items-center justify-between animate-in slide-in-from-top duration-500">
+          <div className="flex items-center gap-3 container mx-auto">
+            <span className="p-1.5 bg-white/20 rounded-full animate-pulse"><Megaphone size={16} /></span>
+            <p className="text-sm font-medium">{broadcastMessage}</p>
+          </div>
+          <button
+            onClick={() => setBroadcastMessage(null)}
+            className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       {/* Sidebar Navigation */}
       <Sidebar currentPage={page} setPage={setPage} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full relative overflow-hidden">
+      <div className={`flex-1 flex flex-col h-full relative overflow-hidden transition-all duration-300 ${broadcastMessage ? 'pt-12' : ''}`}>
         <TopBar setPage={setPage} />
 
         <main className="flex-1 overflow-y-auto bg-zinc-50/50 relative">

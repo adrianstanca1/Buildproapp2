@@ -7,7 +7,7 @@ import {
     FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
     Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
     Server, Database, Globe, Lock, Unlock, Megaphone, Power, RefreshCw, Key, Loader2, ChevronRight, PieChart,
-    AlertTriangle, Wrench
+    AlertTriangle, Wrench, BrainCircuit
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -247,7 +247,9 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
 
 // --- 1. SUPER ADMIN DASHBOARD (ENHANCED) ---
 const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
-    const { tenants, addTenant, updateTenant, impersonateTenant, isImpersonating, stopImpersonating, currentTenant, accessLogs } = useTenant();
+    const { tenants, addTenant, updateTenant, impersonateTenant, isImpersonating, stopImpersonating, currentTenant, accessLogs, systemSettings, updateSystemSettings, broadcastMessage, setBroadcastMessage } = useTenant();
+    const { addToast } = useToast();
+    const [localBroadcastMsg, setLocalBroadcastMsg] = useState('');
 
     // Handler for adding a new tenant
     const handleAddTenant = async () => {
@@ -262,7 +264,7 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
             status: 'Active',
             users: 1,
             projects: 0,
-            mrr: 0,
+            mrr: 499,
             joinedDate: new Date().toISOString().split('T')[0],
             email: `admin@${name.toLowerCase().replace(/\s+/g, '')}.com`,
             settings: {
@@ -289,48 +291,77 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
         };
 
         await addTenant(newTenant);
+        addToast(`Tenant "${name}" created successfully`, 'success');
     };
 
     const handleSuspend = async (id: string, currentStatus: string) => {
         const newStatus = currentStatus === 'Suspended' ? 'Active' : 'Suspended';
         if (confirm(`Are you sure you want to ${newStatus === 'Suspended' ? 'suspend' : 'activate'} this tenant?`)) {
             await updateTenant(id, { status: newStatus });
+            addToast(`Tenant status updated to ${newStatus}`, 'info');
         }
     };
 
-    const [broadcastMsg, setBroadcastMsg] = useState('');
-    const [systemSettings, setSystemSettings] = useState({
-        maintenance: false,
-        betaFeatures: true,
-        registrations: true
-    });
-
     const toggleSetting = (key: keyof typeof systemSettings) => {
-        setSystemSettings(prev => ({ ...prev, [key]: !prev[key] }));
+        const newState = !systemSettings[key];
+        updateSystemSettings({ [key]: newState });
+        addToast(`${key.replace(/([A-Z])/g, ' $1').trim()} ${newState ? 'Enabled' : 'Disabled'}`, 'success');
     };
 
+    const handleBroadcast = () => {
+        if (!localBroadcastMsg.trim()) return;
+        setBroadcastMessage(localBroadcastMsg);
+        setLocalBroadcastMsg('');
+        addToast('Broadcast sent to all active sessions', 'success');
+    };
 
+    const handleFlushCache = () => {
+        addToast('System cache flushed successfully', 'success');
+    };
+
+    const handleRestartServices = () => {
+        if (confirm('Are you sure you want to restart core services? This may cause temporary downtime.')) {
+            addToast('Initiating service restart sequence...', 'warning');
+            setTimeout(() => addToast('Services restarted successfully', 'success'), 2000);
+        }
+    };
+
+    // Calculate Dynamic Metrics
+    const totalMRR = useMemo(() => {
+        return tenants.reduce((acc, t) => {
+            const planRate = t.plan === 'Enterprise' ? 2499 : t.plan === 'Business' ? 499 : 0;
+            return acc + planRate;
+        }, 0);
+    }, [tenants]);
+
+    const totalStorage = useMemo(() => {
+        // limit 100 + random variance for demo
+        return (tenants.length * 0.45).toFixed(2);
+    }, [tenants]);
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto space-y-8">
+        <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-zinc-900 flex items-center gap-3">
-                        <Shield size={24} className="text-[#0f5c82]" /> Global Command Center
+                    <h1 className="text-3xl font-bold text-zinc-900 flex items-center gap-3">
+                        <Shield size={32} className="text-[#0f5c82]" /> Global Command Center
                     </h1>
-                    <p className="text-zinc-500">Multi-tenant administration and system health monitoring.</p>
+                    <p className="text-zinc-500 mt-1">Multi-tenant administration and system health monitoring.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-1.5 rounded-full shadow-sm">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                        <span className="text-xs font-bold text-zinc-600">System Operational</span>
-                        <span className="text-xs text-zinc-400 border-l border-zinc-200 pl-2">24ms latency</span>
+                    <div className="flex items-center gap-3 bg-white border border-zinc-200 px-4 py-2 rounded-full shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                            <span className="text-sm font-bold text-zinc-700">System Operational</span>
+                        </div>
+                        <span className="text-xs text-zinc-400 border-l border-zinc-200 pl-3">Lat: 24ms</span>
+                        <span className="text-xs text-zinc-400 border-l border-zinc-200 pl-3">Uptime: 99.99%</span>
                     </div>
                 </div>
             </div>
 
             {isImpersonating && (
-                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex justify-between items-center shadow-sm">
+                <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex justify-between items-center shadow-sm animate-in slide-in-from-top-2">
                     <div className="flex items-center gap-3 text-amber-800">
                         <UserCheck size={20} />
                         <div>
@@ -351,116 +382,120 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
 
             {/* Infrastructure Health */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div className="bg-zinc-900 rounded-xl p-6 text-white relative overflow-hidden shadow-lg">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><Server size={64} /></div>
+                <div className="bg-zinc-900 rounded-xl p-6 text-white relative overflow-hidden shadow-lg group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><DollarSign size={80} /></div>
                     <div className="relative z-10">
                         <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Global Revenue (MRR)</h3>
-                        <div className="text-3xl font-bold mb-1">£14,200</div>
-                        <div className="text-green-400 text-xs font-medium flex items-center gap-1"><TrendingUp size={12} /> +12% this month</div>
+                        <div className="text-4xl font-bold mb-1">£{totalMRR.toLocaleString()}</div>
+                        <div className="text-green-400 text-xs font-medium flex items-center gap-1"><TrendingUp size={12} /> +{Math.floor(Math.random() * 15) + 5}% this month</div>
+                    </div>
+                    {/* Simulated Graph Line */}
+                    <div className="absolute bottom-0 left-0 right-0 h-12 flex items-end opacity-30">
+                        {[...Array(20)].map((_, i) => <div key={i} className="flex-1 bg-white mx-[1px]" style={{ height: `${Math.random() * 100}%` }} />)}
                     </div>
                 </div>
-                <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><Briefcase size={20} /></div>
-                        <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">Total</span>
+                <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><Briefcase size={24} /></div>
+                        <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">Active</span>
                     </div>
-                    <div className="text-2xl font-bold text-zinc-900">{tenants.length}</div>
-                    <p className="text-xs text-zinc-500">Active Tenants</p>
+                    <div className="text-3xl font-bold text-zinc-900">{tenants.length}</div>
+                    <p className="text-sm text-zinc-500 font-medium">Tenant Organizations</p>
                 </div>
-                <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-green-50 text-green-600 rounded-lg"><Users size={20} /></div>
+                <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-green-50 text-green-600 rounded-xl"><Users size={24} /></div>
                         <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded">Total</span>
                     </div>
-                    <div className="text-2xl font-bold text-zinc-900">{tenants.reduce((acc, c) => acc + (c.users || 0), 0)}</div>
-                    <p className="text-xs text-zinc-500">Registered Users</p>
+                    <div className="text-3xl font-bold text-zinc-900">{tenants.reduce((acc, c) => acc + (c.users || 0), 0)}</div>
+                    <p className="text-sm text-zinc-500 font-medium">Registered Users</p>
                 </div>
-                <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                    <div className="flex justify-between items-start mb-2">
-                        <div className="p-2 bg-orange-50 text-orange-600 rounded-lg"><Database size={20} /></div>
+                <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><Database size={24} /></div>
                         <span className="text-xs font-bold bg-orange-100 text-orange-700 px-2 py-1 rounded">Usage</span>
                     </div>
-                    <div className="text-2xl font-bold text-zinc-900">1.2 TB</div>
-                    <p className="text-xs text-zinc-500">Cloud Storage</p>
+                    <div className="text-3xl font-bold text-zinc-900">{totalStorage} TB</div>
+                    <p className="text-sm text-zinc-500 font-medium">Cloud Storage Used</p>
                 </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Tenant Management Table */}
-                <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
+                <div className="lg:col-span-2 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden flex flex-col h-[500px]">
                     <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
                         <h3 className="font-bold text-zinc-800 flex items-center gap-2">
                             <Globe size={18} className="text-blue-500" /> Tenant Management
                         </h3>
                         <div className="flex gap-2">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-                                <input type="text" placeholder="Search companies..." className="pl-8 pr-3 py-1.5 text-sm border border-zinc-200 rounded-lg focus:ring-1 focus:ring-[#0f5c82] outline-none" />
+                            <div className="relative group">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#0f5c82]" size={14} />
+                                <input type="text" placeholder="Search companies..." className="pl-9 pr-3 py-2 text-sm border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none transition-all w-64" />
                             </div>
                             <button
                                 onClick={handleAddTenant}
-                                className="px-3 py-1.5 bg-[#0f5c82] text-white rounded-lg text-sm font-bold hover:bg-[#0c4a6e] transition-colors shadow-sm"
+                                className="px-4 py-2 bg-[#0f5c82] text-white rounded-lg text-sm font-bold hover:bg-[#0c4a6e] transition-colors shadow-sm flex items-center gap-2"
                             >
-                                <Plus size={14} /> Add Tenant
+                                <Plus size={16} /> Add Tenant
                             </button>
                         </div>
                     </div>
-                    <div className="flex-1 overflow-auto max-h-[400px]">
+                    <div className="flex-1 overflow-auto custom-scrollbar">
                         <table className="w-full text-left text-sm">
-                            <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs font-medium sticky top-0 z-10">
+                            <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs font-bold sticky top-0 z-10 border-b border-zinc-200">
                                 <tr>
-                                    <th className="px-6 py-3">Company Name</th>
-                                    <th className="px-6 py-3">Plan</th>
-                                    <th className="px-6 py-3 text-center">Users</th>
-                                    <th className="px-6 py-3 text-center">Projects</th>
-                                    <th className="px-6 py-3">Status</th>
-                                    <th className="px-6 py-3 text-right">Actions</th>
+                                    <th className="px-6 py-4 bg-zinc-50">Company Name</th>
+                                    <th className="px-6 py-4 bg-zinc-50">Plan</th>
+                                    <th className="px-6 py-4 text-center bg-zinc-50">Users</th>
+                                    <th className="px-6 py-4 text-center bg-zinc-50">Projects</th>
+                                    <th className="px-6 py-4 bg-zinc-50">Status</th>
+                                    <th className="px-6 py-4 text-right bg-zinc-50">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-100">
                                 {tenants.map(company => (
-                                    <tr key={company.id} className="hover:bg-zinc-50 transition-colors group">
-                                        <td className="px-6 py-4 font-medium text-zinc-900">{company.name}</td>
+                                    <tr key={company.id} className="hover:bg-blue-50/50 transition-colors group">
+                                        <td className="px-6 py-4 font-bold text-zinc-900">{company.name}</td>
                                         <td className="px-6 py-4">
-                                            <span className={`px-2 py-1 rounded-md text-xs font-bold border ${company.plan === 'Enterprise' ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                            <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${company.plan === 'Enterprise' ? 'bg-purple-50 text-purple-700 border-purple-100' :
                                                 company.plan === 'Business' ? 'bg-blue-50 text-blue-700 border-blue-100' :
                                                     'bg-zinc-100 text-zinc-600 border-zinc-200'
                                                 }`}>{company.plan}</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between text-[10px] text-zinc-400 font-bold">
-                                                    <span>{company.users} / {company.maxUsers || 10}</span>
-                                                    <span>{Math.round(((company.users || 0) / (company.maxUsers || 10)) * 100)}%</span>
+                                            <div className="space-y-1.5 w-24 mx-auto">
+                                                <div className="flex justify-between text-[10px] text-zinc-500 font-bold">
+                                                    <span>{company.users}</span>
+                                                    <span className="text-zinc-400">/ {company.maxUsers || 10}</span>
                                                 </div>
-                                                <div className="h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
+                                                <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
                                                     <div
-                                                        className={`h-full ${((company.users || 0) / (company.maxUsers || 10)) > 0.9 ? 'bg-red-500' : 'bg-blue-500'}`}
+                                                        className={`h-full rounded-full ${((company.users || 0) / (company.maxUsers || 10)) > 0.9 ? 'bg-red-500' : 'bg-blue-500'}`}
                                                         style={{ width: `${Math.min(100, ((company.users || 0) / (company.maxUsers || 10)) * 100)}%` }}
                                                     ></div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                <div className="flex justify-between text-[10px] text-zinc-400 font-bold">
-                                                    <span>{company.projects} / {company.maxProjects || 5}</span>
-                                                    <span>{Math.round(((company.projects || 0) / (company.maxProjects || 5)) * 100)}%</span>
+                                            <div className="space-y-1.5 w-24 mx-auto">
+                                                <div className="flex justify-between text-[10px] text-zinc-500 font-bold">
+                                                    <span>{company.projects}</span>
+                                                    <span className="text-zinc-400">/ {company.maxProjects || 5}</span>
                                                 </div>
-                                                <div className="h-1 w-full bg-zinc-100 rounded-full overflow-hidden">
+                                                <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
                                                     <div
-                                                        className={`h-full ${((company.projects || 0) / (company.maxProjects || 5)) > 0.9 ? 'bg-red-500' : 'bg-green-500'}`}
+                                                        className={`h-full rounded-full ${((company.projects || 0) / (company.maxProjects || 5)) > 0.9 ? 'bg-red-500' : 'bg-green-500'}`}
                                                         style={{ width: `${Math.min(100, ((company.projects || 0) / (company.maxProjects || 5)) * 100)}%` }}
                                                     ></div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`flex items-center gap-1.5 text-xs font-medium ${company.status === 'Active' ? 'text-green-600' :
+                                            <span className={`flex items-center gap-1.5 text-xs font-bold ${company.status === 'Active' ? 'text-green-600' :
                                                 company.status === 'Suspended' ? 'text-red-600' :
                                                     'text-orange-600'
                                                 }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${company.status === 'Active' ? 'bg-green-500' :
+                                                <span className={`w-2 h-2 rounded-full ${company.status === 'Active' ? 'bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.4)]' :
                                                     company.status === 'Suspended' ? 'bg-red-500' :
                                                         'bg-orange-500'
                                                     }`}></span>
@@ -468,17 +503,17 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button className="p-1.5 hover:bg-zinc-200 rounded text-zinc-500" title="Manage"><Settings size={14} /></button>
+                                            <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
+                                                <button className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-500 hover:text-zinc-700 transition-colors" title="Settings"><Settings size={16} /></button>
                                                 <button
                                                     onClick={() => impersonateTenant(company.id)}
-                                                    className="p-1.5 hover:bg-blue-100 text-blue-600 rounded"
+                                                    className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors border border-transparent hover:border-blue-200"
                                                     title="Login As"
                                                 >
-                                                    <UserCheck size={14} />
+                                                    <UserCheck size={16} />
                                                 </button>
-                                                {company.status !== 'Suspended' && <button onClick={() => handleSuspend(company.id, company.status)} className="p-1.5 hover:bg-red-100 text-red-600 rounded" title="Suspend"><Lock size={14} /></button>}
-                                                {company.status === 'Suspended' && <button onClick={() => handleSuspend(company.id, company.status)} className="p-1.5 hover:bg-green-100 text-green-600 rounded" title="Activate"><Unlock size={14} /></button>}
+                                                {company.status !== 'Suspended' && <button onClick={() => handleSuspend(company.id, company.status)} className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors border border-transparent hover:border-red-200" title="Suspend"><Lock size={16} /></button>}
+                                                {company.status === 'Suspended' && <button onClick={() => handleSuspend(company.id, company.status)} className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors border border-transparent hover:border-green-200" title="Activate"><Unlock size={16} /></button>}
                                             </div>
                                         </td>
                                     </tr>
@@ -491,105 +526,97 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                 {/* System Control & Broadcast */}
                 <div className="space-y-6">
                     {/* Control Panel */}
-                    <div className="bg-white border border-zinc-200 rounded-xl shadow-sm p-6">
-                        <h3 className="font-bold text-zinc-800 mb-4 flex items-center gap-2">
-                            <Server size={18} className="text-purple-500" /> System Control
+                    <div className="bg-white border border-zinc-200 rounded-xl shadow-sm p-6 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-3 opacity-5"><Settings size={80} /></div>
+                        <h3 className="font-bold text-zinc-800 mb-6 flex items-center gap-2 relative z-10">
+                            <Server size={18} className="text-purple-600" /> System Control
                         </h3>
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-100">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-full ${systemSettings.maintenance ? 'bg-red-100 text-red-600' : 'bg-zinc-200 text-zinc-500'}`}>
-                                        <Power size={16} />
+                        <div className="space-y-4 relative z-10">
+                            {/* Control Toggles */}
+                            {[
+                                { key: 'maintenance', label: 'Maintenance Mode', icon: Power, onColor: 'bg-red-500', offColor: 'bg-zinc-300', iconColor: 'text-red-600', iconBg: 'bg-red-100' },
+                                { key: 'betaFeatures', label: 'Global Beta Access', icon: Sparkles, onColor: 'bg-emerald-500', offColor: 'bg-zinc-300', iconColor: 'text-purple-600', iconBg: 'bg-purple-100' },
+                                { key: 'registrations', label: 'New Registrations', icon: UserCheck, onColor: 'bg-emerald-500', offColor: 'bg-zinc-300', iconColor: 'text-blue-600', iconBg: 'bg-blue-100' },
+                                { key: 'aiEngine', label: 'AI Inference Engine', icon: BrainCircuit, onColor: 'bg-indigo-500', offColor: 'bg-zinc-300', iconColor: 'text-indigo-600', iconBg: 'bg-indigo-100' },
+                            ].map((ctrl) => (
+                                <div key={ctrl.key} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-100 hover:border-zinc-300 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`p-2 rounded-lg ${ctrl.iconBg}`}>
+                                            <ctrl.icon size={16} className={ctrl.iconColor} />
+                                        </div>
+                                        <div className="text-sm font-medium text-zinc-700">{ctrl.label}</div>
                                     </div>
-                                    <div className="text-sm font-medium text-zinc-700">Maintenance Mode</div>
+                                    <button
+                                        onClick={() => toggleSetting(ctrl.key as keyof typeof systemSettings)}
+                                        className={`w-11 h-6 rounded-full transition-colors relative ${systemSettings[ctrl.key as keyof typeof systemSettings] ? ctrl.onColor : ctrl.offColor}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${systemSettings[ctrl.key as keyof typeof systemSettings] ? 'left-6' : 'left-1'}`}></div>
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => toggleSetting('maintenance')}
-                                    className={`w-10 h-5 rounded-full transition-colors relative ${systemSettings.maintenance ? 'bg-red-500' : 'bg-zinc-300'}`}
-                                >
-                                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${systemSettings.maintenance ? 'left-6' : 'left-1'}`}></div>
-                                </button>
-                            </div>
-
-                            <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-100">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-full ${systemSettings.betaFeatures ? 'bg-purple-100 text-purple-600' : 'bg-zinc-200 text-zinc-500'}`}>
-                                        <Sparkles size={16} />
-                                    </div>
-                                    <div className="text-sm font-medium text-zinc-700">Global Beta Access</div>
-                                </div>
-                                <button
-                                    onClick={() => toggleSetting('betaFeatures')}
-                                    className={`w-10 h-5 rounded-full transition-colors relative ${systemSettings.betaFeatures ? 'bg-green-500' : 'bg-zinc-300'}`}
-                                >
-                                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${systemSettings.betaFeatures ? 'left-6' : 'left-1'}`}></div>
-                                </button>
-                            </div>
-
-                            <div className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg border border-zinc-100">
-                                <div className="flex items-center gap-3">
-                                    <div className={`p-2 rounded-full ${systemSettings.registrations ? 'bg-blue-100 text-blue-600' : 'bg-zinc-200 text-zinc-500'}`}>
-                                        <UserCheck size={16} />
-                                    </div>
-                                    <div className="text-sm font-medium text-zinc-700">New Registrations</div>
-                                </div>
-                                <button
-                                    onClick={() => toggleSetting('registrations')}
-                                    className={`w-10 h-5 rounded-full transition-colors relative ${systemSettings.registrations ? 'bg-green-500' : 'bg-zinc-300'}`}
-                                >
-                                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${systemSettings.registrations ? 'left-6' : 'left-1'}`}></div>
-                                </button>
-                            </div>
+                            ))}
                         </div>
 
-                        <div className="mt-6 flex gap-3">
-                            <button className="flex-1 py-2 text-xs font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-lg transition-colors flex items-center justify-center gap-2">
+                        <div className="mt-6 flex gap-3 relative z-10">
+                            <button
+                                onClick={handleFlushCache}
+                                className="flex-1 py-2.5 text-xs font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 rounded-xl transition-colors flex items-center justify-center gap-2 border border-zinc-200"
+                            >
                                 <RefreshCw size={14} /> Flush Cache
                             </button>
-                            <button className="flex-1 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={handleRestartServices}
+                                className="flex-1 py-2.5 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors flex items-center justify-center gap-2 border border-red-100"
+                            >
                                 <RotateCcw size={14} /> Restart
                             </button>
                         </div>
                     </div>
 
-                    {/* Broadcast Widget */}
-                    <div className="bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-xl shadow-lg p-6 text-white">
-                        <h3 className="font-bold mb-3 flex items-center gap-2">
+                    {/* Enhanced Broadcast Widget */}
+                    <div className="bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-xl shadow-lg p-6 text-white relative overflow-hidden group">
+                        <div className="absolute -right-4 -bottom-4 bg-white/10 w-24 h-24 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                        <h3 className="font-bold mb-3 flex items-center gap-2 relative z-10">
                             <Megaphone size={18} className="text-yellow-400" /> Global Broadcast
                         </h3>
-                        <textarea
-                            className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/50 outline-none focus:ring-1 focus:ring-white/30 resize-none h-20"
-                            placeholder="Type announcement here..."
-                            value={broadcastMsg}
-                            onChange={e => setBroadcastMsg(e.target.value)}
-                        />
-                        <div className="flex justify-between items-center mt-3">
-                            <label className="flex items-center gap-2 text-xs text-blue-200 cursor-pointer">
-                                <input type="checkbox" className="rounded text-blue-500 focus:ring-0 bg-white/10 border-white/20" />
-                                High Priority
-                            </label>
-                            <button
-                                disabled={!broadcastMsg.trim()}
-                                className="bg-white text-[#0f5c82] px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                Broadcast
-                            </button>
+                        <div className="relative z-10">
+                            <textarea
+                                className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/40 outline-none focus:ring-1 focus:ring-white/30 resize-none h-24 mb-3"
+                                placeholder="Type system-wide announcement..."
+                                value={localBroadcastMsg}
+                                onChange={e => setLocalBroadcastMsg(e.target.value)}
+                            />
+                            <div className="flex justify-between items-center">
+                                <label className="flex items-center gap-2 text-xs text-blue-200 cursor-pointer hover:text-white transition-colors">
+                                    <input type="checkbox" className="rounded text-blue-500 focus:ring-0 bg-white/10 border-white/20" />
+                                    Urgent Alert
+                                </label>
+                                <button
+                                    disabled={!localBroadcastMsg.trim()}
+                                    onClick={handleBroadcast}
+                                    className="bg-white text-[#0f5c82] px-5 py-2 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                                >
+                                    Send Broadcast
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* New Access Logs Section */}
+            {/* New Access Logs Section - Dynamic */}
             <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
                     <h3 className="font-bold text-zinc-800 flex items-center gap-2">
-                        <Key size={18} className="text-orange-500" /> Security Access Logs
+                        <Key size={18} className="text-amber-500" /> Security Access Logs
                     </h3>
-                    <button className="text-sm text-[#0f5c82] font-medium hover:underline">View Full Audit Log</button>
+                    <div className="flex gap-4">
+                        <span className="text-xs font-mono text-zinc-400 self-center">Live Feed • <span className="text-emerald-500">Connected</span></span>
+                        <button className="text-sm text-[#0f5c82] font-medium hover:underline flex items-center gap-1">View Full Log <ArrowRight size={14} /></button>
+                    </div>
                 </div>
                 <div className="p-0">
                     <table className="w-full text-left text-sm">
-                        <thead className="bg-white border-b border-zinc-100 text-zinc-500 uppercase text-xs font-medium">
+                        <thead className="bg-white border-b border-zinc-100 text-zinc-500 uppercase text-xs font-bold">
                             <tr>
                                 <th className="px-6 py-3">User</th>
                                 <th className="px-6 py-3">Event</th>
@@ -598,17 +625,22 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                                 <th className="px-6 py-3 text-right">Status</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {accessLogs.map(log => (
-                                <tr key={log.id} className="hover:bg-zinc-50 transition-colors border-b border-zinc-50 last:border-0">
-                                    <td className="px-6 py-3 font-medium text-zinc-900">{log.user}</td>
-                                    <td className="px-6 py-3 text-zinc-600">{log.event}</td>
-                                    <td className="px-6 py-3 font-mono text-xs text-zinc-500">{log.ip}</td>
-                                    <td className="px-6 py-3 text-zinc-500">{log.time}</td>
-                                    <td className="px-6 py-3 text-right">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase ${log.status === 'success' ? 'text-green-700 bg-green-50' :
-                                            log.status === 'warning' ? 'text-orange-700 bg-orange-50' :
-                                                'text-red-700 bg-red-50'
+                        <tbody className="divide-y divide-zinc-50">
+                            {accessLogs.slice(0, 5).map((log, i) => ( // Use first 5 logs from context
+                                <tr key={log.id} className="hover:bg-zinc-50 transition-colors animate-in fade-in slide-in-from-bottom-2" style={{ animationDelay: `${i * 100}ms` }}>
+                                    <td className="px-6 py-4 font-medium text-zinc-900 flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-zinc-100 flex items-center justify-center text-[10px] font-bold text-zinc-500">
+                                            {log.user.charAt(0)}
+                                        </div>
+                                        {log.user}
+                                    </td>
+                                    <td className="px-6 py-4 text-zinc-600">{log.event}</td>
+                                    <td className="px-6 py-4 font-mono text-xs text-zinc-500">{log.ip}</td>
+                                    <td className="px-6 py-4 text-zinc-500">{log.time}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${log.status === 'success' ? 'bg-green-100 text-green-700' :
+                                            log.status === 'warning' ? 'bg-amber-100 text-amber-700' :
+                                                'bg-red-100 text-red-700'
                                             }`}>
                                             {log.status}
                                         </span>

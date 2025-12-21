@@ -1,5 +1,12 @@
 import React from 'react';
 
+export interface SystemSettings {
+  maintenance: boolean;
+  betaFeatures: boolean;
+  registrations: boolean;
+  aiEngine: boolean;
+}
+
 export enum Page {
   LOGIN = 'LOGIN',
   PROFILE = 'PROFILE',
