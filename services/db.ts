@@ -35,7 +35,6 @@ class DatabaseService {
     if (this.tenantId) headers['x-company-id'] = this.tenantId;
 
     // Get real Auth Token
-    // Get real Auth Token
     const { data } = await supabase.auth.getSession();
     if (data.session?.access_token) {
       headers['Authorization'] = `Bearer ${data.session.access_token}`;
@@ -172,7 +171,7 @@ class DatabaseService {
     await this.post('documents', d);
   }
   async updateDocument(id: string, d: Partial<ProjectDocument>) {
-    // await this.put('documents', id, d); // put implementation missing?
+    await this.put('documents', id, d);
   }
 
   // --- Clients ---
