@@ -12,47 +12,59 @@ import ToastProvider from '@/contexts/ToastContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
 
+// Utility to handle chunk load errors by reloading the page
+const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
+  return fn().catch(error => {
+    // Check if it's a chunk load error
+    if (error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('Importing a module script failed')) {
+      window.location.reload();
+    }
+    throw error;
+  });
+});
+
 // Lazily loaded view components
-const LoginView = lazy(() => import('@/views/LoginView'));
-const ProfileView = lazy(() => import('@/views/ProfileView'));
-const AIToolsView = lazy(() => import('@/views/AIToolsView'));
-const ReportsView = lazy(() => import('@/views/ReportsView'));
-const ScheduleView = lazy(() => import('@/views/ScheduleView'));
-const ChatView = lazy(() => import('@/views/ChatView'));
-const LiveView = lazy(() => import('@/views/LiveView'));
-const DashboardView = lazy(() => import('@/views/DashboardView'));
-const ProjectsView = lazy(() => import('@/views/ProjectsView'));
-const ProjectDetailsView = lazy(() => import('@/views/ProjectDetailsView'));
-const TasksView = lazy(() => import('@/views/TasksView'));
-const TeamView = lazy(() => import('@/views/TeamView'));
-const TimesheetsView = lazy(() => import('@/views/TimesheetsView'));
-const DocumentsView = lazy(() => import('@/views/DocumentsView'));
-const SafetyView = lazy(() => import('@/views/SafetyView'));
-const EquipmentView = lazy(() => import('@/views/EquipmentView'));
-const FinancialsView = lazy(() => import('@/views/FinancialsView'));
-const TeamChatView = lazy(() => import('@/views/TeamChatView'));
-const MLInsightsView = lazy(() => import('@/views/MLInsightsView'));
-const ComplianceView = lazy(() => import('@/views/ComplianceView'));
-const ProcurementView = lazy(() => import('@/views/ProcurementView'));
-const CustomDashView = lazy(() => import('@/views/CustomDashView'));
-const WorkforceView = lazy(() => import('@/views/WorkforceView'));
-const IntegrationsView = lazy(() => import('@/views/IntegrationsView'));
-const SecurityView = lazy(() => import('@/views/SecurityView'));
-const ExecutiveView = lazy(() => import('@/views/ExecutiveView'));
-const MapView = lazy(() => import('@/views/MapView'));
-const ClientsView = lazy(() => import('@/views/ClientsView'));
-const InventoryView = lazy(() => import('@/views/InventoryView'));
-const DevSandboxView = lazy(() => import('@/views/DevSandboxView'));
-const MarketplaceView = lazy(() => import('@/views/MarketplaceView'));
-const ImagineView = lazy(() => import('@/views/ImagineView'));
-const MyDesktopView = lazy(() => import('@/views/MyDesktopView'));
-const LiveProjectMapView = lazy(() => import('@/views/LiveProjectMapView'));
-const ProjectLaunchpadView = lazy(() => import('@/views/ProjectLaunchpadView'));
-const TenantManagementView = lazy(() => import('@/views/TenantManagementView'));
-const TenantAnalyticsView = lazy(() => import('@/views/TenantAnalyticsView'));
-const ResourceOptimizationView = lazy(() => import('@/views/ResourceOptimizationView'));
-const DailyLogsView = lazy(() => import('@/views/DailyLogsView'));
-const RFIView = lazy(() => import('@/views/RFIView'));
+const LoginView = lazyWithReload(() => import('@/views/LoginView'));
+const ProfileView = lazyWithReload(() => import('@/views/ProfileView'));
+const AIToolsView = lazyWithReload(() => import('@/views/AIToolsView'));
+const ReportsView = lazyWithReload(() => import('@/views/ReportsView'));
+const ScheduleView = lazyWithReload(() => import('@/views/ScheduleView'));
+const ChatView = lazyWithReload(() => import('@/views/ChatView'));
+const LiveView = lazyWithReload(() => import('@/views/LiveView'));
+const DashboardView = lazyWithReload(() => import('@/views/DashboardView'));
+const ProjectsView = lazyWithReload(() => import('@/views/ProjectsView'));
+const ProjectDetailsView = lazyWithReload(() => import('@/views/ProjectDetailsView'));
+const TasksView = lazyWithReload(() => import('@/views/TasksView'));
+const TeamView = lazyWithReload(() => import('@/views/TeamView'));
+const TimesheetsView = lazyWithReload(() => import('@/views/TimesheetsView'));
+const DocumentsView = lazyWithReload(() => import('@/views/DocumentsView'));
+const SafetyView = lazyWithReload(() => import('@/views/SafetyView'));
+const EquipmentView = lazyWithReload(() => import('@/views/EquipmentView'));
+const FinancialsView = lazyWithReload(() => import('@/views/FinancialsView'));
+const TeamChatView = lazyWithReload(() => import('@/views/TeamChatView'));
+const MLInsightsView = lazyWithReload(() => import('@/views/MLInsightsView'));
+const ComplianceView = lazyWithReload(() => import('@/views/ComplianceView'));
+const ProcurementView = lazyWithReload(() => import('@/views/ProcurementView'));
+const CustomDashView = lazyWithReload(() => import('@/views/CustomDashView'));
+const WorkforceView = lazyWithReload(() => import('@/views/WorkforceView'));
+const IntegrationsView = lazyWithReload(() => import('@/views/IntegrationsView'));
+const SecurityView = lazyWithReload(() => import('@/views/SecurityView'));
+const ExecutiveView = lazyWithReload(() => import('@/views/ExecutiveView'));
+const MapView = lazyWithReload(() => import('@/views/MapView'));
+const ClientsView = lazyWithReload(() => import('@/views/ClientsView'));
+const InventoryView = lazyWithReload(() => import('@/views/InventoryView'));
+const DevSandboxView = lazyWithReload(() => import('@/views/DevSandboxView'));
+const MarketplaceView = lazyWithReload(() => import('@/views/MarketplaceView'));
+const ImagineView = lazyWithReload(() => import('@/views/ImagineView'));
+const MyDesktopView = lazyWithReload(() => import('@/views/MyDesktopView'));
+const LiveProjectMapView = lazyWithReload(() => import('@/views/LiveProjectMapView'));
+const ProjectLaunchpadView = lazyWithReload(() => import('@/views/ProjectLaunchpadView'));
+const TenantManagementView = lazyWithReload(() => import('@/views/TenantManagementView'));
+const TenantAnalyticsView = lazyWithReload(() => import('@/views/TenantAnalyticsView'));
+const ResourceOptimizationView = lazyWithReload(() => import('@/views/ResourceOptimizationView'));
+const DailyLogsView = lazyWithReload(() => import('@/views/DailyLogsView'));
+const RFIView = lazyWithReload(() => import('@/views/RFIView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);
