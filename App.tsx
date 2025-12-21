@@ -144,6 +144,8 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.TENANT_MANAGEMENT && <TenantManagementView />}
               {page === Page.TENANT_ANALYTICS && <TenantAnalyticsView />}
               {page === Page.RESOURCE_OPTIMIZATION && <ResourceOptimizationView />}
+              {page === Page.DAILY_LOGS && <DailyLogsView />}
+              {page === Page.RFI && <RFIView />}
             </Suspense>
           </ErrorBoundary>
         </main>
