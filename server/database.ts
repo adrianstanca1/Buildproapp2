@@ -70,7 +70,7 @@ export async function initializeDatabase() {
         dbInstance = new PostgresAdapter(connectionString);
       } else {
         // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
-        console.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
+        logger.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
         try {
           const sqlite3 = require('sqlite3');
           const { open } = require('sqlite');
