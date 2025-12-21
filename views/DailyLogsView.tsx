@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { DailyLog } from '@/types';
 
 const DailyLogsView: React.FC = () => {
-    const { projects, addDailyLog } = useProjects();
+    const { projects, dailyLogs, addDailyLog } = useProjects();
     const { user } = useAuth();
     const { addToast } = useToast();
 
@@ -193,8 +193,43 @@ const DailyLogsView: React.FC = () => {
                     </div>
 
                 </div>
+
+                {/* Recent Logs List (Verification) */}
+                <div className="bg-white rounded-3xl p-8 border border-zinc-100 shadow-sm">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-zinc-50 text-zinc-600 rounded-xl">
+                            <FileText size={24} />
+                        </div>
+                        <h2 className="text-xl font-bold">Recent Logs</h2>
+                    </div>
+                    <div className="space-y-4">
+                        {dailyLogs
+                            .filter(l => l.projectId === selectedProject)
+                            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                            .slice(0, 5)
+                            .map(log => (
+                                <div key={log.id} className="flex items-center justify-between p-4 bg-zinc-50 rounded-xl border border-zinc-100">
+                                    <div>
+                                        <p className="font-bold text-zinc-800">{new Date(log.date).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}</p>
+                                        <p className="text-xs text-zinc-500">Author: {log.author}</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-bold text-zinc-600">{log.weather.split(',')[0]}</span>
+                                        <span className={`px-3 py-1 text-xs font-bold rounded-full ${log.status === 'Signed' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                            {log.status || 'Draft'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        {dailyLogs.filter(l => l.projectId === selectedProject).length === 0 && (
+                            <p className="text-zinc-400 text-center py-4">No logs recorded for this project yet.</p>
+                        )}
+                    </div>
+                </div>
+
             </div>
         </div>
+
     );
 };
 

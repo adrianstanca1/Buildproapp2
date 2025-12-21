@@ -40,7 +40,7 @@ const tabs: Tab[] = [
 ];
 
 export const TenantManagementView: React.FC = () => {
-  const { currentTenant, tenants, tenantMembers, tenantUsage, getTenantAuditLogs, isLoading, requireRole } = useTenant();
+  const { currentTenant, tenants, tenantMembers, tenantUsage, getTenantAuditLogs, isLoading, requireRole, addTenantMember } = useTenant();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [searchQuery, setSearchQuery] = useState('');
@@ -281,9 +281,21 @@ export const TenantManagementView: React.FC = () => {
                           onClick={async () => {
                             const email = prompt("Enter email address to invite:");
                             if (email && selectedTenant) {
-                              // inviteMember(email, 'member'); // Assuming inviteMember exists on context, need to verify
-                              // For now, basic mock implementation or connect to existing context method
-                              alert(`Invitation sent to ${email}`);
+                              try {
+                                await addTenantMember({
+                                  id: `mem-${Date.now()}`,
+                                  tenantId: selectedTenant.id,
+                                  userId: email, // Placeholder until real user lookup
+                                  name: email.split('@')[0],
+                                  email: email,
+                                  role: 'member',
+                                  joinedAt: new Date().toISOString(),
+                                  isActive: false // Pending status
+                                });
+                                // alert(`Invitation sent to ${email}`); // Context handles updates
+                              } catch (e) {
+                                alert('Failed to add member');
+                              }
                             }
                           }}
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
