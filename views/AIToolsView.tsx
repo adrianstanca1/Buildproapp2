@@ -41,9 +41,17 @@ const AIToolsView: React.FC<AIToolsViewProps> = ({ setPage }) => {
   const [yoloImage, setYoloImage] = useState<string | null>(null);
   const [yoloDetections, setYoloDetections] = useState<any[]>([]);
 
-  // ... (rest of state)
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: string | null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  // ... (handleFileUpload remains same)
+    setSelectedFile(file);
+    addToast(`Uploaded ${file.name} for ${type || 'analysis'}`, 'success');
+
+    // Auto-trigger analysis based on type if needed
+    if (type === 'risk') generateRiskAssessment();
+    else if (type === 'cost') generateCostEstimate();
+  };
 
   const generateCostEstimate = async () => {
     setAnalyzing(true);
