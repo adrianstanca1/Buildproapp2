@@ -235,7 +235,7 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
         // If invalid dates, return empty
         if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
 
-        let current = new Date(start);
+        const current = new Date(start);
         current.setDate(1);
 
         while (current <= end) {

@@ -29,7 +29,7 @@ const TimesheetsView: React.FC = () => {
                 setNewEntry(prev => ({ ...prev, employeeName: match.name }));
             }
         }
-    }, [user, workforce]);
+    }, [user, workforce, newEntry.employeeName]);
 
     const filteredSheets = timesheets.filter(t =>
         activeTab === 'PENDING' ? t.status === 'Pending' : t.status === 'Approved'

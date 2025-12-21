@@ -36,7 +36,7 @@ export default function TenantAnalyticsView() {
             }
         }
         loadAnalytics();
-    }, [tenant?.id]);
+    }, [tenant]);
 
     if (!tenant) return null;
 

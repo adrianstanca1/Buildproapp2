@@ -11,7 +11,7 @@ import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
 import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
 import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tenantService.js';
-import { logger } from './utils/logger.js';
+import logger from './logger.js';
 
 const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
@@ -724,48 +724,48 @@ app.get('*', (req, res) => {
 import { createServer } from 'http';
 import { setupWebSocketServer } from './socket.js';
 
-console.log('DEBUG: Creating HTTP Server...');
+logger.info('DEBUG: Creating HTTP Server...');
 const httpServer = createServer(app);
 
 // Setup WebSockets
 try {
-    console.log('DEBUG: Setting up WebSockets...');
+    logger.info('DEBUG: Setting up WebSockets...');
     setupWebSocketServer(httpServer);
-    console.log('DEBUG: WebSockets Setup Complete.');
+    logger.info('DEBUG: WebSockets Setup Complete.');
 } catch (e) {
-    console.error('DEBUG: WebSocket Setup Failed:', e);
+    logger.error('DEBUG: WebSocket Setup Failed:', e);
 }
 
 // Start server immediately to satisfy Cloud Run health checks
 const startServer = async () => {
-    console.log('DEBUG: startServer() called. Port:', port);
+    logger.info(`DEBUG: startServer() called. Port: ${port}`);
     try {
         // Listen strictly on 0.0.0.0 for Cloud Run
         httpServer.listen(Number(port), '0.0.0.0', () => {
-            console.log(`Backend server running at http://0.0.0.0:${port}`);
-            console.log(`WebSocket server ready at ws://0.0.0.0:${port}/api/live`);
+            logger.info(`Backend server running at http://0.0.0.0:${port}`);
+            logger.info(`WebSocket server ready at ws://0.0.0.0:${port}/api/live`);
         });
-        console.log('DEBUG: httpServer.listen called.');
+        logger.info('DEBUG: httpServer.listen called.');
     } catch (e) {
-        console.error('DEBUG: httpServer.listen failed:', e);
+        logger.error('DEBUG: httpServer.listen failed:', e);
     }
 
     // Initialize DB in background
     // if (!process.env.VERCEL) { // FORCE START
     try {
-        console.log('Starting DB initialization...');
+        logger.info('Starting DB initialization...');
         await ensureDbInitialized();
-        console.log('DB Initialized. Seeding...');
+        logger.info('DB Initialized. Seeding...');
         await seedDatabase();
-        console.log('DB Ready.');
+        logger.info('DB Ready.');
     } catch (err) {
-        console.error('CRITICAL: DB Initialization failed:', err);
+        logger.error('CRITICAL: DB Initialization failed:', err);
         // Don't crash, just log. App will be online but DB features might fail.
     }
     // }
 };
 
-console.log('DEBUG: Reached end of index.ts. Env VERCEL:', process.env.VERCEL);
+logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`);
 startServer();
 
 export default app;

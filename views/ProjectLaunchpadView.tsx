@@ -305,7 +305,7 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
                 hasVisualInput: !!(fileData || filePreview)
             };
 
-            let prompt = `
+            const prompt = `
             You are an expert Construction AI Architect powered by Gemini 3 Pro.
             You are assisting a Project Manager in defining a new construction project.
 

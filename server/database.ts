@@ -2,6 +2,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
+import logger from './logger.js';
 
 dotenv.config();
 
@@ -65,7 +66,7 @@ export async function initializeDatabase() {
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
       if (connectionString) {
-        console.log('Initializing PostgreSQL connection for Production...');
+        logger.info('Initializing PostgreSQL connection for Production...');
         dbInstance = new PostgresAdapter(connectionString);
       } else {
         // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
@@ -79,7 +80,7 @@ export async function initializeDatabase() {
           await db.exec('PRAGMA foreign_keys = ON;');
           dbInstance = new SqliteAdapter(db);
         } catch (error) {
-          console.error('SQLite Fallback Failed:', error);
+          logger.error('SQLite Fallback Failed:', error);
           throw new Error('Database initialization failed: No Postgres URL and SQLite failed.');
         }
       }
@@ -87,10 +88,10 @@ export async function initializeDatabase() {
       // Local development fallback
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
       if (connectionString) {
-        console.log('Initializing PostgreSQL connection...');
+        logger.info('Initializing PostgreSQL connection...');
         dbInstance = new PostgresAdapter(connectionString);
       } else {
-        console.log('Initializing SQLite connection (Local/Dev)...');
+        logger.info('Initializing SQLite connection (Local/Dev)...');
         try {
           // Use require for sqlite3 to ensure compatibility
           const sqlite3 = require('sqlite3');
@@ -105,14 +106,14 @@ export async function initializeDatabase() {
           await db.exec('PRAGMA foreign_keys = ON;');
           dbInstance = new SqliteAdapter(db);
         } catch (error) {
-          console.error('Failed to load SQLite:', error);
+          logger.error('Failed to load SQLite:', error);
           throw new Error('SQLite initialization failed. Ensure sqlite3 is installed or use DATABASE_URL.');
         }
       }
     }
 
     await initSchema(dbInstance);
-    console.log('Database initialized');
+    logger.info('Database initialized');
     return dbInstance;
   })();
 

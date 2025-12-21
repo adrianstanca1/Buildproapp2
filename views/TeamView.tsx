@@ -360,7 +360,7 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                     <AlertCircle size={20} className="flex-shrink-0" />
                     <div>
                         <p className="text-sm font-bold">Team limit approaching</p>
-                        <p className="text-xs">You've reached your maximum of {currentTenant?.maxUsers || 10} users. <button className="underline font-bold">Upgrade your plan</button> to add more team members.</p>
+                        <p className="text-xs">You&apos;ve reached your maximum of {currentTenant?.maxUsers || 10} users. <button className="underline font-bold">Upgrade your plan</button> to add more team members.</p>
                     </div>
                 </div>
             )}
@@ -412,7 +412,7 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                                 member={member}
                                 onClick={() => setSelectedMember(member)}
                                 showCompany={isSuperAdmin}
-                                // @ts-ignore - Assuming member.id matches auth user id for now
+
                                 isOnline={onlineUsers.has(member.id)}
                             />
                         ))}
