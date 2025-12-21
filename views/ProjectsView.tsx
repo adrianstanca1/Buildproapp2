@@ -20,7 +20,7 @@ interface ProjectsViewProps {
 }
 
 const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, autoLaunch }) => {
-    const { projects, addProject, updateProject, deleteProject } = useProjects();
+    const { projects, addProject, updateProject, deleteProject, documents } = useProjects();
     const { user } = useAuth();
     const { addToast } = useToast();
     const { canAddResource, currentTenant } = useTenant();
@@ -61,8 +61,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
         });
     }, [projects, searchQuery, filterStatus]);
 
-    // Mock documents for photo gallery 
-    const documents: any[] = [];
+
 
     const getLatestPhotos = (projectId: string) => {
         return documents
