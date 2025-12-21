@@ -58,6 +58,7 @@ interface ProjectContextType {
 
   // New Actions
   addRFI: (rfi: RFI) => Promise<void>;
+  updateRFI: (id: string, updates: Partial<RFI>) => Promise<void>;
   addPunchItem: (item: PunchItem) => Promise<void>;
   addDailyLog: (log: DailyLog) => Promise<void>;
   addDaywork: (dw: Daywork) => Promise<void>;
@@ -242,7 +243,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Note: Safety, Equipment, Timesheets filtered in views or here if they have companyId
   // Assuming seed data uses 'c1' for companyId where possible or inferred from project.
-  const visibleSafety = safetyIncidents; // Filter in view by project if needed
+  // const visibleSafety = safetyIncidents; // Replaced by useMemo below
   const visibleEquipment = useMemo(() => {
     if (!user) return [];
     if (user.role === UserRole.SUPER_ADMIN) return equipment;
@@ -265,6 +266,38 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const visiblePurchaseOrders = useMemo(() => {
     return purchaseOrders.filter(po => visibleProjectIds.includes(po.projectId || ''));
   }, [purchaseOrders, visibleProjectIds]);
+
+  const visibleRFIs = useMemo(() => {
+    return rfis.filter(r => visibleProjectIds.includes(r.projectId));
+  }, [rfis, visibleProjectIds]);
+
+  const visiblePunchItems = useMemo(() => {
+    return punchItems.filter(p => visibleProjectIds.includes(p.projectId));
+  }, [punchItems, visibleProjectIds]);
+
+  const visibleDailyLogs = useMemo(() => {
+    return dailyLogs.filter(l => visibleProjectIds.includes(l.projectId));
+  }, [dailyLogs, visibleProjectIds]);
+
+  const visibleDayworks = useMemo(() => {
+    return dayworks.filter(d => visibleProjectIds.includes(d.projectId));
+  }, [dayworks, visibleProjectIds]);
+
+  const visibleSafetyIncidents = useMemo(() => {
+    return safetyIncidents.filter(i => i.projectId ? visibleProjectIds.includes(i.projectId) : true);
+  }, [safetyIncidents, visibleProjectIds]);
+
+  const visibleTransactions = useMemo(() => {
+    return transactions.filter(t => visibleProjectIds.includes(t.projectId));
+  }, [transactions, visibleProjectIds]);
+
+  // Channels are tenant-global.
+  const visibleChannels = useMemo(() => {
+    if (!user) return [];
+    if (user.role === UserRole.SUPER_ADMIN) return channels;
+    return channels.filter(c => c.companyId === user.companyId);
+  }, [channels, user]);
+
 
 
   // --- Project Methods ---
@@ -401,6 +434,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addRFI = async (item: RFI) => {
     setRFIs(prev => [item, ...prev]);
     await db.addRFI(item);
+  };
+
+  const updateRFI = async (id: string, updates: Partial<RFI>) => {
+    setRFIs(prev => prev.map(r => r.id === id ? { ...r, ...updates } : r));
+    await db.updateRFI(id, updates);
   };
 
   const addPunchItem = async (item: PunchItem) => {
@@ -565,18 +603,18 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       documents: visibleDocs,
       clients: visibleClients,
       inventory: visibleInventory,
-      rfis,
-      punchItems,
-      dailyLogs,
-      dayworks,
-      safetyIncidents: visibleSafety,
+      rfis: visibleRFIs,
+      punchItems: visiblePunchItems,
+      dailyLogs: visibleDailyLogs,
+      dayworks: visibleDayworks,
+      safetyIncidents: visibleSafetyIncidents,
       safetyHazards,
       equipment: visibleEquipment,
       timesheets: visibleTimesheets,
-      channels,
+      channels: visibleChannels,
       teamMessages,
-      transactions,
-      financials: transactions,
+      transactions: visibleTransactions,
+      financials: visibleTransactions,
       isLoading,
       addProject,
       updateProject,
@@ -592,6 +630,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addInventoryItem,
       updateInventoryItem,
       addRFI,
+      updateRFI,
       addPunchItem,
       addDailyLog,
       addDaywork,

@@ -201,6 +201,9 @@ class DatabaseService {
   async addRFI(item: RFI) {
     await this.post('rfis', item);
   }
+  async updateRFI(id: string, updates: Partial<RFI>) {
+    await this.put('rfis', id, updates);
+  }
 
   // --- Punch Items ---
   async getPunchItems(): Promise<PunchItem[]> {

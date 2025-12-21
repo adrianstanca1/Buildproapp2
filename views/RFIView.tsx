@@ -6,7 +6,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { RFI } from '@/types';
 
 const RFIView: React.FC = () => {
-    const { projects, rfis, addRFI } = useProjects();
+    const { projects, rfis, addRFI, updateRFI } = useProjects();
     const { user } = useAuth();
     const { addToast } = useToast();
 
@@ -21,6 +21,8 @@ const RFIView: React.FC = () => {
         assignedTo: '',
         dueDate: ''
     });
+    const [answerText, setAnswerText] = useState('');
+    const [isAnswering, setIsAnswering] = useState(false);
 
     const handleCreate = async () => {
         if (!newRfi.subject || !newRfi.question) return;
@@ -52,6 +54,25 @@ const RFIView: React.FC = () => {
         } catch (error) {
             console.error("Failed to create RFI", error);
             addToast("Failed to create RFI", "error");
+        }
+    };
+
+    const handleAnswerSubmit = async () => {
+        if (!selectedRfi || !answerText.trim()) return;
+        try {
+            await updateRFI(selectedRfi.id, {
+                answer: answerText,
+                status: 'Closed',
+                // resolvedAt: new Date().toISOString() // Assuming we might want this later
+            });
+            addToast("RFI Answered and Closed", "success");
+            setIsAnswering(false);
+            setAnswerText('');
+            // Optimistically update selectedRfi to reflect changes immediately in the detail view
+            setSelectedRfi(prev => prev ? { ...prev, answer: answerText, status: 'Closed' } : null);
+        } catch (error) {
+            console.error("Failed to update RFI", error);
+            addToast("Failed to submit answer", "error");
         }
     };
 
@@ -162,10 +183,38 @@ const RFIView: React.FC = () => {
                                             {selectedRfi.answer}
                                         </p>
                                     </div>
+                                ) : isAnswering ? (
+                                    <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                                        <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-3">Submit Official Response</h3>
+                                        <textarea
+                                            value={answerText}
+                                            onChange={(e) => setAnswerText(e.target.value)}
+                                            className="w-full h-32 p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none resize-none mb-4 font-medium"
+                                            placeholder="Enter the official answer or resolution..."
+                                            autoFocus
+                                        />
+                                        <div className="flex justify-end gap-3">
+                                            <button
+                                                onClick={() => setIsAnswering(false)}
+                                                className="px-4 py-2 text-zinc-500 font-bold hover:bg-zinc-100 rounded-lg"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleAnswerSubmit}
+                                                className="px-6 py-2 bg-[#0f5c82] text-white font-bold rounded-xl hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10"
+                                            >
+                                                Submit & Close RFI
+                                            </button>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="border-2 border-dashed border-zinc-200 rounded-3xl p-8 text-center bg-zinc-50">
                                         <p className="text-zinc-400 font-bold mb-4">No official response yet.</p>
-                                        <button className="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 font-bold rounded-xl shadow-sm hover:bg-zinc-50">
+                                        <button
+                                            onClick={() => setIsAnswering(true)}
+                                            className="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 font-bold rounded-xl shadow-sm hover:bg-zinc-50"
+                                        >
                                             Submit Answer
                                         </button>
                                     </div>
