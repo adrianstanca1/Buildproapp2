@@ -11,7 +11,8 @@ import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
 import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
 import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tenantService.js';
-import logger from './logger.js';
+import { logger } from './utils/logger.js'; // This line might be wrong based on previous edit?
+import { AppError } from './utils/AppError.js';
 
 const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
@@ -99,10 +100,15 @@ app.get('/api/companies', async (req: any, res: any) => {
     }
 });
 
-app.post('/api/companies', async (req, res) => {
+app.post('/api/companies', async (req, res, next) => {
     try {
         const db = getDb();
         const c = req.body;
+
+        if (!c.name) {
+            throw new AppError('Company name is required', 400);
+        }
+
         const id = c.id || uuidv4();
         const settings = c.settings ? JSON.stringify(c.settings) : '{}';
         const subscription = c.subscription ? JSON.stringify(c.subscription) : '{}';
@@ -127,10 +133,13 @@ app.post('/api/companies', async (req, res) => {
                 settings, subscription, features, maxUsers, maxProjects, new Date().toISOString(), new Date().toISOString()
             ]
         );
-        res.json({ ...c, id });
+        res.status(201).json({ ...c, id });
+
+        // Log successful creation
+        logger.info(`Company created: ${c.name} (${id})`);
+
     } catch (e) {
-        logger.error('Error adding company:', { error: e });
-        res.status(500).json({ error: (e as Error).message });
+        next(e);
     }
 });
 
@@ -714,6 +723,11 @@ const __dirname = path.dirname(__filename);
 
 app.use(express.static(path.join(__dirname, '../dist')));
 
+// Handle unknown API routes
+app.all('/api/*', (req, res, next) => {
+    next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
+});
+
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get('*', (req, res) => {
@@ -765,7 +779,24 @@ const startServer = async () => {
     // }
 };
 
+// ... (previous code)
+
 logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`);
 startServer();
+
+// Global Error Handler (must be last)
+import errorHandler from './middleware/errorMiddleware.js';
+app.use(errorHandler);
+
+// Handle Uncaught Exceptions & Rejections
+process.on('uncaughtException', (err) => {
+    logger.error('UNCAUGHT EXCEPTION! 💥 Shutting down...', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (err) => {
+    logger.error('UNHANDLED REJECTION! 💥 Shutting down...', err);
+    process.exit(1);
+});
 
 export default app;

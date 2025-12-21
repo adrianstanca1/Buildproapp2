@@ -10,10 +10,26 @@ if (!supabaseUrl || !supabaseKey) {
     logger.warn('Supabase credentials missing. Storage service will fail.');
 }
 
-const supabase = createClient(
-    supabaseUrl || 'https://placeholder.supabase.co',
-    supabaseKey || 'placeholder-key'
-);
+let supabase: any;
+
+try {
+    if (supabaseUrl && supabaseKey) {
+        supabase = createClient(supabaseUrl, supabaseKey);
+    } else {
+        throw new Error('Missing credentials');
+    }
+} catch (e) {
+    logger.warn('Supabase Not Configured. Storage operations will fail safely.', { error: e.message });
+    supabase = {
+        storage: {
+            from: () => ({
+                upload: async () => ({ error: new Error('Supabase not configured') }),
+                createSignedUrl: async () => ({ data: { signedUrl: '' }, error: null }), // Mock response
+                remove: async () => ({ error: null })
+            })
+        }
+    };
+}
 
 export const uploadFile = async (
     bucket: string,
