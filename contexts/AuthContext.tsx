@@ -107,16 +107,34 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: { user: authUser }, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
       if (error) throw error;
+      if (!authUser) throw new Error("No user returned from Supabase");
 
-      // onAuthStateChange will handle user state update
-      return { user: user, error: null };
+      const newUser: UserProfile = {
+        id: authUser.id,
+        name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+        email: authUser.email || '',
+        phone: authUser.phone || '',
+        role: (authUser.user_metadata?.role as UserRole) || UserRole.OPERATIVE,
+        permissions: authUser.user_metadata?.permissions || [],
+        memberships: authUser.user_metadata?.memberships || [],
+        avatarInitials: ((authUser.email || 'U')[0]).toUpperCase(),
+        companyId: authUser.user_metadata?.companyId || 'c1',
+        projectIds: []
+      };
+
+      // Update state immediately (optimistic)
+      setUser(newUser);
+
+      // Return fresh user directly to caller
+      return { user: newUser, error: null };
     } catch (e: any) {
+      console.error("Login exception:", e);
       return { user: null, error: e };
     }
   };

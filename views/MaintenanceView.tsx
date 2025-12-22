@@ -26,12 +26,15 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ onAdminLogin }) => {
             const { user, error } = await login(email, password);
 
             if (error) throw error;
-            if (!user) throw new Error("Authentication failed");
+            if (!user) throw new Error("Authentication failed - No user returned");
+
+            console.log("Maintenance Login Success:", user.email, user.role);
 
             if (user.role === UserRole.SUPERADMIN) {
                 onAdminLogin();
             } else {
-                setError('Access Denied: Only Superadmins can access the system during maintenance.');
+                console.warn("Maintenance Access Denied. User role:", user.role);
+                setError(`Access Denied: Only Superadmins can access (You are: ${user.role})`);
             }
 
         } catch (err: any) {

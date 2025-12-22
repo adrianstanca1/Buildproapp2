@@ -14,6 +14,11 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
             return next();
         }
 
+        // Allow CORS preflight requests
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
+
         // Allow authentication routes so admins can log in
         if (req.path.startsWith('/api/auth') || req.path.startsWith('/api/system-settings')) {
             return next();
