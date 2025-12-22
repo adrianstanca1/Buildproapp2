@@ -1,43 +1,27 @@
-FROM node:20-slim
+# BuildPro - Cloud Run Dockerfile
+FROM node:18-alpine
 
+# Set working directory
 WORKDIR /app
 
-# Install build dependencies for native modules (sqlite3, etc.)
-# Debian usage: apt-get instead of apk
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
+# Copy package files
+COPY package*.json ./
 
 # Install dependencies
-COPY package*.json ./
-# Install ALL dependencies (including dev) so 'npm run build' (vite) works
-RUN npm install
+RUN npm ci --only=production
 
-# Copy source code
+# Copy application code
 COPY . .
 
-# Build Frontend
-ARG VITE_API_URL=/api
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_ANON_KEY
-ARG GEMINI_API_KEY
-
-ENV VITE_API_URL=$VITE_API_URL
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
-ENV GEMINI_API_KEY=$GEMINI_API_KEY
-
-# Critical: Set production mode so DB uses /tmp path
-ENV NODE_ENV=production
+# Build the application
 RUN npm run build
 
-# Cloud Run sets PORT env var (default 8080)
-ENV PORT=8080
+# Expose port
 EXPOSE 8080
 
-# Start Monolith (Express serves /api + Static)
-# Start Monolith (Directly with tsx to avoid npm signal swallowing)
-CMD ["npx", "tsx", "server/index.ts"]
+# Set environment to production
+ENV NODE_ENV=production
+ENV PORT=8080
 
+# Start the server
+CMD ["npm", "start"]
