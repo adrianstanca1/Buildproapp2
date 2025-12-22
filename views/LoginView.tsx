@@ -33,32 +33,29 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
     }
   };
 
-  const handleDemoLogin = (role: UserRole) => {
-    login(role);
-    setPage(getDashboardForRole(role));
-  };
-
   const handleSupabaseLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { user, error } = await login(email, password);
+
       if (error) throw error;
+      if (!user) throw new Error("Login succeeded but no user returned");
 
-      // Determine role from metadata (fallback to OPERATIVE if missing)
-      const role = (data.user?.user_metadata?.role as UserRole) || UserRole.OPERATIVE;
+      // Role is determined by context effect after login
+      // We just need to trigger the page switch if success
+      // Small delay to allow context to update? Actually context updates user state.
+      // But we can just use the returned user role
 
-      setPage(getDashboardForRole(role));
+      setPage(getDashboardForRole(user.role));
     } catch (err: any) {
       setError(err.message);
     } finally {
       setIsLoading(false);
     }
   };
+
 
   const demoAccounts = [
     { label: 'Principal Admin', role: UserRole.SUPERADMIN, email: 'john@buildcorp.com', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100 hover:border-purple-300' },
@@ -133,8 +130,8 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
 
           <div className="bg-white p-1 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100/50 mb-8">
             <div className="bg-zinc-50/30 p-6 rounded-[20px]">
-              {isSupabaseConnected && (
-                <div className="mb-8 pb-8 border-b border-zinc-200">
+              {isSupabaseConnected ? (
+                <div className="mb-8 pb-8">
                   <p className="text-xs font-bold text-zinc-400 mb-4 uppercase tracking-widest text-center lg:text-left">Sign In</p>
                   <form onSubmit={handleSupabaseLogin} className="space-y-4">
                     <div>
@@ -173,31 +170,11 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
                     </button>
                   </form>
                 </div>
+              ) : (
+                <div className="bg-amber-50 text-amber-600 p-4 rounded-xl border border-amber-200 text-sm">
+                  Supabase not configured. Please launch with valid credentials.
+                </div>
               )}
-
-              <p className="text-xs font-bold text-zinc-400 mb-6 uppercase tracking-widest text-center lg:text-left">Select Demo Role</p>
-              <div className="space-y-3">
-                {demoAccounts.map((account) => (
-                  <button
-                    key={account.email}
-                    onClick={() => handleDemoLogin(account.role)}
-                    className={`w-full flex items-center justify-between p-4 rounded-2xl border bg-white transition-all shadow-sm hover:shadow-md group ${account.border} hover:scale-[1.01] active:scale-[0.99]`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:rotate-3 ${account.bg} ${account.color}`}>
-                        <account.icon size={20} />
-                      </div>
-                      <div className="flex flex-col items-start">
-                        <span className="font-bold text-zinc-800 text-sm group-hover:text-zinc-900 transition-colors">{account.label}</span>
-                        <span className="text-xs text-zinc-400 font-medium">{account.email}</span>
-                      </div>
-                    </div>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-zinc-50 group-hover:bg-white transition-colors ${account.color}`}>
-                      <ArrowRight size={14} />
-                    </div>
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 

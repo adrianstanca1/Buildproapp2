@@ -15,23 +15,24 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
     if (!token) {
         // STRICT MODE: Only allow demo fallback in development
-        if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEMO_AUTH === 'true') {
-            console.log('[Auth] No token provided - using demo mode (DEV ONLY)');
-            req.user = {
-                id: 'demo-user',
-                email: 'demo@buildpro.app',
-                role: 'admin'
-            };
-            req.userId = 'demo-user';
-            req.tenantId = req.headers['x-company-id'] || 'c1';
-            // Setup req.context for RBAC middleware
-            req.context = {
-                userId: req.userId,
-                tenantId: req.tenantId,
-                role: 'admin'
-            };
-            return next();
-        }
+        // DISABLED FOR PRODUCTION-LIKE REAL AUTH
+        // if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEMO_AUTH === 'true') {
+        //     console.log('[Auth] No token provided - using demo mode (DEV ONLY)');
+        //     req.user = {
+        //         id: 'demo-user',
+        //         email: 'demo@buildpro.app',
+        //         role: 'admin'
+        //     };
+        //     req.userId = 'demo-user';
+        //     req.tenantId = req.headers['x-company-id'] || 'c1';
+        //     // Setup req.context for RBAC middleware
+        //     req.context = {
+        //         userId: req.userId,
+        //         tenantId: req.tenantId,
+        //         role: 'admin'
+        //     };
+        //     return next();
+        // }
 
         return res.status(401).json({ error: 'Authentication required' });
     }

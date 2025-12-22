@@ -23,21 +23,20 @@ const MaintenanceView: React.FC<MaintenanceViewProps> = ({ onAdminLogin }) => {
         setError('');
 
         try {
-            // DEMO MODE: Since useAuth().login takes a UserRole, we simulate the credential check here.
-            // In a real app, this would be `await login(email, password)`.
+            const { user, error } = await login(email, password);
 
-            if (email.toLowerCase().includes('admin') || email.toLowerCase().includes('buildpro')) {
-                // success
-                login(UserRole.SUPERADMIN);
-                setTimeout(() => {
-                    onAdminLogin();
-                }, 500);
+            if (error) throw error;
+            if (!user) throw new Error("Authentication failed");
+
+            if (user.role === UserRole.SUPERADMIN) {
+                onAdminLogin();
             } else {
-                throw new Error('Invalid Admin Credentials');
+                setError('Access Denied: Only Superadmins can access the system during maintenance.');
             }
 
         } catch (err: any) {
             setError(err.message || 'Login failed');
+        } finally {
             setIsLoading(false);
         }
     };

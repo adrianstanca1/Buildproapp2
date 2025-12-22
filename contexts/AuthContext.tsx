@@ -6,7 +6,7 @@ import { useTenant } from '@/contexts/TenantContext';
 
 interface AuthContextType {
   user: UserProfile | null;
-  login: (role: UserRole) => void;
+  login: (email: string, password: string) => Promise<{ user: UserProfile | null; error: Error | null }>;
   logout: () => void;
   hasPermission: (permission: string) => boolean;
   addProjectId: (id: string) => void;
@@ -105,75 +105,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const login = (role: UserRole) => {
-    // Simulating backend user retrieval based on role selection
-    let mockUser: UserProfile;
+  const login = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    const commonMemberships = [
-      { id: 'm1', userId: 'u1', companyId: 'c1', role, status: 'active' as const }
-    ];
+      if (error) throw error;
 
-    switch (role) {
-      case UserRole.SUPERADMIN:
-        mockUser = {
-          id: 'u1',
-          name: 'John Anderson',
-          email: 'john@buildcorp.com',
-          phone: '+44 7700 900001',
-          role: UserRole.SUPERADMIN,
-          permissions: ['*'],
-          memberships: [{ id: 'm1', userId: 'u1', companyId: 'ALL', role: UserRole.SUPERADMIN, status: 'active' as const }],
-          avatarInitials: 'JA',
-          companyId: 'ALL',
-          projectIds: ['ALL']
-        };
-        break;
-      case UserRole.COMPANY_ADMIN:
-        mockUser = {
-          id: 'u2',
-          name: 'Sarah Mitchell',
-          email: 'sarah@buildcorp.com',
-          phone: '+44 7700 900002',
-          role: UserRole.COMPANY_ADMIN,
-          permissions: ['projects.*', 'users.*', 'finances.read'],
-          memberships: commonMemberships,
-          avatarInitials: 'SM',
-          companyId: 'c1',
-          projectIds: ['p1', 'p2']
-        };
-        break;
-      case UserRole.SUPERVISOR:
-        mockUser = {
-          id: 'u3',
-          name: 'Mike Thompson',
-          email: 'mike@buildcorp.com',
-          phone: '+44 7700 900003',
-          role: UserRole.SUPERVISOR,
-          permissions: ['projects.read', 'tasks.*'],
-          memberships: commonMemberships,
-          avatarInitials: 'MT',
-          companyId: 'c1',
-          projectIds: ['p1']
-        };
-        break;
-      case UserRole.OPERATIVE:
-        mockUser = {
-          id: 'u4',
-          name: 'David Chen',
-          email: 'david@buildcorp.com',
-          phone: '+44 7700 900004',
-          role: UserRole.OPERATIVE,
-          permissions: ['tasks.read', 'tasks.update'],
-          memberships: commonMemberships,
-          avatarInitials: 'DC',
-          companyId: 'c1',
-          projectIds: ['p1']
-        };
-        break;
-      default:
-        return;
+      // onAuthStateChange will handle user state update
+      return { user: user, error: null };
+    } catch (e: any) {
+      return { user: null, error: e };
     }
-    setUser(mockUser);
   };
 
   const logout = async () => {
