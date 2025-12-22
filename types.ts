@@ -105,7 +105,7 @@ export interface Tenant {
     primaryColor?: string;
     accentColor?: string;
   };
-
+}
 export interface TenantSubscription {
   id: string;
   planId: string;
