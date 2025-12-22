@@ -14,6 +14,7 @@ import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { UserRole, Task, ProjectDocument } from '@/types';
 import { Can } from '@/components/Can';
 import { usePermissions } from '@/hooks/usePermissions';
+import { Comments } from '@/components/Comments';
 
 interface TasksViewProps {
     projectId?: string;

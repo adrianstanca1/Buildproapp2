@@ -3,6 +3,8 @@ import { Search, Plus, Filter, MessageSquare, Clock, CheckCircle2, User, FileTex
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import Modal from '@/components/Modal';
+import { Comments } from '@/components/Comments';
 import { RFI } from '@/types';
 
 const RFIView: React.FC = () => {
