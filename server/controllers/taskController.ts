@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types/express.js';
 import { BucketRegistry } from '../buckets/DataBucket.js';
 import { z } from 'zod';
 import { AppError } from '../utils/AppError.js';
@@ -26,7 +27,7 @@ const updateTaskSchema = createTaskSchema.partial();
 /**
  * Get all tasks for tenant (optionally filtered by project)
  */
-export const getTasks = async (req: Request, res: Response, next: NextFunction) => {
+export const getTasks = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { projectId } = req.query;
@@ -50,7 +51,7 @@ export const getTasks = async (req: Request, res: Response, next: NextFunction) 
 /**
  * Get single task by ID
  */
-export const getTask = async (req: Request, res: Response, next: NextFunction) => {
+export const getTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { id } = req.params;
@@ -74,7 +75,7 @@ export const getTask = async (req: Request, res: Response, next: NextFunction) =
 /**
  * Create new task
  */
-export const createTask = async (req: Request, res: Response, next: NextFunction) => {
+export const createTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
 
@@ -111,7 +112,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
 /**
  * Update task
  */
-export const updateTask = async (req: Request, res: Response, next: NextFunction) => {
+export const updateTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
         const { id } = req.params;
@@ -149,7 +150,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
 /**
  * Delete task
  */
-export const deleteTask = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
         const { id } = req.params;
@@ -170,7 +171,7 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
 /**
  * Assign task to user
  */
-export const assignTask = async (req: Request, res: Response, next: NextFunction) => {
+export const assignTask = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
         const { id } = req.params;
@@ -206,7 +207,7 @@ export const assignTask = async (req: Request, res: Response, next: NextFunction
 /**
  * Update task status
  */
-export const updateTaskStatus = async (req: Request, res: Response, next: NextFunction) => {
+export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
         const { id } = req.params;

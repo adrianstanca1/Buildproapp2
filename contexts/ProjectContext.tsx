@@ -151,11 +151,9 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!user) return;
 
     // Only subscribe if Supabase is configured
-    // @ts-expect-error - Vite env types
     if (!import.meta.env.VITE_SUPABASE_URL) return;
 
     // Check if supabase client is valid (not placeholder)
-    // @ts-expect-error - Vite env types
     if (supabase.supabaseUrl === 'https://placeholder.supabase.co') return;
 
     const channel = supabase

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { AuthenticatedRequest } from '../types/express.js';
 import { z } from 'zod';
 import { projectService } from '../services/projectService.js';
 import { AppError } from '../utils/AppError.js';
@@ -33,7 +34,7 @@ const updateProjectSchema = createProjectSchema.partial();
 /**
  * Get all projects for the current tenant
  */
-export const getProjects = async (req: Request, res: Response) => {
+export const getProjects = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { userId, tenantId } = req.context;
 
@@ -60,7 +61,7 @@ export const getProjects = async (req: Request, res: Response) => {
 /**
  * Get a single project by ID
  */
-export const getProject = async (req: Request, res: Response) => {
+export const getProject = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { userId, tenantId } = req.context;
         const { id } = req.params;
@@ -88,7 +89,7 @@ export const getProject = async (req: Request, res: Response) => {
 /**
  * Create a new project
  */
-export const createProject = async (req: Request, res: Response) => {
+export const createProject = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { userId, tenantId } = req.context;
 
@@ -124,7 +125,7 @@ export const createProject = async (req: Request, res: Response) => {
 /**
  * Update a project
  */
-export const updateProject = async (req: Request, res: Response) => {
+export const updateProject = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { userId, tenantId } = req.context;
         const { id } = req.params;
@@ -161,7 +162,7 @@ export const updateProject = async (req: Request, res: Response) => {
 /**
  * Delete a project
  */
-export const deleteProject = async (req: Request, res: Response) => {
+export const deleteProject = async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { userId, tenantId } = req.context;
         const { id } = req.params;

@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types/express.js';
 import { fileBucket } from '../buckets/FileBucket.js';
 import { BucketRegistry } from '../buckets/DataBucket.js';
 import { AppError } from '../utils/AppError.js';
@@ -13,7 +14,7 @@ const documentBucket = BucketRegistry.getOrCreate('documents', 'companyId');
 /**
  * Upload document
  */
-export const uploadDocument = async (req: Request, res: Response, next: NextFunction) => {
+export const uploadDocument = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
 
@@ -64,7 +65,7 @@ export const uploadDocument = async (req: Request, res: Response, next: NextFunc
 /**
  * Get documents for tenant
  */
-export const getDocuments = async (req: Request, res: Response, next: NextFunction) => {
+export const getDocuments = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { projectId, category } = req.query;
@@ -91,7 +92,7 @@ export const getDocuments = async (req: Request, res: Response, next: NextFuncti
 /**
  * Get single document
  */
-export const getDocument = async (req: Request, res: Response, next: NextFunction) => {
+export const getDocument = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { id } = req.params;
@@ -115,7 +116,7 @@ export const getDocument = async (req: Request, res: Response, next: NextFunctio
 /**
  * Download document
  */
-export const downloadDocument = async (req: Request, res: Response, next: NextFunction) => {
+export const downloadDocument = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { id } = req.params;
@@ -149,7 +150,7 @@ export const downloadDocument = async (req: Request, res: Response, next: NextFu
 /**
  * Delete document
  */
-export const deleteDocument = async (req: Request, res: Response, next: NextFunction) => {
+export const deleteDocument = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId, userId } = req.context;
         const { id } = req.params;
@@ -185,7 +186,7 @@ export const deleteDocument = async (req: Request, res: Response, next: NextFunc
 /**
  * List files in directory
  */
-export const listFiles = async (req: Request, res: Response, next: NextFunction) => {
+export const listFiles = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { projectId, category } = req.query;

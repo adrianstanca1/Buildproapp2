@@ -1,4 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
+import { Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types/express.js';
 import { analyticsBucket } from '../buckets/AnalyticsBucket.js';
 import { AppError } from '../utils/AppError.js';
 
@@ -10,7 +11,7 @@ import { AppError } from '../utils/AppError.js';
 /**
  * Record a metric
  */
-export const recordMetric = async (req: Request, res: Response, next: NextFunction) => {
+export const recordMetric = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { metricName, value, dimensions } = req.body;
@@ -34,7 +35,7 @@ export const recordMetric = async (req: Request, res: Response, next: NextFuncti
 /**
  * Query metrics
  */
-export const queryMetrics = async (req: Request, res: Response, next: NextFunction) => {
+export const queryMetrics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { metricName, startDate, endDate, groupBy } = req.query;
@@ -66,7 +67,7 @@ export const queryMetrics = async (req: Request, res: Response, next: NextFuncti
 /**
  * Get metric statistics
  */
-export const getStatistics = async (req: Request, res: Response, next: NextFunction) => {
+export const getStatistics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
         const { metricName, startDate, endDate } = req.query;
