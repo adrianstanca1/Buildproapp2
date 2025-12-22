@@ -10,6 +10,12 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
 
 export const authenticateToken = async (req: any, res: any, next: any) => {
+    // Allow public access to shared client portal routes
+    // Check originalUrl because it contains the full path including /api prefix
+    if (req.originalUrl.includes('/api/client-portal/shared/')) {
+        return next();
+    }
+
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
