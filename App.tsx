@@ -82,7 +82,11 @@ const AccessControlView = lazyWithReload(() => import('@/views/platform/AccessCo
 const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsView'));
 
 const AuthenticatedApp: React.FC = () => {
-  const [page, setPage] = useState<Page>(Page.LOGIN);
+  const [page, setPage] = useState<Page>(
+    window.location.pathname.startsWith('/client-portal/')
+      ? Page.CLIENT_PORTAL
+      : Page.LOGIN
+  );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -138,9 +142,17 @@ const AuthenticatedApp: React.FC = () => {
     setPage(Page.PROJECT_DETAILS);
   };
 
-  // If not authenticated, show Login
-  if (!user) {
+  // Check for public routes (Client Portal)
+  const isPublicRoute = window.location.pathname.startsWith('/client-portal/');
+
+  // If not authenticated, show Login unless it's a public route
+  if (!user && !isPublicRoute) {
     return <LoginView setPage={setPage} />;
+  }
+
+  // If public route and not logged in, force Client Portal page
+  if (!user && isPublicRoute && page !== Page.CLIENT_PORTAL) {
+    setPage(Page.CLIENT_PORTAL);
   }
 
   // --- STRICT ROUTE GUARD ---

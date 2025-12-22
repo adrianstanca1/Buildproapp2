@@ -59,6 +59,42 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             ]
         );
 
+        // Optional: Create Initial Admin User
+        // If adminEmail is provided in the request (extra field not in schema but passed in body)
+        const { adminEmail, adminName } = req.body;
+        if (adminEmail && adminName) {
+            try {
+                const { supabase } = await import('../../services/supabaseClient.js');
+                const { data: { user }, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(adminEmail, {
+                    data: {
+                        companyId: id,
+                        role: 'COMPANY_ADMIN',
+                        full_name: adminName
+                    }
+                });
+
+                if (!inviteError && user) {
+                    // Create local user record
+                    await db.run(
+                        `INSERT INTO users (id, companyId, email, name, role, status, createdAt, isActive)
+                          VALUES (?, ?, ?, ?, ?, 'invited', ?, true)`,
+                        [user.id, id, adminEmail, adminName, 'COMPANY_ADMIN', new Date().toISOString()]
+                    );
+                    // Also add to team table for that company
+                    await db.run(
+                        `INSERT INTO team (id, companyId, name, email, role, status, initials, color, joinDate)
+                         VALUES (?, ?, ?, ?, ?, 'Invited', ?, ?, ?)`,
+                        [user.id, id, adminName, adminEmail, 'COMPANY_ADMIN', adminName.substring(0, 2).toUpperCase(), 'bg-blue-600', new Date().toISOString().split('T')[0]]
+                    );
+                    logger.info(`Initialized Admin ${adminEmail} for Company ${c.name}`);
+                } else {
+                    logger.error(`Failed to invite initial admin: ${inviteError?.message}`);
+                }
+            } catch (err) {
+                logger.error('Error creating initial admin:', err);
+            }
+        }
+
         logger.info(`Company created: ${c.name} (${id})`);
         res.status(201).json({ ...c, id });
     } catch (e) {

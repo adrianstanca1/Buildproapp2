@@ -4,6 +4,7 @@ import { getDb } from '../database.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import { supabase } from '../../services/supabaseClient.js';
 
 export const inviteMember = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -26,8 +27,33 @@ export const inviteMember = async (req: Request, res: Response, next: NextFuncti
         }
 
         const id = uuidv4();
-        // Create user with 'invited' status
-        // In a real app, this would send an email and not set a password yet.
+
+        // 1. Create/Invite in Supabase Auth (if not exists)
+        // This sends an invite email if email config is set up, or just creates the user
+        let userId = '';
+        try {
+            // We use the admin API to invite the user. This creates an authorized user in Supabase.
+            const { data: { user }, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+                data: {
+                    companyId: tenantId,
+                    role: role,
+                    full_name: name
+                }
+                // redirectTo: 'https://buildpro.app/reset-password' // Optional URL
+            });
+
+            if (inviteError) {
+                logger.error('Supabase Invite Error:', inviteError);
+                throw new AppError(`Failed to invite user: ${inviteError.message}`, 500);
+            }
+
+            if (user) {
+                userId = user.id;
+            }
+        } catch (authErr) {
+            logger.warn('Failed to invite via Supabase Auth, falling back to local DB only (User wont be able to login):', authErr);
+            userId = id; // Fallback to random ID if auth fails (e.g. dev mode)
+        }
         // For this demo, we'll create a user who can login (authMiddleware checks email) 
         // OR we just create a "TeamMember" record if they are separate tables.
         // Based on types.ts, TeamMember and UserProfile are distinct but related. 
@@ -37,28 +63,31 @@ export const inviteMember = async (req: Request, res: Response, next: NextFuncti
             `INSERT INTO team (id, companyId, name, email, role, status, projectId, initials, color, joinDate)
              VALUES (?, ?, ?, ?, ?, 'Invited', ?, ?, ?, ?)`,
             [
-                id,
+                userId, // Use the real Auth ID
                 tenantId,
                 name,
                 email,
                 role,
                 projectId || null,
                 name.substring(0, 2).toUpperCase(),
-                'bg-gray-500', // Default color
+                'bg-gray-500',
                 new Date().toISOString().split('T')[0]
             ]
         );
 
-        // Also add to 'users' table so they can actually login if we are sharing auth
-        // Assuming simple auth for now where email exists = can login (or we need a signup flow)
-        // For now, let's just insert into 'team' as that's what TeamView consumes.
-        // If we need them to login, we'd add to 'users' too.
-        // Let's add to 'users' as 'invited' status.
-        await db.run(
-            `INSERT INTO users (id, companyId, email, name, role, status, createdAt)
-              VALUES (?, ?, ?, ?, ?, 'invited', ?)`,
-            [id, tenantId, email, name, role, new Date().toISOString()]
-        );
+        // Ensure 'users' table sync (Global view)
+        // Check if user exists first to avoid Primary Key violation (unlikely with UUID but possible if invite re-sent)
+        const userExists = await db.get(`SELECT id FROM users WHERE id = ?`, [userId]);
+        if (!userExists) {
+            await db.run(
+                `INSERT INTO users (id, companyId, email, name, role, status, createdAt, isActive)
+                  VALUES (?, ?, ?, ?, ?, 'invited', ?, true)`,
+                [userId, tenantId, email, name, role, new Date().toISOString()]
+            );
+        } else {
+            // Optional: Update existing user's meta if needed
+            // await db.run(`UPDATE users SET companyId = ? WHERE id = ?`, [tenantId, userId]);
+        }
 
         logger.info(`Invited member ${email} to company ${tenantId}`);
 
