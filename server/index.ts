@@ -258,7 +258,22 @@ app.put('/api/safety_incidents/:id', authenticateToken, requirePermission('safet
 
 // Safety Hazards
 app.get('/api/safety_hazards', authenticateToken, safetyController.getSafetyHazards);
-app.post('/api/safety_hazards', authenticateToken, requirePermission('safety', 'create'), safetyController.createSafetyHazard);
+app.post('/api/safety-hazards', requirePermission('safety', 'write'), safetyController.createSafetyHazard);
+app.put('/api/safety-hazards/:id', requirePermission('safety', 'write'), safetyController.updateSafetyHazard);
+
+// --- Comments Routes ---
+import * as commentController from './controllers/commentController.js';
+
+app.get('/api/comments', authenticateToken, contextMiddleware, commentController.getComments);
+app.post('/api/comments', authenticateToken, contextMiddleware, apiLimiter, commentController.createComment);
+app.put('/api/comments/:id', authenticateToken, contextMiddleware, commentController.updateComment);
+app.delete('/api/comments/:id', authenticateToken, contextMiddleware, commentController.deleteComment);
+
+// --- Activity Feed Routes ---
+import * as activityService from './services/activityService.js';
+
+app.get('/api/activity', authenticateToken, contextMiddleware, activityService.getActivityFeed);
+app.get('/api/activity/:entityType/:entityId', authenticateToken, contextMiddleware, activityService.getEntityActivity);
 
 // --- Phase 4: Financial & Supply Chain ---
 // Vendors

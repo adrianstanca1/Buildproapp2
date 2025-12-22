@@ -681,6 +681,54 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Comments table for collaboration
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      parent_id TEXT,
+      content TEXT NOT NULL,
+      mentions TEXT,
+      attachments TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Activity feed table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity_feed (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      project_id TEXT,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      metadata TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Notification preferences table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      user_id TEXT PRIMARY KEY,
+      email_mentions BOOLEAN DEFAULT 1,
+      email_assignments BOOLEAN DEFAULT 1,
+      email_comments BOOLEAN DEFAULT 1,
+      email_digest_frequency TEXT DEFAULT 'daily',
+      push_enabled BOOLEAN DEFAULT 0
+    )
+  `);
+
   // Initialize default maintenance mode (OFF) if not exists
   const maintenanceSetting = await db.get('SELECT key FROM system_settings WHERE key = ?', ['maintenance_mode']);
   if (!maintenanceSetting) {
