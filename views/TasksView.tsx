@@ -324,7 +324,8 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
                     date: new Date().toLocaleDateString(),
                     status: 'Approved',
                     url: reader.result as string,
-                    linkedTaskIds: [draftTaskId]
+                    linkedTaskIds: [draftTaskId],
+                    currentVersion: 1
                 };
                 addDocument(newDoc);
             };

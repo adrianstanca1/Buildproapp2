@@ -34,7 +34,7 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
         const validationResult = companySchema.safeParse(req.body);
 
         if (!validationResult.success) {
-            const errorMessages = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
             throw new AppError(`Validation Error: ${errorMessages}`, 400);
         }
 
@@ -74,7 +74,7 @@ export const updateCompany = async (req: Request, res: Response, next: NextFunct
         // Validate Input
         const validationResult = updateCompanySchema.safeParse(req.body);
         if (!validationResult.success) {
-            const errorMessages = validationResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
             throw new AppError(`Validation Error: ${errorMessages}`, 400);
         }
 

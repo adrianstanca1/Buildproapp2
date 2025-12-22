@@ -29,8 +29,9 @@ export const useProject = (id: string | null) => {
         queryKey: queryKeys.project(id || ''),
         queryFn: async () => {
             if (!id) return null;
-            const response = await db.getProject(id);
-            return response as Project;
+            // Get project from projects list since db.getProject doesn't exist
+            const projects = await db.getProjects();
+            return (projects as Project[]).find(p => p.id === id) || null;
         },
         enabled: !!id,
     });
@@ -52,7 +53,7 @@ export const useTeamMembers = () => {
     return useQuery({
         queryKey: queryKeys.teamMembers,
         queryFn: async () => {
-            const response = await db.getTeamMembers();
+            const response = await db.getTeam();
             return response as TeamMember[];
         },
     });
@@ -74,8 +75,8 @@ export const useCreateProject = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (project: Partial<Project>) => {
-            return await db.addProject(project);
+        mutationFn: async (project: Omit<Project, 'id'> & { id?: string }) => {
+            return await db.addProject(project as any);
         },
         onSuccess: () => {
             // Invalidate and refetch projects
@@ -103,8 +104,8 @@ export const useCreateTask = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (task: Partial<Task>) => {
-            return await db.addTask(task);
+        mutationFn: async (task: Omit<Task, 'id'> & { id?: string }) => {
+            return await db.addTask(task as any);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.tasks });
@@ -116,8 +117,8 @@ export const useCreateTransaction = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: async (transaction: Partial<Transaction>) => {
-            return await db.addTransaction(transaction);
+        mutationFn: async (transaction: Omit<Transaction, 'id'> & { id?: string }) => {
+            return await db.addTransaction(transaction as any);
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKeys.transactions });

@@ -216,7 +216,8 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
                     date: new Date().toLocaleDateString(),
                     status: 'Approved',
                     url: att.data,
-                    linkedDayworkId: newDW.id
+                    linkedDayworkId: newDW.id,
+                    currentVersion: 1
                 };
                 await addDocument(newDoc);
             }
@@ -288,7 +289,8 @@ export const ProjectActionModals: React.FC<ProjectActionModalsProps> = ({ type, 
             size: '2 MB',
             date: new Date().toLocaleDateString(),
             status: 'Approved',
-            url: fileUrl
+            url: fileUrl,
+            currentVersion: 1
         };
 
         await addDocument(newDoc);

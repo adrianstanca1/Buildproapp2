@@ -129,7 +129,8 @@ const ProjectGallery = ({ projectId, onUpload }: { projectId: string, onUpload: 
             size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
             date: new Date().toLocaleDateString(),
             status: 'Approved',
-            url: url
+            url: url,
+            currentVersion: 1
         };
         addDocument(newDoc);
         setShowUploadModal(false);

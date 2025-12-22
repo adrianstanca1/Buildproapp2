@@ -456,7 +456,8 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
                 size: (uploadedFile.size / 1024 / 1024).toFixed(2) + ' MB',
                 date: new Date().toLocaleDateString(),
                 status: 'Approved',
-                url: docUrl
+                url: docUrl,
+                currentVersion: 1
             };
             addDocument(newDoc);
         }
