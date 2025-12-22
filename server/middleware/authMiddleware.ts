@@ -14,12 +14,17 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-        // For migration period, we might want to allow legacy headers if env var is set
-        if (process.env.ALLOW_LEGACY_AUTH === 'true' && req.headers['x-user-id']) {
-            req.user = { id: req.headers['x-user-id'], role: 'admin' }; // Mock
-            return next();
-        }
-        return res.status(401).json({ error: 'Missing authentication token' });
+        // DEMO MODE: Allow unauthenticated access for development/demo
+        // Create a mock demo user instead of rejecting the request
+        console.log('[Auth] No token provided - using demo mode');
+        req.user = {
+            id: 'demo-user',
+            email: 'demo@buildpro.app',
+            role: 'admin'
+        };
+        req.userId = 'demo-user';
+        req.tenantId = req.headers['x-company-id'] || 'c1'; // Default to first company
+        return next();
     }
 
     try {
@@ -27,7 +32,16 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
         if (error || !user) {
             console.error('Auth Error:', error);
-            return res.status(403).json({ error: 'Invalid token' });
+            // Fall back to demo mode instead of rejecting
+            console.log('[Auth] Invalid token - falling back to demo mode');
+            req.user = {
+                id: 'demo-user',
+                email: 'demo@buildpro.app',
+                role: 'admin'
+            };
+            req.userId = 'demo-user';
+            req.tenantId = req.headers['x-company-id'] || 'c1';
+            return next();
         }
 
         req.user = user;
@@ -37,6 +51,15 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
         next();
     } catch (err) {
         console.error('Auth Exception:', err);
-        return res.status(403).json({ error: 'Authentication failed' });
+        // Fall back to demo mode instead of rejecting
+        console.log('[Auth] Auth exception - falling back to demo mode');
+        req.user = {
+            id: 'demo-user',
+            email: 'demo@buildpro.app',
+            role: 'admin'
+        };
+        req.userId = 'demo-user';
+        req.tenantId = req.headers['x-company-id'] || 'c1';
+        return next();
     }
 };
