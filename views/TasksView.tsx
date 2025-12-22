@@ -183,7 +183,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
         });
 
         return result;
-    }, [tasks, searchQuery, filterPriority, filterAssignee, sortBy, sortDirection, projectId]);
+    }, [tasks, searchQuery, filterPriority, filterAssignee, sortBy, sortDirection, projectId, user]);
 
     const columns = useMemo(() => {
         return [
