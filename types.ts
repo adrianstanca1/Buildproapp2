@@ -75,6 +75,7 @@ export enum Page {
 }
 
 export enum UserRole {
+  CLIENT = 'CLIENT',
   READ_ONLY = 'READ_ONLY',
   OPERATIVE = 'OPERATIVE',
   SUPERVISOR = 'SUPERVISOR',
@@ -88,6 +89,7 @@ export enum UserRole {
  * Role hierarchy for privilege comparison
  */
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  [UserRole.CLIENT]: -1,
   [UserRole.READ_ONLY]: 0,
   [UserRole.OPERATIVE]: 1,
   [UserRole.SUPERVISOR]: 2,
@@ -803,4 +805,22 @@ export interface AccessLog {
   ip: string;
   time: string;
   status: 'success' | 'fail' | 'warning';
+}
+
+/**
+ * Shared Link for Client Portal Access
+ * Enables secure, token-based access to projects for external clients
+ */
+export interface SharedLink {
+  id: string;
+  projectId: string;
+  companyId: string;
+  token: string; // Cryptographically secure token for URL
+  password?: string; // Optional password protection (hashed)
+  expiresAt: string; // ISO timestamp
+  createdBy: string; // User ID who created the link
+  createdAt: string;
+  lastAccessedAt?: string;
+  accessCount: number;
+  isActive: boolean; // Can be manually revoked
 }

@@ -203,6 +203,10 @@ app.delete('/api/tasks/:id', requirePermission('tasks', 'delete'), taskControlle
 app.patch('/api/tasks/:id/assign', requirePermission('tasks', 'update'), taskController.assignTask);
 app.patch('/api/tasks/:id/status', requirePermission('tasks', 'update'), taskController.updateTaskStatus);
 
+// --- Client Portal Routes ---
+import clientPortalRoutes from './routes/clientPortalRoutes.js';
+app.use('/api/client-portal', clientPortalRoutes);
+
 // --- Generic CRUD Helper ---
 const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
     app.get(`/api/${tableName}`, async (req: any, res) => {
