@@ -89,8 +89,8 @@ app.post('/api/companies', requireRole([UserRole.SUPERADMIN]), companyController
 
 app.put('/api/companies/:id', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.updateCompany);
 app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyController.deleteCompany);
-// Self-management for Company Admins
-app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
+// Self-management for Company Admins (TODO: implement updateMyCompany in companyController)
+// app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
