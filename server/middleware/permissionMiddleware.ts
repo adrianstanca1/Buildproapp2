@@ -5,6 +5,16 @@ import { logger } from '../utils/logger.js';
 import type { UserRole } from '../types/rbac.js';
 import { hasRolePrivilege } from '../types/rbac.js';
 
+// Extend Request type to include tenantId
+declare global {
+    namespace Express {
+        interface Request {
+            tenantId?: string;
+            user?: any;
+        }
+    }
+}
+
 /**
  * Permission Middleware
  * Protects routes based on permissions and roles

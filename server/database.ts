@@ -9,6 +9,7 @@ dotenv.config();
 // Interface for our DB adapter to support both SQLite and Postgres
 export interface IDatabase {
   all<T = any>(sql: string, params?: any[]): Promise<T[]>;
+  get<T = any>(sql: string, params?: any[]): Promise<T | undefined>;
   run(sql: string, params?: any[]): Promise<any>;
   exec(sql: string): Promise<void>;
 }
@@ -20,6 +21,7 @@ class SqliteAdapter implements IDatabase {
   private db: any; // Type as any to avoid importing sqlite types at top level
   constructor(db: any) { this.db = db; }
   async all<T = any>(sql: string, params?: any[]) { return this.db.all(sql, params); }
+  async get<T = any>(sql: string, params?: any[]) { return this.db.get(sql, params); }
   async run(sql: string, params?: any[]) { return this.db.run(sql, params); }
   async exec(sql: string) { return this.db.exec(sql); }
 }
@@ -43,6 +45,11 @@ class PostgresAdapter implements IDatabase {
   async all<T = any>(sql: string, params?: any[]) {
     const res = await this.pool.query(this.normalizeSql(sql), params);
     return res.rows;
+  }
+
+  async get<T = any>(sql: string, params?: any[]) {
+    const res = await this.pool.query(this.normalizeSql(sql), params);
+    return res.rows[0];
   }
 
   async run(sql: string, params?: any[]) {
