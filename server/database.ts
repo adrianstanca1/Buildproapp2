@@ -2,7 +2,7 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
-import logger from './logger.js';
+import { logger } from './utils/logger.js';
 
 dotenv.config();
 
