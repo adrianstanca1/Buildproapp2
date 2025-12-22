@@ -12,7 +12,7 @@ import { TeamMember, Certification, UserRole } from '@/types';
 import { runRawPrompt } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';
 import { AlertCircle } from 'lucide-react';
-import AddMemberModal from '@/components/AddMemberModal';
+import InviteMemberModal from '@/components/InviteMemberModal';
 import EditMemberModal from '@/components/EditMemberModal';
 import { Can } from '@/components/Can';
 
@@ -665,15 +665,15 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                 </div>
             )}
 
-            {/* Add Member Modal with Email Support */}
-            <AddMemberModal
+            {/* Invite Member Modal */}
+            <InviteMemberModal
                 isOpen={showAddModal}
                 onClose={() => setShowAddModal(false)}
-                onAdd={(member) => {
-                    addTeamMember(member);
-                    setShowAddModal(false);
+                onInvite={() => {
+                    // Refresh logic if needed, or rely on WebSocket/Context update
+                    // Ideally we should re-fetch team members here
+                    window.location.reload(); // Simple refresh for now to see new member
                 }}
-                projectName={projectId ? `Project ${projectId}` : 'Team'}
             />
 
             {/* Edit Member Modal with Email Support */}
@@ -687,7 +687,7 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                     setSelectedMember(null);
                 }}
                 onDelete={(memberId) => {
-                    setWorkforce(prev => prev.filter(m => m.id !== memberId));
+                    deleteTeamMember(memberId);
                     addToast(`Member removed from project`, 'success');
                     setSelectedMember(null);
                 }}

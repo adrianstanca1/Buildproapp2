@@ -13,6 +13,7 @@ import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
 import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tenantService.js';
 import { logger } from './utils/logger.js'; // This line might be wrong based on previous edit?
 import { AppError } from './utils/AppError.js';
+import { UserRole } from '../types.js'; // Importing UserRole to fix Enum type errors
 
 const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
@@ -83,11 +84,13 @@ app.use('/api/storage', storageRoutes);
 // --- Companies Routes ---
 import * as companyController from './controllers/companyController.js';
 
-app.get('/api/companies', requireRole(['SUPERADMIN', 'COMPANY_ADMIN']), companyController.getCompanies);
-app.post('/api/companies', requireRole(['SUPERADMIN']), companyController.createCompany);
+app.get('/api/companies', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.getCompanies);
+app.post('/api/companies', requireRole([UserRole.SUPERADMIN]), companyController.createCompany);
 
-app.put('/api/companies/:id', requireRole(['SUPERADMIN', 'COMPANY_ADMIN']), companyController.updateCompany);
-app.delete('/api/companies/:id', requireRole(['SUPERADMIN']), companyController.deleteCompany);
+app.put('/api/companies/:id', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.updateCompany);
+app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyController.deleteCompany);
+// Self-management for Company Admins
+app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
@@ -97,7 +100,7 @@ app.get('/api/system-settings', systemController.getSystemSettings);
 import * as platformController from './controllers/platformController.js';
 import * as userManagementController from './controllers/userManagementController.js';
 
-const superAdminOnly = requireRole(['SUPERADMIN']);
+const superAdminOnly = requireRole([UserRole.SUPERADMIN]);
 
 app.get('/api/platform/stats', superAdminOnly, platformController.getDashboardStats);
 app.get('/api/platform/health', superAdminOnly, platformController.getSystemHealth);
@@ -108,10 +111,19 @@ app.put('/api/platform/users/:id/status', superAdminOnly, userManagementControll
 app.put('/api/platform/users/:id/role', superAdminOnly, userManagementController.updateUserRole);
 app.post('/api/platform/users/:id/reset-password', superAdminOnly, userManagementController.forceResetPassword);
 
+// --- Tenant Team Management Routes ---
+import * as tenantTeamController from './controllers/tenantTeamController.js';
+// Only Company Admins (and Super Admins) can manage their team
+const companyAdminAuth = requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]);
+
+app.post('/api/my-team/invite', companyAdminAuth, tenantTeamController.inviteMember);
+app.put('/api/my-team/:id/role', companyAdminAuth, tenantTeamController.updateMemberRole);
+app.delete('/api/my-team/:id', companyAdminAuth, tenantTeamController.removeMember);
+
 // --- Tenant Analytics Routes ---
 import { getTenantUsage } from './services/tenantService.js';
 
-app.get('/api/tenants/:id/usage', requireRole(['SUPERADMIN', 'COMPANY_ADMIN']), async (req: any, res: any) => {
+app.get('/api/tenants/:id/usage', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), async (req: any, res: any) => {
     try {
         const { id } = req.params;
         const usage = await getTenantUsage(id);

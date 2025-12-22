@@ -5,7 +5,7 @@ import {
   Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
   ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
   HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-  BrainCircuit, Building2, X
+  BrainCircuit, Building2, X, Settings as SettingsIcon
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
         { id: Page.TASKS, label: 'Tasks', icon: CheckSquare, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.SCHEDULE, label: 'Schedule', icon: Calendar, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
         { id: Page.TEAM, label: 'Team', icon: Users, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.COMPANY_SETTINGS, label: 'Settings', icon: SettingsIcon, roles: [UserRole.COMPANY_ADMIN] },
         { id: Page.CHAT, label: 'AI Assistant', icon: Bot, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.TEAM_CHAT, label: 'Team Chat', icon: MessageSquare, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
       ]

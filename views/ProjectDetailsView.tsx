@@ -7,7 +7,7 @@ import {
     Camera, Hammer, Clipboard, ChevronRight, Building, HelpCircle, List, Link, Wrench, Navigation, Shield,
     Sparkles, BrainCircuit, Send, Loader2, Bot, User, CheckCircle2, MoreHorizontal, Search, Paperclip,
     Clock, Zap, X, Building2, Info, RefreshCw, ScanLine, MessageSquare, Maximize2, Eye, ChevronUp, ChevronDown,
-    GitCommit, LineChart, Brain
+    GitCommit, LineChart, Brain, Settings as SettingsIcon, Archive, Trash2
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -29,7 +29,7 @@ interface ProjectDetailsViewProps {
     onBack: () => void;
 }
 
-type Tab = 'OVERVIEW' | 'TIMELINE' | 'SCHEDULE' | 'TASKS' | 'TEAM' | 'SAFETY' | 'EQUIPMENT' | 'LIVE_MAP' | 'DOCUMENTS' | 'FINANCIALS' | 'BIM_MODEL' | 'RFI' | 'QUALITY' | 'SITE_LOGS' | 'VARIATIONS' | 'PHOTOS';
+type Tab = 'OVERVIEW' | 'TIMELINE' | 'SCHEDULE' | 'TASKS' | 'TEAM' | 'SAFETY' | 'EQUIPMENT' | 'LIVE_MAP' | 'DOCUMENTS' | 'FINANCIALS' | 'BIM_MODEL' | 'RFI' | 'QUALITY' | 'SITE_LOGS' | 'VARIATIONS' | 'PHOTOS' | 'SETTINGS';
 
 // --- Interfaces for AI Chat ---
 const TabButton = ({ id, label, icon: Icon, activeTab, onClick }: { id: Tab, label: string, icon: any, activeTab: Tab, onClick: (id: Tab) => void }) => (
