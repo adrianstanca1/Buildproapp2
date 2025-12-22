@@ -11,6 +11,7 @@ import { useNotifications } from '../contexts/NotificationContext';
 import { searchService, SearchResult } from '../services/SearchService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
 
 interface TopBarProps {
   setPage: (page: Page) => void;
@@ -206,67 +207,11 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
             <TenantSelector />
           </div>
 
-          <div className="relative" ref={notificationRef}>
-            <button
-              onClick={() => {
-                setShowNotifications(!showNotifications);
-                setShowResults(false);
-              }}
-              className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50 rounded-full transition-all relative"
-            >
-              <Bell size={20} />
-              {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-500 text-white text-[10px] font-black flex items-center justify-center rounded-full ring-2 ring-white">
-                  {unreadCount}
-                </span>
-              )}
-            </button>
-
-            {showNotifications && (
-              <div className="absolute top-full right-0 mt-3 w-80 bg-white border border-zinc-200 rounded-[2rem] shadow-2xl overflow-hidden z-50 animate-in slide-in-from-top-2 flex flex-col max-h-[500px]">
-                <div className="p-6 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
-                  <h3 className="text-xs font-black text-zinc-900 uppercase tracking-widest">Notification Hub</h3>
-                  <button onClick={markAllAsRead} className="text-[10px] font-bold text-blue-600 hover:text-blue-700">Mark all read</button>
-                </div>
-                <div className="overflow-y-auto divide-y divide-zinc-50 custom-scrollbar flex-1">
-                  {notifications.length > 0 ? (
-                    notifications.map(n => (
-                      <div
-                        key={n.id}
-                        onClick={() => markAsRead(n.id)}
-                        className={`p-5 flex gap-4 transition-colors cursor-pointer group ${n.read ? 'bg-white' : 'bg-blue-50/30'}`}
-                      >
-                        <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${n.read ? 'bg-zinc-200' : 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]'}`} />
-                        <div className="flex-1">
-                          <p className={`text-sm font-bold leading-tight ${n.read ? 'text-zinc-600' : 'text-zinc-900'}`}>{n.title}</p>
-                          <p className="text-xs text-zinc-500 mt-1 line-clamp-2">{n.message}</p>
-                          <p className="text-[10px] text-zinc-400 font-bold mt-2 uppercase">{new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
-                        {n.type === 'ai' && (
-                          <div className="p-1 px-2 bg-blue-100 text-blue-600 rounded text-[8px] font-black h-fit uppercase">AI</div>
-                        )}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="p-10 text-center">
-                      <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-zinc-100">
-                        <Bell size={24} className="text-zinc-300" />
-                      </div>
-                      <p className="text-sm font-bold text-zinc-400">All caught up!</p>
-                    </div>
-                  )}
-                </div>
-                {notifications.length > 0 && (
-                  <button
-                    onClick={clearAll}
-                    className="p-4 text-center text-[10px] font-black text-zinc-400 hover:text-red-500 uppercase tracking-widest border-t border-zinc-50 bg-white"
-                  >
-                    Clear History
-                  </button>
-                )}
-              </div>
-            )}
+          <div className="hidden lg:block">
+            <TenantSelector />
           </div>
+
+          <NotificationBell />
 
           <button
             onClick={() => setPage(Page.PROFILE)}

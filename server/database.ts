@@ -595,6 +595,92 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Vendors (Supply Chain)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT,
+      contact TEXT,
+      email TEXT,
+      phone TEXT,
+      rating REAL,
+      status TEXT,
+      company_id TEXT,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Cost Codes (Financials)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS cost_codes (
+      id TEXT PRIMARY KEY,
+      project_id TEXT,
+      company_id TEXT,
+      code TEXT,
+      description TEXT,
+      budget REAL,
+      spent REAL DEFAULT 0,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Invoices
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      number TEXT,
+      vendorId TEXT,
+      amount REAL,
+      date TEXT,
+      dueDate TEXT,
+      status TEXT,
+      costCodeId TEXT,
+      items TEXT,
+      files TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Expense Claims
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS expense_claims (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      userId TEXT,
+      description TEXT,
+      amount REAL,
+      date TEXT,
+      category TEXT,
+      status TEXT,
+      costCodeId TEXT,
+      receiptUrl TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Notifications
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      link TEXT,
+      isRead BOOLEAN DEFAULT 0,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
   // Initialize default maintenance mode (OFF) if not exists
   const maintenanceSetting = await db.get('SELECT key FROM system_settings WHERE key = ?', ['maintenance_mode']);
   if (!maintenanceSetting) {

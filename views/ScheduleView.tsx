@@ -30,7 +30,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
         startDate: new Date().toISOString().split('T')[0],
         duration: 5,
         dueDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
-        projectId: projectId || ''
+        projectId: projectId || '',
+        progress: 0,
+        color: '#3b82f6'
     });
 
     const handleSaveTask = async () => {
@@ -41,7 +43,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
             id: editingTask?.id || `t-${Date.now()}`,
             assigneeType: 'user' as const,
             projectId: taskForm.projectId || projectId || 'p1',
-            dependencies: editingTask?.dependencies || []
+            dependencies: editingTask?.dependencies || [],
+            progress: taskForm.progress || 0,
+            color: taskForm.color || '#3b82f6'
         } as any;
 
         if (editingTask) {
@@ -90,7 +94,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                     priority: t.priority,
                     hasDocs: hasLinkedDocs(t.id),
                     dueDate: t.dueDate,
-                    startDate: t.startDate
+                    startDate: t.startDate,
+                    color: t.color,
+                    progress: t.progress
                 };
             }).sort((a, b) => a.start - b.start);
         }
@@ -265,7 +271,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                 startDate: new Date().toISOString().split('T')[0],
                                 duration: 5,
                                 dueDate: new Date(Date.now() + 5 * 86400000).toISOString().split('T')[0],
-                                projectId: projectId || 'p1'
+                                projectId: projectId || 'p1',
+                                progress: 0,
+                                color: '#3b82f6'
                             });
                             setShowTaskModal(true);
                         }}
@@ -351,142 +359,220 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                 {/* --- GANTT VIEW --- */}
                 {viewMode === 'GANTT' && (
                     <>
-                        {/* Task List Sidebar (Left) */}
-                        <div className="w-80 border-r border-zinc-200 flex flex-col bg-white z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
-                            <div className="h-[60px] border-b border-zinc-200 flex items-center px-4 bg-zinc-50 font-bold text-xs text-zinc-500 uppercase tracking-wider">
-                                Task Name
-                            </div>
-                            <div className="flex-1 overflow-y-auto overflow-x-hidden">
-                                {filteredTasks.map((task, i) => (
-                                    <div
-                                        key={i}
-                                        className="h-[48px] flex items-center px-4 border-b border-zinc-50 hover:bg-blue-50/30 transition-colors group cursor-pointer"
-                                    >
-                                        <div className="flex-1 flex items-center gap-2 min-w-0">
-                                            <span className="text-zinc-400 text-xs font-mono w-4">{i + 1}</span>
-                                            <div className={`w-2 h-2 rounded-full ${task.type === 'milestone' ? 'bg-amber-500 rotate-45' : 'bg-[#0f5c82]'}`} />
-                                            <span className="text-sm font-medium text-zinc-800 truncate">{task.name}</span>
-                                            {task.hasDocs && <Paperclip size={10} className="text-blue-500 flex-shrink-0" />}
+                        {/* Desktop Gantt Chart */}
+                        <div className="hidden lg:flex flex-1">
+                            {/* Task List Sidebar (Left) */}
+                            <div className="w-80 border-r border-zinc-200 flex flex-col bg-white z-10 shadow-[4px_0_24px_-12px_rgba(0,0,0,0.1)]">
+                                <div className="h-[60px] border-b border-zinc-200 flex items-center px-4 bg-zinc-50 font-bold text-xs text-zinc-500 uppercase tracking-wider">
+                                    Task Name
+                                </div>
+                                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                                    {filteredTasks.map((task, i) => (
+                                        <div
+                                            key={i}
+                                            className="h-[48px] flex items-center px-4 border-b border-zinc-50 hover:bg-blue-50/30 transition-colors group cursor-pointer"
+                                        >
+                                            <div className="flex-1 flex items-center gap-2 min-w-0">
+                                                <span className="text-zinc-400 text-xs font-mono w-4">{i + 1}</span>
+                                                <div className={`w-2 h-2 rounded-full ${task.type === 'milestone' ? 'bg-amber-500 rotate-45' : 'bg-[#0f5c82]'}`} />
+                                                <span className="text-sm font-medium text-zinc-800 truncate">{task.name}</span>
+                                                {task.hasDocs && <Paperclip size={10} className="text-blue-500 flex-shrink-0" />}
+                                            </div>
+                                            <button className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-[#0f5c82]">
+                                                <MoreHorizontal size={14} />
+                                            </button>
                                         </div>
-                                        <button className="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-[#0f5c82]">
-                                            <MoreHorizontal size={14} />
-                                        </button>
+                                    ))}
+                                    {filteredTasks.length === 0 && (
+                                        <div className="p-4 text-center text-zinc-400 text-sm">No tasks scheduled.</div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Gantt Chart Area (Right) */}
+                            <div className="flex-1 overflow-auto relative bg-zinc-50/50" style={{ scrollBehavior: 'smooth' }}>
+                                <div className="min-w-[1200px] relative">
+
+                                    {/* Timeline Header */}
+                                    <div className="sticky top-0 z-10 bg-white border-b border-zinc-200 h-[60px] flex">
+                                        {[...Array(30)].map((_, i) => (
+                                            <div key={i} className="flex-shrink-0 border-r border-zinc-100 flex flex-col justify-end pb-2 items-center" style={{ width: dayWidth }}>
+                                                <span className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Day</span>
+                                                <span className={`text-sm font-bold ${i % 7 === 0 || i % 7 === 6 ? 'text-red-400' : 'text-zinc-700'}`}>
+                                                    {i + 1}
+                                                </span>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                                {filteredTasks.length === 0 && (
-                                    <div className="p-4 text-center text-zinc-400 text-sm">No tasks scheduled.</div>
-                                )}
+
+                                    {/* Grid Lines */}
+                                    <div className="absolute inset-0 top-[60px] pointer-events-none flex">
+                                        {[...Array(30)].map((_, i) => (
+                                            <div key={i} className={`flex-shrink-0 border-r h-full ${i % 7 === 0 || i % 7 === 6 ? 'bg-zinc-50 border-zinc-200/50' : 'border-zinc-100'}`} style={{ width: dayWidth }} />
+                                        ))}
+                                        {/* Current Day Indicator */}
+                                        <div className="absolute top-0 bottom-0 border-l-2 border-red-500 z-0" style={{ left: 8 * dayWidth + (dayWidth / 2) }}>
+                                            <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-red-500 rounded-full" />
+                                        </div>
+                                    </div>
+
+                                    {/* Dependency Arrows */}
+                                    <svg className="absolute inset-0 pointer-events-none z-10 overflow-visible" style={{ top: 60 }}>
+                                        {filteredTasks.flatMap(task =>
+                                            (task.dependencies || []).map(depId => {
+                                                const depTask = filteredTasks.find(t => t.id === depId);
+                                                if (!depTask) return null;
+
+                                                // Find index in filteredTasks to get row
+                                                const depIdx = filteredTasks.findIndex(t => t.id === depId);
+                                                const taskIdx = filteredTasks.findIndex(t => t.id === task.id);
+                                                if (depIdx === -1 || taskIdx === -1) return null;
+
+                                                const startY = depIdx * rowHeight + rowHeight / 2;
+                                                const endY = taskIdx * rowHeight + rowHeight / 2;
+                                                const startX = (depTask.start + depTask.duration - 1) * dayWidth;
+                                                const endX = (task.start - 1) * dayWidth;
+
+                                                // Draw a stepped line (Z-shape)
+                                                return (
+                                                    <path
+                                                        key={`${task.id}-${depId}`}
+                                                        d={`M ${startX} ${startY} L ${startX + 10} ${startY} L ${startX + 10} ${endY} L ${endX} ${endY}`}
+                                                        fill="none"
+                                                        stroke="#0f5c82"
+                                                        strokeWidth="1.5"
+                                                        strokeDasharray="4 2"
+                                                        markerEnd="url(#arrowhead)"
+                                                        opacity="0.4"
+                                                    />
+                                                );
+                                            })
+                                        )}
+                                        <defs>
+                                            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                                                <polygon points="0 0, 10 3.5, 0 7" fill="#0f5c82" />
+                                            </marker>
+                                        </defs>
+                                    </svg>
+
+                                    {/* Task Bars */}
+                                    <div className="relative pt-0">
+                                        {filteredTasks.map((task, i) => (
+                                            <div key={i} className="relative group" style={{ height: rowHeight }}>
+                                                {/* Bar */}
+                                                <div
+                                                    onClick={() => {
+                                                        setEditingTask(task);
+                                                        setTaskForm({
+                                                            title: task.name,
+                                                            assigneeName: task.assignee,
+                                                            status: task.status,
+                                                            priority: task.priority,
+                                                            startDate: task.startDate || new Date().toISOString().split('T')[0],
+                                                            duration: task.duration,
+                                                            dueDate: task.dueDate,
+                                                            projectId: projectId || 'p1'
+                                                        });
+                                                        setShowTaskModal(true);
+                                                    }}
+                                                    className={`absolute top-1/2 -translate-y-1/2 rounded-md shadow-sm border border-white/20 flex items-center px-2 overflow-hidden transition-all hover:shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${task.type === 'milestone' ? 'bg-amber-500 w-6 h-6 rotate-45 rounded-sm' :
+                                                        'bg-[#0f5c82] h-7'
+                                                        }`}
+                                                    style={{
+                                                        left: (task.start - 1) * dayWidth,
+                                                        width: task.type === 'milestone' ? 24 : task.duration * dayWidth
+                                                    }}
+                                                >
+                                                    {task.type !== 'milestone' && (
+                                                        <>
+                                                            {/* Progress Fill */}
+                                                            <div className="absolute top-0 left-0 bottom-0 bg-black/20" style={{ width: `${task.progress}%` }} />
+                                                            <span className="relative text-[10px] font-bold text-white truncate px-1 drop-shadow-md flex items-center gap-1">
+                                                                {task.progress}%
+                                                                {task.hasDocs && <Paperclip size={8} className="text-blue-200" />}
+                                                            </span>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Gantt Chart Area (Right) */}
-                        <div className="flex-1 overflow-auto relative bg-zinc-50/50" style={{ scrollBehavior: 'smooth' }}>
-                            <div className="min-w-[1200px] relative">
-
-                                {/* Timeline Header */}
-                                <div className="sticky top-0 z-10 bg-white border-b border-zinc-200 h-[60px] flex">
-                                    {[...Array(30)].map((_, i) => (
-                                        <div key={i} className="flex-shrink-0 border-r border-zinc-100 flex flex-col justify-end pb-2 items-center" style={{ width: dayWidth }}>
-                                            <span className="text-[10px] font-bold text-zinc-400 uppercase mb-1">Day</span>
-                                            <span className={`text-sm font-bold ${i % 7 === 0 || i % 7 === 6 ? 'text-red-400' : 'text-zinc-700'}`}>
-                                                {i + 1}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {/* Grid Lines */}
-                                <div className="absolute inset-0 top-[60px] pointer-events-none flex">
-                                    {[...Array(30)].map((_, i) => (
-                                        <div key={i} className={`flex-shrink-0 border-r h-full ${i % 7 === 0 || i % 7 === 6 ? 'bg-zinc-50 border-zinc-200/50' : 'border-zinc-100'}`} style={{ width: dayWidth }} />
-                                    ))}
-                                    {/* Current Day Indicator */}
-                                    <div className="absolute top-0 bottom-0 border-l-2 border-red-500 z-0" style={{ left: 8 * dayWidth + (dayWidth / 2) }}>
-                                        <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-red-500 rounded-full" />
+                        {/* Mobile Simplified Timeline */}
+                        <div className="lg:hidden flex-1 overflow-y-auto p-4 bg-zinc-50">
+                            <div className="space-y-3">
+                                {filteredTasks.length === 0 ? (
+                                    <div className="text-center text-zinc-400 py-12">
+                                        <CalendarIcon size={48} className="mx-auto mb-2 opacity-20" />
+                                        <p className="text-sm">No tasks scheduled</p>
                                     </div>
-                                </div>
-
-                                {/* Dependency Arrows */}
-                                <svg className="absolute inset-0 pointer-events-none z-10 overflow-visible" style={{ top: 60 }}>
-                                    {filteredTasks.flatMap(task =>
-                                        (task.dependencies || []).map(depId => {
-                                            const depTask = filteredTasks.find(t => t.id === depId);
-                                            if (!depTask) return null;
-
-                                            // Find index in filteredTasks to get row
-                                            const depIdx = filteredTasks.findIndex(t => t.id === depId);
-                                            const taskIdx = filteredTasks.findIndex(t => t.id === task.id);
-                                            if (depIdx === -1 || taskIdx === -1) return null;
-
-                                            const startY = depIdx * rowHeight + rowHeight / 2;
-                                            const endY = taskIdx * rowHeight + rowHeight / 2;
-                                            const startX = (depTask.start + depTask.duration - 1) * dayWidth;
-                                            const endX = (task.start - 1) * dayWidth;
-
-                                            // Draw a stepped line (Z-shape)
-                                            return (
-                                                <path
-                                                    key={`${task.id}-${depId}`}
-                                                    d={`M ${startX} ${startY} L ${startX + 10} ${startY} L ${startX + 10} ${endY} L ${endX} ${endY}`}
-                                                    fill="none"
-                                                    stroke="#0f5c82"
-                                                    strokeWidth="1.5"
-                                                    strokeDasharray="4 2"
-                                                    markerEnd="url(#arrowhead)"
-                                                    opacity="0.4"
-                                                />
-                                            );
-                                        })
-                                    )}
-                                    <defs>
-                                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                                            <polygon points="0 0, 10 3.5, 0 7" fill="#0f5c82" />
-                                        </marker>
-                                    </defs>
-                                </svg>
-
-                                {/* Task Bars */}
-                                <div className="relative pt-0">
-                                    {filteredTasks.map((task, i) => (
-                                        <div key={i} className="relative group" style={{ height: rowHeight }}>
-                                            {/* Bar */}
-                                            <div
-                                                onClick={() => {
-                                                    setEditingTask(task);
-                                                    setTaskForm({
-                                                        title: task.name,
-                                                        assigneeName: task.assignee,
-                                                        status: task.status,
-                                                        priority: task.priority,
-                                                        startDate: task.startDate || new Date().toISOString().split('T')[0],
-                                                        duration: task.duration,
-                                                        dueDate: task.dueDate,
-                                                        projectId: projectId || 'p1'
-                                                    });
-                                                    setShowTaskModal(true);
-                                                }}
-                                                className={`absolute top-1/2 -translate-y-1/2 rounded-md shadow-sm border border-white/20 flex items-center px-2 overflow-hidden transition-all hover:shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${task.type === 'milestone' ? 'bg-amber-500 w-6 h-6 rotate-45 rounded-sm' :
-                                                    'bg-[#0f5c82] h-7'
-                                                    }`}
-                                                style={{
-                                                    left: (task.start - 1) * dayWidth,
-                                                    width: task.type === 'milestone' ? 24 : task.duration * dayWidth
-                                                }}
-                                            >
-                                                {task.type !== 'milestone' && (
-                                                    <>
-                                                        {/* Progress Fill */}
-                                                        <div className="absolute top-0 left-0 bottom-0 bg-black/20" style={{ width: `${task.progress}%` }} />
-                                                        <span className="relative text-[10px] font-bold text-white truncate px-1 drop-shadow-md flex items-center gap-1">
-                                                            {task.progress}%
-                                                            {task.hasDocs && <Paperclip size={8} className="text-blue-200" />}
-                                                        </span>
-                                                    </>
-                                                )}
+                                ) : (
+                                    filteredTasks.map((task, i) => (
+                                        <div
+                                            key={i}
+                                            onClick={() => {
+                                                setEditingTask(task);
+                                                setTaskForm({
+                                                    title: task.name,
+                                                    assigneeName: task.assignee,
+                                                    status: task.status,
+                                                    priority: task.priority,
+                                                    startDate: task.startDate || new Date().toISOString().split('T')[0],
+                                                    duration: task.duration,
+                                                    dueDate: task.dueDate,
+                                                    projectId: projectId || 'p1'
+                                                });
+                                                setShowTaskModal(true);
+                                            }}
+                                            className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm active:scale-[0.98] transition-transform"
+                                            style={{ borderLeftWidth: '4px', borderLeftColor: task.color || '#0f5c82' }}
+                                        >
+                                            <div className="flex justify-between items-start mb-3">
+                                                <h4 className="font-bold text-zinc-900 text-sm flex-1">{task.name}</h4>
+                                                <span className={`text-[10px] px-2 py-1 rounded-full font-bold ml-2 ${getPriorityColor(task.priority)}`}>
+                                                    {task.priority}
+                                                </span>
                                             </div>
+
+                                            <div className="flex items-center gap-4 text-xs text-zinc-500 mb-3">
+                                                <div className="flex items-center gap-1">
+                                                    <User size={12} />
+                                                    <span>{task.assignee}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <Clock size={12} />
+                                                    <span>Day {task.start} - {task.start + task.duration}</span>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-xs">
+                                                    <span className={`px-2 py-0.5 rounded-full font-medium ${getStatusColor(task.status)}`}>
+                                                        {task.status}
+                                                    </span>
+                                                    <span className="font-bold text-zinc-700">{task.progress}%</span>
+                                                </div>
+                                                <div className="w-full bg-zinc-200 h-2 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-[#0f5c82] transition-all duration-500"
+                                                        style={{ width: `${task.progress}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {task.hasDocs && (
+                                                <div className="mt-2 flex items-center gap-1 text-xs text-blue-600">
+                                                    <Paperclip size={12} />
+                                                    <span>Has attachments</span>
+                                                </div>
+                                            )}
                                         </div>
-                                    ))}
-                                </div>
+                                    ))
+                                )}
                             </div>
                         </div>
                     </>
@@ -495,7 +581,8 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                 {/* --- LIST VIEW --- */}
                 {viewMode === 'LIST' && (
                     <div className="flex-1 overflow-y-auto p-6 bg-zinc-50">
-                        <div className="bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
+                        {/* Desktop Table */}
+                        <div className="hidden md:block bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden">
                             <table className="w-full text-left text-sm">
                                 <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 uppercase text-xs">
                                     <tr>
@@ -568,6 +655,77 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile Cards */}
+                        <div className="md:hidden space-y-3">
+                            {filteredTasks.length === 0 ? (
+                                <div className="bg-white border border-zinc-200 rounded-xl p-8 text-center text-zinc-400">
+                                    No tasks found
+                                </div>
+                            ) : (
+                                filteredTasks.map((task, i) => (
+                                    <div
+                                        key={i}
+                                        onClick={() => {
+                                            setEditingTask(task);
+                                            setTaskForm({
+                                                title: task.name,
+                                                assigneeName: task.assignee,
+                                                status: task.status,
+                                                priority: task.priority,
+                                                startDate: task.startDate || new Date().toISOString().split('T')[0],
+                                                duration: task.duration,
+                                                dueDate: task.dueDate,
+                                                projectId: projectId || 'p1',
+                                                progress: task.progress || 0,
+                                                color: task.color || '#3b82f6'
+                                            });
+                                            setShowTaskModal(true);
+                                        }}
+                                        className="bg-white border border-zinc-200 rounded-xl p-4 shadow-sm active:scale-[0.98] transition-transform"
+                                    >
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-2 flex-1">
+                                                {task.type === 'milestone' ? (
+                                                    <div className="w-3 h-3 bg-amber-500 rotate-45 rounded-[1px] flex-shrink-0" />
+                                                ) : (
+                                                    <div className="w-4 h-4 border-2 border-zinc-300 rounded-full flex-shrink-0" />
+                                                )}
+                                                <h4 className="font-bold text-zinc-900 text-sm">{task.name}</h4>
+                                            </div>
+                                            <MoreHorizontal size={16} className="text-zinc-400 flex-shrink-0" />
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-2 mb-3">
+                                            <div>
+                                                <p className="text-[10px] text-zinc-400 uppercase font-bold mb-1">Assignee</p>
+                                                <div className="flex items-center gap-1 text-xs text-zinc-600">
+                                                    <User size={12} /> {task.assignee}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-zinc-400 uppercase font-bold mb-1">Duration</p>
+                                                <p className="text-xs text-zinc-600">{task.duration} days</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(task.status)}`}>
+                                                {task.status}
+                                            </span>
+                                            <span className={`px-2 py-1 rounded text-xs font-bold border ${getPriorityColor(task.priority)}`}>
+                                                {task.priority}
+                                            </span>
+                                            {task.hasDocs && (
+                                                <span className="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-100 flex items-center gap-1">
+                                                    <Paperclip size={10} /> Files
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 )}

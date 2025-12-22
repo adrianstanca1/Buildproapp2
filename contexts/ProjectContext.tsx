@@ -90,6 +90,7 @@ interface ProjectContextType {
   updatePurchaseOrder: (id: string, updates: Partial<PurchaseOrder>) => Promise<void>;
 
   // Financials Meta
+  addCostCode: (code: CostCode) => Promise<void>;
   updateCostCode: (id: string, updates: Partial<CostCode>) => Promise<void>;
 
   // Invoicing
@@ -134,13 +135,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [defects, setDefects] = useState<Defect[]>([]);
   const [projectRisks, setProjectRisks] = useState<ProjectRisk[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [costCodes, setCostCodes] = useState<CostCode[]>([
-    { id: 'cc1', projectId: 'p1', companyId: 'c1', code: '03-3000', description: 'Concrete', budget: 250000, spent: 210000 },
-    { id: 'cc2', projectId: 'p1', companyId: 'c1', code: '05-1200', description: 'Structural Steel', budget: 400000, spent: 380000 },
-    { id: 'cc3', projectId: 'p1', companyId: 'c1', code: '09-2000', description: 'Plaster & Gypsum', budget: 120000, spent: 45000 },
-    { id: 'cc4', projectId: 'p1', companyId: 'c1', code: '15-4000', description: 'Plumbing', budget: 180000, spent: 175000 },
-    { id: 'cc5', projectId: 'p1', companyId: 'c1', code: '16-1000', description: 'Electrical', budget: 220000, spent: 235000 }
-  ]);
+  const [costCodes, setCostCodes] = useState<CostCode[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [expenseClaims, setExpenseClaims] = useState<ExpenseClaim[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -631,6 +626,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.updateDocument(id, updates);
   };
 
+  const addCostCode = async (code: CostCode) => {
+    setCostCodes(prev => [...prev, code]);
+    await db.addCostCode(code);
+  };
+
   const updateCostCode = async (id: string, updates: Partial<CostCode>) => {
     setCostCodes(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
     await db.updateCostCode(id, updates);
@@ -716,6 +716,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addPurchaseOrder,
       updatePurchaseOrder,
       costCodes,
+      addCostCode,
       updateCostCode,
       invoices: visibleInvoices,
       addInvoice,

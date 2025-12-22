@@ -1,7 +1,36 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, '../../uploads');
+
+// Ensure uploads dir exists
+if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+}
+
+class LocalFileAdapter {
+    async upload(bucket: string, filePath: string, fileBuffer: Buffer) {
+        const fullPath = path.join(UPLOADS_DIR, bucket, filePath);
+        const dir = path.dirname(fullPath);
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        await fs.promises.writeFile(fullPath, fileBuffer);
+        return { data: { path: `${bucket}/${filePath}` }, error: null };
+    }
+
+    getPublicUrl(bucket: string, filePath: string) {
+        return { data: { publicUrl: `/uploads/${bucket}/${filePath}` } };
+    }
+}
+
+const localAdapter = new LocalFileAdapter();
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -19,12 +48,12 @@ try {
         throw new Error('Missing credentials');
     }
 } catch (e) {
-    logger.warn('Supabase Not Configured. Storage operations will fail safely.', { error: e.message });
+    logger.warn('Supabase Not Configured. Using Local Filesystem Storage.');
     supabase = {
         storage: {
-            from: () => ({
-                upload: async () => ({ error: new Error('Supabase not configured') }),
-                createSignedUrl: async () => ({ data: { signedUrl: '' }, error: null }), // Mock response
+            from: (bucket: string) => ({
+                upload: async (path: string, file: Buffer) => localAdapter.upload(bucket, path, file),
+                createSignedUrl: async (path: string) => ({ data: { signedUrl: `/uploads/${bucket}/${path}` }, error: null }),
                 remove: async () => ({ error: null })
             })
         }

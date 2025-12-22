@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types/express.js';
 import { getDb } from '../database.js';
 import { logger } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
+import { sendNotification } from '../services/notificationService.js';
 
 // --- Safety Incidents ---
 

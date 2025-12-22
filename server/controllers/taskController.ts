@@ -20,6 +20,11 @@ const createTaskSchema = z.object({
     priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
     assignedTo: z.string().optional(),
     dueDate: z.string().optional(),
+    startDate: z.string().optional(),
+    duration: z.number().int().min(1).optional(),
+    dependencies: z.union([z.string(), z.array(z.string())]).optional(), // Accept string (JSON) or array
+    progress: z.number().min(0).max(100).optional(),
+    color: z.string().optional(),
 });
 
 const updateTaskSchema = createTaskSchema.partial();

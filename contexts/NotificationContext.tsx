@@ -1,93 +1,125 @@
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useAuth } from './AuthContext';
+import { useToast } from './ToastContext';
 
 export interface Notification {
     id: string;
+    type: 'info' | 'success' | 'warning' | 'error';
     title: string;
     message: string;
-    type: 'info' | 'success' | 'warning' | 'error' | 'ai';
-    timestamp: string;
-    read: boolean;
     link?: string;
+    isRead: boolean;
+    createdAt: string;
 }
 
 interface NotificationContextType {
     notifications: Notification[];
     unreadCount: number;
-    addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
-    deleteNotification: (id: string) => void;
-    clearAll: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [notifications, setNotifications] = useState<Notification[]>(() => {
-        const saved = localStorage.getItem('buildpro_notifications');
-        return saved ? JSON.parse(saved) : [
-            {
-                id: '1',
-                title: 'Welcome to Phase 10',
-                message: 'Your enterprise foundations are being upgraded. Check out the new search!',
-                type: 'success',
-                timestamp: new Date().toISOString(),
-                read: false
-            },
-            {
-                id: '2',
-                title: 'AI Insight Available',
-                message: 'A new budget variance deep-dive is ready for Project London Bridge.',
-                type: 'ai',
-                timestamp: new Date(Date.now() - 3600000).toISOString(),
-                read: false
-            }
-        ];
-    });
+    const { user, token } = useAuth();
+    const { addToast } = useToast();
+    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [socket, setSocket] = useState<WebSocket | null>(null);
 
+    // Initial fetch (mock for now, real implementation would fetch from API)
     useEffect(() => {
-        localStorage.setItem('buildpro_notifications', JSON.stringify(notifications));
-    }, [notifications]);
+        if (user) {
+            // TODO: Fetch existing notifications from backend API
+            // For now, start empty
+        }
+    }, [user]);
 
-    const unreadCount = notifications.filter(n => !n.read).length;
+    const unreadCount = notifications.filter(n => !n.isRead).length;
 
-    const addNotification = (n: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
-        const fresh: Notification = {
-            ...n,
-            id: Math.random().toString(36).substr(2, 9),
-            timestamp: new Date().toISOString(),
-            read: false
+    // WebSocket Connection
+    useEffect(() => {
+        if (!user || !token) return;
+
+        // Determine WS URL
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host; // e.g. localhost:3002
+        const wsUrl = `${protocol}//${host}/api/live`;
+
+        let ws: WebSocket;
+        let pingInterval: any;
+
+        const connect = () => {
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('Notification Socket Connected');
+                // Join user-specific channel
+                ws.send(JSON.stringify({
+                    type: 'join_user_channel',
+                    userId: user.id
+                }));
+
+                pingInterval = setInterval(() => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({ type: 'presence_ping' }));
+                    }
+                }, 25000);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'notification') {
+                        const newNote: Notification = {
+                            id: data.id,
+                            type: data.notificationType,
+                            title: data.title,
+                            message: data.message,
+                            link: data.link,
+                            isRead: false,
+                            createdAt: data.createdAt
+                        };
+
+                        setNotifications(prev => [newNote, ...prev]);
+
+                        // Show Toast immediately
+                        addToast(data.title, data.notificationType === 'error' ? 'error' : data.notificationType === 'success' ? 'success' : 'info');
+                    }
+                } catch (err) {
+                    console.error('Notification Parse Error', err);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('Notification Socket Disconnected');
+                clearInterval(pingInterval);
+                // Reconnect logic could go here
+            };
+
+            setSocket(ws);
         };
-        setNotifications(prev => [fresh, ...prev]);
-    };
+
+        connect();
+
+        return () => {
+            if (ws) ws.close();
+            clearInterval(pingInterval);
+        };
+    }, [user, token]);
 
     const markAsRead = (id: string) => {
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+        // TODO: Call API to mark as read
     };
 
     const markAllAsRead = () => {
-        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    };
-
-    const deleteNotification = (id: string) => {
-        setNotifications(prev => prev.filter(n => n.id !== id));
-    };
-
-    const clearAll = () => {
-        setNotifications([]);
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
     return (
-        <NotificationContext.Provider value={{
-            notifications,
-            unreadCount,
-            addNotification,
-            markAsRead,
-            markAllAsRead,
-            deleteNotification,
-            clearAll
-        }}>
+        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead }}>
             {children}
         </NotificationContext.Provider>
     );

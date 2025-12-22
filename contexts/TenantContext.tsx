@@ -129,12 +129,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, []);
 
   // Supply Chain State
-  const [vendors, setVendors] = useState<Vendor[]>([
-    { id: 'v1', name: 'Elite Steel Co.', category: 'Metal', contact: 'Mark Evans', email: 'mark@elitesteel.com', rating: 95, performance: 95, activeOrders: 3, spend: '£45,200', status: 'Preferred', reliabilityScore: 98, averageDeliveryDays: 3 },
-    { id: 'v2', name: 'Global Concrete', category: 'Aggregates', contact: 'Sarah Chen', email: 'sarah@globalconcrete.com', rating: 92, performance: 92, activeOrders: 5, spend: '£32,100', status: 'Active', reliabilityScore: 94, averageDeliveryDays: 2 },
-    { id: 'v3', name: 'BuildRight Supplies', category: 'General', contact: 'Tom Harris', email: 'tom@buildright.com', rating: 88, performance: 88, activeOrders: 2, spend: '£12,800', status: 'Review', reliabilityScore: 85, averageDeliveryDays: 5 },
-    { id: 'v4', name: 'Premier Timber', category: 'Wood', contact: 'Lucy West', email: 'lucy@premiertimber.com', rating: 97, performance: 97, activeOrders: 1, spend: '£28,400', status: 'Preferred', reliabilityScore: 99, averageDeliveryDays: 4 }
-  ]);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
 
   // Initialize with real data from DB
   useEffect(() => {
@@ -172,14 +167,16 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             // For now, we update usage and refresh logs/team separately if needed, 
             // but use the aggregate whenever possible.
 
-            const [logs, team, clientList] = await Promise.all([
+            const [logs, team, clientList, vendorList] = await Promise.all([
               db.getAuditLogs(activeTenant.id),
               db.getTeam(),
-              db.getClients()
+              db.getClients(),
+              db.getVendors()
             ]);
             setAuditLogs(logs);
             setWorkforce(team);
             setClients(clientList);
+            setVendors(vendorList);
           }
 
           // 5. Apply Dynamic Branding
@@ -551,10 +548,12 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const addVendor = async (vendor: Vendor) => {
     setVendors(prev => [...prev, vendor]);
+    await db.addVendor(vendor);
   };
 
   const updateVendor = async (id: string, updates: Partial<Vendor>) => {
     setVendors(prev => prev.map(v => v.id === id ? { ...v, ...updates } : v));
+    await db.updateVendor(id, updates);
   };
 
   // Workforce Actions

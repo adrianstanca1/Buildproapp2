@@ -167,6 +167,17 @@ class DatabaseService {
     await this.post('team', m);
   }
 
+  // --- Vendors ---
+  async getVendors(): Promise<any[]> {
+    return this.fetch('vendors');
+  }
+  async addVendor(v: any) {
+    await this.post('vendors', v);
+  }
+  async updateVendor(id: string, updates: Partial<any>) {
+    await this.put('vendors', id, updates);
+  }
+
   // --- Documents ---
   async getDocuments(): Promise<ProjectDocument[]> {
     return this.fetch<ProjectDocument>('documents');
@@ -253,25 +264,20 @@ class DatabaseService {
 
   // --- Equipment ---
   async getEquipment(): Promise<Equipment[]> {
-    if (this.useMock) return [];
     return this.fetch<Equipment>('equipment');
   }
   async addEquipment(item: Equipment) {
-    if (this.useMock) return;
     await this.post('equipment', item);
   }
   async updateEquipment(id: string, u: Partial<Equipment>) {
-    if (this.useMock) return;
     await this.put('equipment', id, u);
   }
 
   // --- Timesheets ---
   async getTimesheets(): Promise<Timesheet[]> {
-    if (this.useMock) return [];
     return this.fetch<Timesheet>('timesheets');
   }
   async addTimesheet(item: Timesheet) {
-    if (this.useMock) return;
     await this.post('timesheets', item);
   }
   async updateTimesheet(id: string, u: Partial<Timesheet>) {
@@ -280,53 +286,41 @@ class DatabaseService {
   }
 
   // --- Transactions ---
+  // --- Transactions ---
   async getTransactions(): Promise<Transaction[]> {
-    if (this.useMock) return [];
     return this.fetch<Transaction>('transactions');
   }
   async addTransaction(item: Transaction) {
-    if (this.useMock) return;
     await this.post('transactions', item);
   }
   async updateTransaction(id: string, updates: Partial<Transaction>) {
-    if (this.useMock) {
-      // Mock update if needed
-      return;
-    }
     await this.put('transactions', id, updates);
   }
 
   // --- Purchase Orders ---
   async getPurchaseOrders(): Promise<PurchaseOrder[]> {
-    if (this.useMock) return [];
     return this.fetch<PurchaseOrder>('purchase_orders');
   }
   async addPurchaseOrder(item: PurchaseOrder) {
-    if (this.useMock) return;
     await this.post('purchase_orders', item);
   }
   async updatePurchaseOrder(id: string, u: Partial<PurchaseOrder>) {
-    if (this.useMock) return;
     await this.put('purchase_orders', id, u);
   }
 
   // --- Channels ---
   async getChannels(): Promise<any[]> {
-    if (this.useMock) return [];
     return this.fetch('channels');
   }
   async addChannel(item: any) {
-    if (this.useMock) return;
     await this.post('channels', item);
   }
 
   // --- Team Messages ---
   async getTeamMessages(): Promise<any[]> {
-    if (this.useMock) return [];
     return this.fetch('team_messages');
   }
   async addTeamMessage(item: any) {
-    if (this.useMock) return;
     await this.post('team_messages', item);
   }
 
@@ -535,17 +529,9 @@ class DatabaseService {
     return this.fetch<Invoice>('invoices');
   }
   async addInvoice(item: Invoice) {
-    if (this.useMock) {
-      await mockDb.addInvoice(item);
-      return;
-    }
     await this.post('invoices', item);
   }
   async updateInvoice(id: string, u: Partial<Invoice>) {
-    if (this.useMock) {
-      await mockDb.updateInvoice(id, u);
-      return;
-    }
     await this.put('invoices', id, u);
   }
 
@@ -553,17 +539,9 @@ class DatabaseService {
     return this.fetch<ExpenseClaim>('expense_claims');
   }
   async addExpenseClaim(item: ExpenseClaim) {
-    if (this.useMock) {
-      await mockDb.addExpenseClaim(item);
-      return;
-    }
     await this.post('expense_claims', item);
   }
   async updateExpenseClaim(id: string, u: Partial<ExpenseClaim>) {
-    if (this.useMock) {
-      await mockDb.updateExpenseClaim(id, u);
-      return;
-    }
     await this.put('expense_claims', id, u);
   }
 

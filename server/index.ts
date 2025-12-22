@@ -24,6 +24,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to ensure DB is initialized before handling requests (removed)
 
+// Serve local uploads
+app.use('/uploads', express.static(path.resolve('uploads')));
+
+
 // --- Middleware ---
 const tenantMiddleware = (req: any, res: any, next: any) => {
     const tenantId = req.headers['x-company-id'];
@@ -98,6 +102,8 @@ import * as systemController from './controllers/systemController.js';
 import * as dailyLogController from './controllers/dailyLogController.js';
 import * as rfiController from './controllers/rfiController.js';
 import * as safetyController from './controllers/safetyController.js';
+import { getVendors, createVendor, updateVendor } from './controllers/vendorController.js';
+import { getCostCodes, createCostCode, updateCostCode } from './controllers/costCodeController.js';
 app.get('/api/system-settings', systemController.getSystemSettings);
 app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), systemController.updateSystemSetting);
 
@@ -229,8 +235,19 @@ app.post('/api/safety_incidents', authenticateToken, requirePermission('safety',
 app.put('/api/safety_incidents/:id', authenticateToken, requirePermission('safety', 'update'), safetyController.updateSafetyIncident);
 
 // Safety Hazards
-app.get('/api/safety_hazards', authenticateToken, requirePermission('safety', 'read'), safetyController.getSafetyHazards);
+app.get('/api/safety_hazards', authenticateToken, safetyController.getSafetyHazards);
 app.post('/api/safety_hazards', authenticateToken, requirePermission('safety', 'create'), safetyController.createSafetyHazard);
+
+// --- Phase 4: Financial & Supply Chain ---
+// Vendors
+app.get('/api/vendors', authenticateToken, getVendors);
+app.post('/api/vendors', authenticateToken, requirePermission('settings', 'update'), createVendor);
+app.put('/api/vendors/:id', authenticateToken, requirePermission('settings', 'update'), updateVendor);
+
+// Cost Codes
+app.get('/api/cost_codes', authenticateToken, getCostCodes);
+app.post('/api/cost_codes', authenticateToken, requirePermission('financials', 'create'), createCostCode);
+app.put('/api/cost_codes/:id', authenticateToken, requirePermission('financials', 'update'), updateCostCode);
 
 // --- Generic CRUD Helper ---
 const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
@@ -240,7 +257,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
             let sql = `SELECT * FROM ${tableName}`;
             const params: any[] = [];
 
-            const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions'];
+            const tenantTables = ['team', 'clients', 'inventory', 'equipment', 'timesheets', 'channels', 'rfis', 'punch_items', 'daily_logs', 'dayworks', 'safety_incidents', 'tasks', 'documents', 'transactions', 'purchase_orders', 'invoices', 'expense_claims'];
 
             if (req.tenantId && tenantTables.includes(tableName)) {
                 sql += ` WHERE companyId = ?`;

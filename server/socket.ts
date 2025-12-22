@@ -6,8 +6,10 @@ import { logger } from './utils/logger.js';
 export const setupWebSocketServer = (server: any) => {
     const wss = new WebSocketServer({ server, path: '/api/live' });
 
-    // Store clients and their current room (projectId)
-    const clients = new Map<WebSocket, { userId?: string; projectId?: string; isAlive: boolean }>();
+    // Store global reference for external broadcasting
+    (global as any).wss = wss;
+    (global as any).wsClients = new Map<WebSocket, { userId?: string; projectId?: string; isAlive: boolean }>();
+    const clients = (global as any).wsClients;
 
     // Heartbeat to prune dead connections
     const interval = setInterval(() => {
@@ -50,6 +52,11 @@ export const setupWebSocketServer = (server: any) => {
                             status: 'online',
                             timestamp: new Date().toISOString()
                         });
+                        break;
+
+                    case 'join_user_channel':
+                        client.userId = data.userId;
+                        logger.info(`User ${data.userId} subscribed to personal notifications`);
                         break;
 
                     case 'leave_project':
@@ -131,6 +138,21 @@ const broadcastToRoom = (wss: WebSocketServer, clients: Map<WebSocket, any>, roo
     wss.clients.forEach((client) => {
         const clientData = clients.get(client as WebSocket);
         if (client !== exclude && client.readyState === WebSocket.OPEN && clientData?.projectId === roomId) {
+            client.send(JSON.stringify(message));
+        }
+    });
+};
+
+// Helper: Broadcast to specific user (across all their devices/tabs)
+export const broadcastToUser = (userId: string, message: any) => {
+    const wss = (global as any).wss as WebSocketServer;
+    const clients = (global as any).wsClients as Map<WebSocket, any>;
+
+    if (!wss || !clients) return;
+
+    wss.clients.forEach((client) => {
+        const clientData = clients.get(client as WebSocket);
+        if (client.readyState === WebSocket.OPEN && clientData?.userId === userId) {
             client.send(JSON.stringify(message));
         }
     });

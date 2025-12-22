@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../types/express.js';
 import { getDb } from '../database.js';
 import { logger } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
+import { sendNotification } from '../services/notificationService.js';
 
 export const getRFIs = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
@@ -54,6 +55,17 @@ export const createRFI = async (req: AuthenticatedRequest, res: Response): Promi
                 name, assignedTo || 'Unassigned', status || 'Open', dueDate, new Date().toISOString()
             ]
         );
+
+        if (assignedTo && assignedTo !== 'Unassigned') {
+            await sendNotification(
+                tenantId,
+                assignedTo,
+                'info',
+                'New RFI Assigned',
+                `You have been assigned RFI-${rfiNumber}: ${subject}`,
+                `/rfi`
+            );
+        }
 
         res.status(201).json({ id, number: rfiNumber, status: 'Open' });
     } catch (error) {
