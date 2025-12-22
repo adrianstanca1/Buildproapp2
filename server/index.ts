@@ -6,6 +6,9 @@ const require = createRequire(import.meta.url);
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+import path from 'path';
+import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimit.js';
 import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +20,25 @@ import { UserRole } from '../types.js'; // Importing UserRole to fix Enum type e
 
 const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
+
+// Security middleware
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'"],
+            imgSrc: ["'self'", "data:", "https:", "blob:"],
+            connectSrc: ["'self'", "ws:", "wss:"],
+            fontSrc: ["'self'", "data:"],
+        }
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    }
+}));
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));

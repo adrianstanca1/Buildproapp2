@@ -1,7 +1,6 @@
-
-
 import { Megaphone, X, ShieldAlert } from 'lucide-react';
-import React, { useState, lazy, Suspense, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import SuperadminSidebar from '@/components/SuperadminSidebar';
 import TopBar from '@/components/TopBar';
