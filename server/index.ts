@@ -275,6 +275,16 @@ import * as activityService from './services/activityService.js';
 app.get('/api/activity', authenticateToken, contextMiddleware, activityService.getActivityFeed);
 app.get('/api/activity/:entityType/:entityId', authenticateToken, contextMiddleware, activityService.getEntityActivity);
 
+// --- Analytics Routes ---
+import * as analyticsController from './controllers/analyticsController.js';
+
+app.get('/api/analytics/kpis', authenticateToken, contextMiddleware, analyticsController.getExecutiveKPIs);
+app.get('/api/analytics/project-progress', authenticateToken, contextMiddleware, analyticsController.getProjectProgress);
+app.get('/api/analytics/cost-variance', authenticateToken, contextMiddleware, analyticsController.getCostVarianceTrend);
+app.get('/api/analytics/resource-utilization', authenticateToken, contextMiddleware, analyticsController.getResourceUtilization);
+app.get('/api/analytics/safety-metrics', authenticateToken, contextMiddleware, analyticsController.getSafetyMetrics);
+app.get('/api/analytics/project-health/:projectId', authenticateToken, contextMiddleware, analyticsController.getProjectHealth);
+
 // --- Phase 4: Financial & Supply Chain ---
 // Vendors
 app.get('/api/vendors', authenticateToken, getVendors);

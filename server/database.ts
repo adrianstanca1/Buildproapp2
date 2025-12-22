@@ -729,6 +729,21 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Task assignments for resource allocation (Phase 9C)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_assignments (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      role TEXT,
+      allocated_hours REAL,
+      actual_hours REAL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    )
+  `);
+
   // Initialize default maintenance mode (OFF) if not exists
   const maintenanceSetting = await db.get('SELECT key FROM system_settings WHERE key = ?', ['maintenance_mode']);
   if (!maintenanceSetting) {
