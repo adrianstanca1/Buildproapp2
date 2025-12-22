@@ -9,55 +9,80 @@ import { useTenant } from '@/contexts/TenantContext';
  * PlatformDashboardView
  * Superadmin-only view showing platform-wide metrics and system health
  */
-const PlatformDashboardView: React.FC = () => {
-    const { tenants } = useTenant();
+import { db } from '@/services/db';
+import { PlatformStats, SystemHealth } from '@/types';
 
-    // Calculate platform metrics
-    const totalCompanies = tenants.length;
-    const totalUsers = tenants.reduce((sum, t) => sum + (t.users || 0), 0);
-    const totalProjects = tenants.reduce((sum, t) => sum + (t.projects || 0), 0);
-    const totalMRR = tenants.reduce((sum, t) => sum + (t.mrr || 0), 0);
+/**
+ * PlatformDashboardView
+ * Superadmin-only view showing platform-wide metrics and system health
+ */
+const PlatformDashboardView: React.FC = () => {
+    // State for real data
+    const [statsData, setStatsData] = React.useState<PlatformStats | null>(null);
+    const [healthData, setHealthData] = React.useState<SystemHealth | null>(null);
+    const [activityLogs, setActivityLogs] = React.useState<any[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [stats, health, activity] = await Promise.all([
+                    db.getPlatformStats(),
+                    db.getSystemHealth(),
+                    db.getGlobalActivity()
+                ]);
+                setStatsData(stats);
+                setHealthData(health);
+                setActivityLogs(activity);
+            } catch (error) {
+                console.error('Failed to load platform dashboard data', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        loadData();
+    }, []);
 
     const stats = [
         {
             label: 'Total Companies',
-            value: totalCompanies,
-            change: '+12%',
-            trend: 'up',
+            value: statsData?.totalCompanies || 0,
+            change: '-', // Calculate if historical data exists
+            trend: 'neutral',
             icon: Building2,
             color: 'blue',
         },
         {
             label: 'Active Users',
-            value: totalUsers,
-            change: '+8%',
-            trend: 'up',
+            value: statsData?.totalUsers || 0,
+            change: '-',
+            trend: 'neutral',
             icon: Users,
             color: 'green',
         },
         {
             label: 'Total Projects',
-            value: totalProjects,
-            change: '+15%',
-            trend: 'up',
+            value: statsData?.totalProjects || 0,
+            change: '-',
+            trend: 'neutral',
             icon: LayoutDashboard,
             color: 'purple',
         },
         {
             label: 'Monthly Revenue',
-            value: `$${totalMRR.toLocaleString()}`,
-            change: '+23%',
-            trend: 'up',
+            value: `$${(statsData?.monthlyRevenue || 0).toLocaleString()}`,
+            change: '-',
+            trend: 'neutral',
             icon: DollarSign,
             color: 'emerald',
         },
     ];
 
     const systemHealth = [
-        { name: 'API Server', status: 'healthy', uptime: '99.9%', icon: Server },
-        { name: 'Database', status: 'healthy', uptime: '99.8%', icon: Database },
-        { name: 'Auth Service', status: 'healthy', uptime: '100%', icon: Shield },
-        { name: 'File Storage', status: 'degraded', uptime: '98.5%', icon: Activity },
+        { name: 'API Server', status: healthData?.api || 'unknown', uptime: `${Math.floor((healthData?.uptime || 0) / 60)}m`, icon: Server },
+        { name: 'Database', status: healthData?.database || 'unknown', uptime: 'N/A', icon: Database },
+        { name: 'Auth Service', status: 'healthy', uptime: '100%', icon: Shield }, // Mock for now until Auth service exposes health
+        { name: 'File Storage', status: 'degraded', uptime: '98.5%', icon: Activity }, // Mock
     ];
 
     return (

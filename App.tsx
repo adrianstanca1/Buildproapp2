@@ -75,6 +75,7 @@ const ClientPortalView = lazyWithReload(() => import('@/views/ClientPortalView')
 // Platform/Superadmin Views
 const PlatformDashboardView = lazyWithReload(() => import('@/views/platform/PlatformDashboardView'));
 const CompanyManagementView = lazyWithReload(() => import('@/views/platform/CompanyManagementView'));
+const UserManagementView = lazyWithReload(() => import('@/views/platform/UserManagementView'));
 const PlatformMembersView = lazyWithReload(() => import('@/views/platform/PlatformMembersView'));
 const AccessControlView = lazyWithReload(() => import('@/views/platform/AccessControlView'));
 const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsView'));
@@ -267,7 +268,7 @@ const AuthenticatedApp: React.FC = () => {
               {/* Platform/Superadmin Routes */}
               {page === Page.PLATFORM_DASHBOARD && <PlatformDashboardView />}
               {page === Page.COMPANY_MANAGEMENT && <CompanyManagementView />}
-              {page === Page.PLATFORM_MEMBERS && <PlatformMembersView />}
+              {page === Page.PLATFORM_MEMBERS && <UserManagementView />}
               {page === Page.ACCESS_CONTROL && <AccessControlView />}
               {page === Page.SYSTEM_LOGS && <SystemLogsView />}
             </Suspense>

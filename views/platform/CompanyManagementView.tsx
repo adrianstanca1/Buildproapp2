@@ -101,12 +101,31 @@ const CompanyManagementView: React.FC = () => {
         return icons[status] || AlertCircle;
     };
 
-    const handleSuspendCompany = (companyId: string) => {
-        updateTenant(companyId, { status: 'Suspended' });
+    const handleSuspendCompany = async (id: string) => {
+        if (!confirm('Are you sure you want to suspend this company? This will block access for all its users.')) return;
+        try {
+            await updateTenant(id, { status: 'Suspended' });
+            // Reflect local update immediately if wait time is long
+            if (selectedCompany && selectedCompany.id === id) {
+                setSelectedCompany({ ...selectedCompany, status: 'Suspended' });
+            }
+        } catch (error) {
+            console.error('Failed to suspend company', error);
+            alert('Failed to suspend company');
+        }
     };
 
-    const handleActivateCompany = (companyId: string) => {
-        updateTenant(companyId, { status: 'Active' });
+    const handleActivateCompany = async (id: string) => {
+        try {
+            await updateTenant(id, { status: 'Active' });
+            // Reflect local update
+            if (selectedCompany && selectedCompany.id === id) {
+                setSelectedCompany({ ...selectedCompany, status: 'Active' });
+            }
+        } catch (error) {
+            console.error('Failed to activate company', error);
+            alert('Failed to activate company');
+        }
     };
 
     return (

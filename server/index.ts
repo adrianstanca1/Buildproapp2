@@ -83,20 +83,35 @@ app.use('/api/storage', storageRoutes);
 // --- Companies Routes ---
 import * as companyController from './controllers/companyController.js';
 
-app.get('/api/companies', requireRole(['super_admin', 'admin']), companyController.getCompanies);
-app.post('/api/companies', requireRole(['super_admin']), companyController.createCompany);
+app.get('/api/companies', requireRole(['SUPERADMIN', 'COMPANY_ADMIN']), companyController.getCompanies);
+app.post('/api/companies', requireRole(['SUPERADMIN']), companyController.createCompany);
 
-app.put('/api/companies/:id', requireRole(['super_admin', 'admin']), companyController.updateCompany);
-app.delete('/api/companies/:id', requireRole(['super_admin']), companyController.deleteCompany);
+app.put('/api/companies/:id', requireRole(['SUPERADMIN', 'COMPANY_ADMIN']), companyController.updateCompany);
+app.delete('/api/companies/:id', requireRole(['SUPERADMIN']), companyController.deleteCompany);
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
 app.get('/api/system-settings', systemController.getSystemSettings);
 
+// --- Platform / SuperAdmin Routes ---
+import * as platformController from './controllers/platformController.js';
+import * as userManagementController from './controllers/userManagementController.js';
+
+const superAdminOnly = requireRole(['SUPERADMIN']);
+
+app.get('/api/platform/stats', superAdminOnly, platformController.getDashboardStats);
+app.get('/api/platform/health', superAdminOnly, platformController.getSystemHealth);
+app.get('/api/platform/activity', superAdminOnly, platformController.getGlobalActivity);
+
+app.get('/api/platform/users', superAdminOnly, userManagementController.getAllPlatformUsers);
+app.put('/api/platform/users/:id/status', superAdminOnly, userManagementController.updateUserStatus);
+app.put('/api/platform/users/:id/role', superAdminOnly, userManagementController.updateUserRole);
+app.post('/api/platform/users/:id/reset-password', superAdminOnly, userManagementController.forceResetPassword);
+
 // --- Tenant Analytics Routes ---
 import { getTenantUsage } from './services/tenantService.js';
 
-app.get('/api/tenants/:id/usage', requireRole(['super_admin', 'admin']), async (req: any, res: any) => {
+app.get('/api/tenants/:id/usage', requireRole(['SUPERADMIN', 'COMPANY_ADMIN']), async (req: any, res: any) => {
     try {
         const { id } = req.params;
         const usage = await getTenantUsage(id);

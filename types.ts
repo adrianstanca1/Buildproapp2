@@ -1,5 +1,22 @@
 import React from 'react';
 
+export interface PlatformStats {
+  totalCompanies: number;
+  totalUsers: number;
+  totalProjects: number;
+  monthlyRevenue: number;
+  systemStatus: string;
+  environment: string;
+}
+
+export interface SystemHealth {
+  api: string;
+  database: string;
+  databaseLatency: string;
+  timestamp: string;
+  uptime: number;
+}
+
 export interface SystemSettings {
   maintenance: boolean;
   betaFeatures: boolean;

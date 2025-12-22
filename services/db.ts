@@ -439,6 +439,55 @@ class DatabaseService {
     return this.fetch('permissions');
   }
 
+  // --- Platform API (Super Admin) ---
+  async getPlatformStats(): Promise<any> {
+    const res = await fetch(`${API_URL}/platform/stats`, { headers: await this.getHeaders() });
+    if (!res.ok) return { totalCompanies: 0, totalUsers: 0, totalProjects: 0, monthlyRevenue: 0, systemStatus: 'unknown' };
+    return await res.json();
+  }
+
+  async getSystemHealth(): Promise<any> {
+    const res = await fetch(`${API_URL}/platform/health`, { headers: await this.getHeaders() });
+    if (!res.ok) return { api: 'unknown', database: 'unknown' };
+    return await res.json();
+  }
+
+  async getGlobalActivity(): Promise<any[]> {
+    try {
+      const res = await fetch(`${API_URL}/platform/activity`, { headers: await this.getHeaders() });
+      if (!res.ok) return [];
+      return await res.json();
+    } catch { return []; }
+  }
+
+  async getAllPlatformUsers(): Promise<any[]> {
+    try {
+      const res = await fetch(`${API_URL}/platform/users`, { headers: await this.getHeaders() });
+      if (!res.ok) return [];
+      return await res.json();
+    } catch { return []; }
+  }
+
+  async updateUserStatus(id: string, status: string): Promise<void> {
+    await fetch(`${API_URL}/platform/users/${id}/status`, {
+      method: 'PUT',
+      headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ status })
+    });
+  }
+
+  async updateUserRole(id: string, role: string): Promise<void> {
+    await fetch(`${API_URL}/platform/users/${id}/role`, {
+      method: 'PUT',
+      headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ role })
+    });
+  }
+
+  async resetUserPassword(id: string): Promise<void> {
+    await this.post(`platform/users/${id}/reset-password`, {});
+  }
+
   // --- System Settings (Admin) ---
   async getSystemSettings(): Promise<any> {
     if (this.useMock) {
