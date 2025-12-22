@@ -106,7 +106,7 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 
 const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
     const { isLoading } = useProjects();
-    const { workforce, addTeamMember, canAddResource, currentTenant, requireRole } = useTenant();
+    const { workforce, addTeamMember, updateTeamMember, deleteTeamMember, canAddResource, currentTenant, requireRole } = useTenant();
     const teamMembers = workforce; // Map to local var for compatibility
     const { addToast } = useToast();
     const { joinRoom, lastMessage } = useWebSocket();
@@ -139,7 +139,7 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
     const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
 
     const { user } = useAuth();
-    const isSuperAdmin = user?.role === UserRole.SUPER_ADMIN;
+    const isSuperAdmin = user?.role === UserRole.SUPERADMIN;
 
     const { activeProject } = useProjects();
 
@@ -630,7 +630,7 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                                     </div>
                                     <div className="text-center p-4 border border-zinc-100 bg-white rounded-xl shadow-sm">
                                         <div className="text-2xl font-bold text-[#0f5c82]">
-                                            {requireRole(['admin', 'super_admin']) ? `£${selectedMember.hourlyRate || '45'}` : '***'}
+                                            {requireRole([UserRole.COMPANY_ADMIN, UserRole.SUPERADMIN]) ? `£${selectedMember.hourlyRate || '45'}` : '***'}
                                         </div>
                                         <div className="text-xs text-zinc-500 uppercase mt-1 font-semibold">Hourly</div>
                                     </div>
@@ -677,11 +677,13 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                 member={selectedMember}
                 onClose={() => setSelectedMember(null)}
                 onUpdate={(updatedMember) => {
-                    // Update member logic
+                    updateTeamMember(updatedMember.id, updatedMember);
+                    addToast(`Member ${updatedMember.name} updated`, 'success');
                     setSelectedMember(null);
                 }}
                 onDelete={(memberId) => {
-                    // Delete member logic
+                    setWorkforce(prev => prev.filter(m => m.id !== memberId));
+                    addToast(`Member removed from project`, 'success');
                     setSelectedMember(null);
                 }}
                 projectName={projectId ? `Project ${projectId}` : 'Team'}

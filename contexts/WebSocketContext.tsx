@@ -22,7 +22,7 @@ export const useWebSocket = () => {
 };
 
 export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user } = useAuth();
+    const { user, refreshPermissions } = useAuth();
     const { addToast } = useToast();
     const [isConnected, setIsConnected] = useState(false);
     const [lastMessage, setLastMessage] = useState<any>(null);
@@ -61,6 +61,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
                     if (data.type === 'project_updated') {
                         addToast(`Project updated by another user`, 'info');
+                    }
+
+                    if (data.type === 'rbac_updated') {
+                        refreshPermissions();
+                        addToast('Permissions updated.', 'info');
                     }
                 } catch (e) {
                     console.error('WS Parse Error', e);

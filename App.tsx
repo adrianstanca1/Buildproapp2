@@ -103,7 +103,7 @@ const AuthenticatedApp: React.FC = () => {
   }, []);
 
   // Maintenance Mode Check (Super Admins Bypass)
-  if (systemSettings.maintenance && user?.role !== UserRole.SUPER_ADMIN) {
+  if (systemSettings.maintenance && user?.role !== UserRole.SUPERADMIN) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-zinc-900 text-white p-8">
         <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
@@ -124,7 +124,7 @@ const AuthenticatedApp: React.FC = () => {
 
   // FORCE CLIENT PORTAL: If user is a Client, they CANNOT see anything else.
   // This acts as a strict route guard.
-  if (user?.role === UserRole.CLIENT && page !== Page.CLIENT_PORTAL && page !== Page.LOGIN) {
+  if (user?.role === UserRole.READ_ONLY && page !== Page.CLIENT_PORTAL && page !== Page.LOGIN) {
     setPage(Page.CLIENT_PORTAL);
     return null; // Trigger re-render with correct page
   }
@@ -180,7 +180,7 @@ const AuthenticatedApp: React.FC = () => {
       )}
 
       {/* Sidebar Navigation - Role-based */}
-      {user?.role === UserRole.SUPER_ADMIN ? (
+      {user?.role === UserRole.SUPERADMIN ? (
         <SuperadminSidebar
           currentPage={page}
           setPage={(p) => {

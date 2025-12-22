@@ -57,11 +57,43 @@ export enum Page {
 }
 
 export enum UserRole {
-  SUPER_ADMIN = 'super_admin',
-  COMPANY_ADMIN = 'company_admin',
-  SUPERVISOR = 'supervisor',
-  OPERATIVE = 'operative',
-  CLIENT = 'client'
+  READ_ONLY = 'READ_ONLY',
+  OPERATIVE = 'OPERATIVE',
+  SUPERVISOR = 'SUPERVISOR',
+  FINANCE = 'FINANCE',
+  PROJECT_MANAGER = 'PROJECT_MANAGER',
+  COMPANY_ADMIN = 'COMPANY_ADMIN',
+  SUPERADMIN = 'SUPERADMIN',
+}
+
+/**
+ * Role hierarchy for privilege comparison
+ */
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  [UserRole.READ_ONLY]: 0,
+  [UserRole.OPERATIVE]: 1,
+  [UserRole.SUPERVISOR]: 2,
+  [UserRole.FINANCE]: 3,
+  [UserRole.PROJECT_MANAGER]: 4,
+  [UserRole.COMPANY_ADMIN]: 5,
+  [UserRole.SUPERADMIN]: 6,
+};
+
+export interface Permission {
+  id: string;
+  name: string; // e.g., 'projects.create'
+  resource: string;
+  action: string;
+  description?: string;
+}
+
+export interface Membership {
+  id: string;
+  userId: string;
+  companyId: string;
+  role: UserRole;
+  permissions?: string[];
+  status: 'active' | 'suspended' | 'invited' | 'inactive';
 }
 
 export interface Company {
@@ -403,6 +435,8 @@ export interface UserProfile {
   email: string;
   phone: string;
   role: UserRole;
+  permissions: string[];
+  memberships: Membership[];
   companyId?: string;
   projectIds?: string[];
   avatarInitials: string;

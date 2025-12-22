@@ -66,6 +66,7 @@ interface TenantContextType {
   workforce: TeamMember[];
   addTeamMember: (member: TeamMember) => Promise<void>;
   updateTeamMember: (id: string, updates: Partial<TeamMember>) => Promise<void>;
+  deleteTeamMember: (id: string) => Promise<void>;
 
   // Client CRM
   clients: Client[];
@@ -558,6 +559,10 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setWorkforce(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
   };
 
+  const deleteTeamMember = async (id: string) => {
+    setWorkforce(prev => prev.filter(m => m.id !== id));
+  };
+
   // Client Actions
   const addClient = async (client: Client) => {
     setClients(prev => [...prev, client]);
@@ -632,6 +637,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         workforce,
         addTeamMember,
         updateTeamMember,
+        deleteTeamMember,
         clients,
         addClient,
         updateClient,

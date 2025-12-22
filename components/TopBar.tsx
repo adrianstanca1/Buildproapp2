@@ -10,6 +10,7 @@ import { useProjects } from '../contexts/ProjectContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { searchService, SearchResult } from '../services/SearchService';
 import { useTheme } from '../contexts/ThemeContext';
+import { useAuth } from '../contexts/AuthContext';
 
 interface TopBarProps {
   setPage: (page: Page) => void;
@@ -23,6 +24,7 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
   const [sosSent, setSosSent] = useState(false);
   const { addToast } = useToast();
   const { tenant } = useTenant();
+  const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { projects, tasks, teamMembers, defects, safetyIncidents } = useProjects();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
@@ -274,8 +276,8 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
               {tenant?.name?.substring(0, 2).toUpperCase() || 'JA'}
             </div>
             <div className="text-left hidden xl:block">
-              <div className="text-sm font-semibold text-zinc-900">John Anderson</div>
-              <div className="text-xs text-zinc-500">{tenant?.plan} Admin</div>
+              <div className="text-sm font-semibold text-zinc-900">{user?.name || 'User'}</div>
+              <div className="text-xs text-zinc-500">{(user?.role || 'Guest').replace('_', ' ')}</div>
             </div>
           </button>
         </div>

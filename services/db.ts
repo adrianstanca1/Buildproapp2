@@ -398,16 +398,37 @@ class DatabaseService {
     return await res.json();
   }
 
-  async getRoles(): Promise<any[]> {
-    return this.fetch('roles');
-  }
-
   async getUserRoles(userId: string, companyId: string): Promise<any[]> {
     const res = await fetch(`${API_URL}/user-roles/${userId}/${companyId}`, {
       headers: await this.getHeaders()
     });
     if (!res.ok) throw new Error("Failed to fetch user roles");
     return await res.json();
+  }
+
+  async updateUserRole(userId: string, companyId: string, role: string): Promise<void> {
+    await this.post('user-roles', { userId, companyId, role });
+  }
+
+  async getUserPermissions(): Promise<string[]> {
+    const res = await fetch(`${API_URL}/user/permissions`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch user permissions");
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  async getRoles(): Promise<any[]> {
+    return this.fetch('roles');
+  }
+
+  async getRolePermissions(role: string): Promise<string[]> {
+    return this.fetch(`roles/${role}/permissions`);
+  }
+
+  async getPermissions(): Promise<any[]> {
+    return this.fetch('permissions');
   }
 
   // --- System Settings (Admin) ---

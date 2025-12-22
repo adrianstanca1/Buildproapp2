@@ -1,119 +1,138 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { UserProfile, UserRole } from '@/types';
 import { supabase } from '@/services/supabaseClient';
+import { db } from '@/services/db';
+import { useTenant } from '@/contexts/TenantContext';
 
-interface AuthContextType
-{
+interface AuthContextType {
   user: UserProfile | null;
-  login: ( role: UserRole ) => void;
+  login: (role: UserRole) => void;
   logout: () => void;
-  hasPermission: ( allowedRoles: UserRole[] ) => boolean;
-  addProjectId: ( id: string ) => void;
+  hasPermission: (permission: string) => boolean;
+  addProjectId: (id: string) => void;
+  refreshPermissions: () => Promise<void>;
   isSupabaseConnected: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>( undefined );
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () =>
-{
-  const context = useContext( AuthContext );
-  if ( !context )
-  {
-    throw new Error( 'useAuth must be used within an AuthProvider' );
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ( { children } ) =>
-{
-  const [ user, setUser ] = useState<UserProfile | null>( null );
-  const [ isSupabaseConnected, setIsSupabaseConnected ] = useState( false );
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
+  const [isFetchingPermissions, setIsFetchingPermissions] = useState(false);
 
-  useEffect( () =>
-  {
+  const { tenant } = useTenant();
+
+  useEffect(() => {
+    if (user && tenant) {
+      refreshPermissions();
+    }
+  }, [tenant?.id, user?.id]);
+
+  useEffect(() => {
     // Check if Supabase is configured by attempting to get a session
     // If the URL/Key are missing, this might fail or return null
-    const initSupabase = async () =>
-    {
-      try
-      {
+    const initSupabase = async () => {
+      try {
         // Check if env vars are present (basic check)
-        if ( !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY )
-        {
+        if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
           return;
         }
 
-        setIsSupabaseConnected( true );
+        setIsSupabaseConnected(true);
 
         const { data: { session } } = await supabase.auth.getSession();
-        if ( session?.user )
-        {
-          mapSupabaseUser( session.user );
+        if (session?.user) {
+          mapSupabaseUser(session.user);
         }
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange( ( _event, session ) =>
-        {
-          if ( session?.user )
-          {
-            mapSupabaseUser( session.user );
-          } else
-          {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+          if (session?.user) {
+            mapSupabaseUser(session.user);
+          } else {
             // Only clear if we are not using a demo account
-            setUser( prev =>
-            {
+            setUser(prev => {
               // Demo accounts have short IDs (u1, u2, etc)
               // Supabase accounts have UUIDs
-              if ( prev && prev.id.length < 10 )
-              {
+              if (prev && prev.id.length < 10) {
                 return prev;
               }
               return null;
-            } );
+            });
           }
-        } );
+        });
 
         return () => subscription.unsubscribe();
-      } catch ( e )
-      {
-        console.warn( "Supabase initialization skipped:", e );
+      } catch (e) {
+        console.warn("Supabase initialization skipped:", e);
       }
     };
 
     initSupabase();
-  }, [] );
+  }, []);
 
-  const mapSupabaseUser = ( authUser: any ) =>
-  {
+  const mapSupabaseUser = async (authUser: any) => {
     const newUser: UserProfile = {
       id: authUser.id,
-      name: authUser.user_metadata?.full_name || authUser.email?.split( '@' )[ 0 ] || 'User',
+      name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
       email: authUser.email || '',
       phone: authUser.phone || '',
-      role: ( authUser.user_metadata?.role as UserRole ) || UserRole.OPERATIVE,
-      avatarInitials: ( ( authUser.email || 'U' )[ 0 ] ).toUpperCase(),
+      role: (authUser.user_metadata?.role as UserRole) || UserRole.OPERATIVE,
+      permissions: authUser.user_metadata?.permissions || [],
+      memberships: authUser.user_metadata?.memberships || [],
+      avatarInitials: ((authUser.email || 'U')[0]).toUpperCase(),
       companyId: authUser.user_metadata?.companyId || 'c1',
       projectIds: []
     };
-    setUser( newUser );
+    setUser(newUser);
+    // Initial permission fetch
+    refreshPermissions(newUser.id);
   };
 
-  const login = ( role: UserRole ) =>
-  {
+  const refreshPermissions = async (userId?: string) => {
+    const targetUserId = userId || user?.id;
+    if (!targetUserId) return;
+
+    try {
+      setIsFetchingPermissions(true);
+      const permissions = await db.getUserPermissions();
+      setUser(prev => prev ? { ...prev, permissions } : null);
+    } catch (e) {
+      console.error("Failed to refresh permissions:", e);
+    } finally {
+      setIsFetchingPermissions(false);
+    }
+  };
+
+  const login = (role: UserRole) => {
     // Simulating backend user retrieval based on role selection
     let mockUser: UserProfile;
 
-    switch ( role )
-    {
-      case UserRole.SUPER_ADMIN:
+    const commonMemberships = [
+      { id: 'm1', userId: 'u1', companyId: 'c1', role, status: 'active' as const }
+    ];
+
+    switch (role) {
+      case UserRole.SUPERADMIN:
         mockUser = {
           id: 'u1',
           name: 'John Anderson',
           email: 'john@buildcorp.com',
           phone: '+44 7700 900001',
-          role: UserRole.SUPER_ADMIN,
+          role: UserRole.SUPERADMIN,
+          permissions: ['*'],
+          memberships: [{ id: 'm1', userId: 'u1', companyId: 'ALL', role: UserRole.SUPERADMIN, status: 'active' as const }],
           avatarInitials: 'JA',
           companyId: 'ALL',
-          projectIds: [ 'ALL' ]
+          projectIds: ['ALL']
         };
         break;
       case UserRole.COMPANY_ADMIN:
@@ -123,9 +142,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ( { children } ) 
           email: 'sarah@buildcorp.com',
           phone: '+44 7700 900002',
           role: UserRole.COMPANY_ADMIN,
+          permissions: ['projects.*', 'users.*', 'finances.read'],
+          memberships: commonMemberships,
           avatarInitials: 'SM',
           companyId: 'c1',
-          projectIds: [ 'p1', 'p2' ]
+          projectIds: ['p1', 'p2']
         };
         break;
       case UserRole.SUPERVISOR:
@@ -135,9 +156,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ( { children } ) 
           email: 'mike@buildcorp.com',
           phone: '+44 7700 900003',
           role: UserRole.SUPERVISOR,
+          permissions: ['projects.read', 'tasks.*'],
+          memberships: commonMemberships,
           avatarInitials: 'MT',
           companyId: 'c1',
-          projectIds: [ 'p1' ]
+          projectIds: ['p1']
         };
         break;
       case UserRole.OPERATIVE:
@@ -147,46 +170,54 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ( { children } ) 
           email: 'david@buildcorp.com',
           phone: '+44 7700 900004',
           role: UserRole.OPERATIVE,
+          permissions: ['tasks.read', 'tasks.update'],
+          memberships: commonMemberships,
           avatarInitials: 'DC',
           companyId: 'c1',
-          projectIds: [ 'p1' ]
+          projectIds: ['p1']
         };
         break;
       default:
         return;
     }
-    setUser( mockUser );
+    setUser(mockUser);
   };
 
-  const logout = async () =>
-  {
-    if ( user && user.id.length > 10 && isSupabaseConnected )
-    {
+  const logout = async () => {
+    if (user && user.id.length > 10 && isSupabaseConnected) {
       await supabase.auth.signOut();
     }
-    setUser( null );
+    setUser(null);
   };
 
-  const hasPermission = ( allowedRoles: UserRole[] ) =>
-  {
-    if ( !user ) return false;
-    return allowedRoles.includes( user.role );
+  const hasPermission = (permission: string) => {
+    if (!user) return false;
+
+    // Superadmin override
+    if (user.permissions.includes('*')) return true;
+
+    // Direct match
+    if (user.permissions.includes(permission)) return true;
+
+    // Wildcard match (e.g., 'projects.*' matches 'projects.create')
+    const [resource] = permission.split('.');
+    if (user.permissions.includes(`${resource}.*`)) return true;
+
+    return false;
   };
 
-  const addProjectId = ( projectId: string ) =>
-  {
-    if ( user && user.projectIds && !user.projectIds.includes( projectId ) && !user.projectIds.includes( 'ALL' ) )
-    {
-      setUser( {
+  const addProjectId = (projectId: string) => {
+    if (user && user.projectIds && !user.projectIds.includes(projectId) && !user.projectIds.includes('ALL')) {
+      setUser({
         ...user,
-        projectIds: [ ...user.projectIds, projectId ]
-      } );
+        projectIds: [...user.projectIds, projectId]
+      });
     }
   };
 
   return (
-    <AuthContext.Provider value={ { user, login, logout, hasPermission, addProjectId, isSupabaseConnected } }>
-      { children }
+    <AuthContext.Provider value={{ user, login, logout, hasPermission, addProjectId, refreshPermissions, isSupabaseConnected }}>
+      {children}
     </AuthContext.Provider>
   );
 };

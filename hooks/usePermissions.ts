@@ -1,48 +1,28 @@
 import { useMemo } from 'react';
-import { useTenant } from '@/contexts/TenantContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 /**
  * Permission check hook
  * Provides methods to check user permissions
  */
 export const usePermissions = () => {
-    const { currentTenant } = useTenant();
-
-    // For now, we'll use a simplified permission system
-    // This will be enhanced when we integrate with the backend RBAC
-    const permissions = useMemo(() => {
-        if (!currentTenant) return [];
-
-        // Map plan to permissions (temporary until backend integration)
-        const planPermissions: Record<string, string[]> = {
-            'Free': ['projects.read', 'tasks.read', 'documents.read'],
-            'Pro': [
-                'projects.read', 'projects.create', 'projects.update',
-                'tasks.read', 'tasks.create', 'tasks.update',
-                'documents.read', 'documents.create',
-                'reports.read', 'team.read'
-            ],
-            'Enterprise': ['*'], // All permissions
-        };
-
-        return planPermissions[currentTenant.plan] || [];
-    }, [currentTenant]);
+    const { user } = useAuth();
 
     /**
      * Check if user has a specific permission
      */
     const can = (permission: string): boolean => {
-        if (!currentTenant) return false;
+        if (!user) return false;
 
-        // Enterprise has all permissions
-        if (permissions.includes('*')) return true;
+        // Superadmin override
+        if (user.permissions.includes('*')) return true;
 
         // Check exact permission
-        if (permissions.includes(permission)) return true;
+        if (user.permissions.includes(permission)) return true;
 
         // Check wildcard permissions (e.g., 'projects.*' matches 'projects.create')
         const [resource] = permission.split('.');
-        if (permissions.includes(`${resource}.*`)) return true;
+        if (user.permissions.includes(`${resource}.*`)) return true;
 
         return false;
     };
@@ -69,7 +49,7 @@ export const usePermissions = () => {
     };
 
     return {
-        permissions,
+        permissions: user?.permissions || [],
         can,
         canAny,
         canAll,

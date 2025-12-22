@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { X, Mail, User, Users, AlertCircle, CheckCircle, Save, Loader, Trash2 } from 'lucide-react';
-import { TeamMember } from '@/types';
+import { TeamMember, UserRole } from '@/types';
 import { emailService } from '@/services/emailService';
 import { Modal } from './Modal';
+import { db } from '@/services/db';
 
 interface EditMemberModalProps {
   isOpen: boolean;
@@ -13,7 +14,7 @@ interface EditMemberModalProps {
   projectName?: string;
 }
 
-const roles = ['Project Manager', 'Supervisor', 'Worker', 'Inspector', 'Safety Officer', 'Equipment Manager'];
+const roles = Object.values(UserRole);
 const statuses = ['On Site', 'Off Site', 'On Break', 'Leave'];
 
 export const EditMemberModal: React.FC<EditMemberModalProps> = ({
@@ -67,20 +68,9 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
         throw new Error('Invalid email address');
       }
 
-      // Send notification if role changed
-      if (sendNotification && formData.role !== member.role) {
-        setStep('sending');
-        const emailResult = await emailService.sendRoleChangeNotification(
-          formData.email,
-          formData.name,
-          member.role,
-          formData.role,
-          projectName
-        );
-
-        if (!emailResult.success) {
-          throw new Error(emailResult.error || 'Failed to send email');
-        }
+      // Update membership role if changed
+      if (formData.role !== member.role) {
+        await db.updateUserRole(member.id, member.companyId, formData.role);
       }
 
       // Update member
@@ -206,7 +196,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
               >
                 {roles.map(role => (
                   <option key={role} value={role}>
-                    {role}
+                    {role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                   </option>
                 ))}
               </select>

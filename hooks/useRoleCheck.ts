@@ -1,52 +1,14 @@
 import { useMemo } from 'react';
-import { useTenant } from '@/contexts/TenantContext';
-
-/**
- * User roles in hierarchical order
- */
-export enum UserRole {
-    READ_ONLY = 'READ_ONLY',
-    OPERATIVE = 'OPERATIVE',
-    SUPERVISOR = 'SUPERVISOR',
-    FINANCE = 'FINANCE',
-    PROJECT_MANAGER = 'PROJECT_MANAGER',
-    COMPANY_ADMIN = 'COMPANY_ADMIN',
-    SUPERADMIN = 'SUPERADMIN',
-}
-
-/**
- * Role hierarchy for privilege comparison
- */
-const ROLE_HIERARCHY: Record<UserRole, number> = {
-    [UserRole.READ_ONLY]: 0,
-    [UserRole.OPERATIVE]: 1,
-    [UserRole.SUPERVISOR]: 2,
-    [UserRole.FINANCE]: 3,
-    [UserRole.PROJECT_MANAGER]: 4,
-    [UserRole.COMPANY_ADMIN]: 5,
-    [UserRole.SUPERADMIN]: 6,
-};
+import { useAuth } from '@/contexts/AuthContext';
+import { UserRole, ROLE_HIERARCHY } from '@/types';
 
 /**
  * Role check hook
  * Provides methods to check user roles and hierarchy
  */
 export const useRoleCheck = () => {
-    const { currentTenant } = useTenant();
-
-    // For now, derive role from plan (temporary until backend integration)
-    const userRole = useMemo((): UserRole => {
-        if (!currentTenant) return UserRole.READ_ONLY;
-
-        // Map plan to default role (temporary)
-        const planRoles: Record<string, UserRole> = {
-            'Free': UserRole.OPERATIVE,
-            'Pro': UserRole.PROJECT_MANAGER,
-            'Enterprise': UserRole.COMPANY_ADMIN,
-        };
-
-        return planRoles[currentTenant.plan] || UserRole.READ_ONLY;
-    }, [currentTenant]);
+    const { user } = useAuth();
+    const userRole = user?.role || UserRole.READ_ONLY;
 
     const isSuperadmin = userRole === UserRole.SUPERADMIN;
 

@@ -3,6 +3,9 @@ import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/AppError.js';
+import { permissionService } from '../services/permissionService.js';
+import { membershipService } from '../services/membershipService.js';
+import { UserRole } from '../types/rbac.js';
 
 // Helper for audit logging (duplicating temporarily until AuditService is created, or importing if I extracted it)
 // Ideally Audit Log should be a service. For now, I'll inline a simple version or just rely on DB run.
@@ -18,13 +21,17 @@ import { AppError } from '../utils/AppError.js';
 
 export const getRoles = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const db = getDb();
-        const roles = await db.all('SELECT * FROM roles');
-        const parsed = roles.map(r => ({
-            ...r,
-            permissions: r.permissions ? JSON.parse(r.permissions) : []
-        }));
-        res.json(parsed);
+        // Return the static role metadata based on the enum
+        const roles = [
+            { id: UserRole.SUPERADMIN, name: 'Superadmin', description: 'Full platform access, manages all companies', level: 6 },
+            { id: UserRole.COMPANY_ADMIN, name: 'Company Admin', description: 'Full access within their company', level: 5 },
+            { id: UserRole.PROJECT_MANAGER, name: 'Project Manager', description: 'Manages projects, tasks, and team assignments', level: 4 },
+            { id: UserRole.FINANCE, name: 'Finance', description: 'Access to financial data and reports', level: 3 },
+            { id: UserRole.SUPERVISOR, name: 'Supervisor', description: 'Oversees field operations and teams', level: 2 },
+            { id: UserRole.OPERATIVE, name: 'Operative', description: 'Field workers, can update tasks', level: 1 },
+            { id: UserRole.READ_ONLY, name: 'Read Only', description: 'View-only access', level: 0 },
+        ];
+        res.json(roles);
     } catch (e) {
         next(e);
     }
@@ -62,21 +69,30 @@ export const createRole = async (req: Request, res: Response, next: NextFunction
 
 export const assignUserRole = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const { userId, companyId, role } = req.body;
+
+        if (!userId || !companyId || !role) {
+            throw new AppError('userId, companyId, and role are required', 400);
+        }
+
+        const membership = await membershipService.getMembership(userId, companyId);
+        if (!membership) {
+            throw new AppError('User membership not found for this company', 404);
+        }
+
+        const updated = await membershipService.updateMembership(membership.id, { role: role as UserRole });
+
+        // Audit Log (Simplified inline)
         const db = getDb();
-        const { userId, companyId, roleId } = req.body;
-
-        if (!userId || !companyId || !roleId) throw new AppError('userId, companyId, and roleId are required', 400);
-
-        const id = uuidv4();
         const now = new Date().toISOString();
-
+        const logId = uuidv4();
         await db.run(
-            `INSERT INTO user_roles (id, userId, companyId, roleId, assignedBy, assignedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-            [id, userId, companyId, roleId, (req as any).userId, now]
-        );
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, companyId, (req as any).userId, (req as any).userName, 'UPDATE_ROLE', 'memberships', membership.id, JSON.stringify({ oldRole: membership.role, newRole: role }), 'success', now, req.ip, req.headers['user-agent']]
+        ).catch(err => logger.error('Audit log failed', err));
 
-        res.json({ id, userId, companyId, roleId, assignedAt: now });
+        res.json(updated);
     } catch (e) {
         next(e);
     }
@@ -84,23 +100,58 @@ export const assignUserRole = async (req: Request, res: Response, next: NextFunc
 
 export const getUserRoles = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const db = getDb();
         const { userId, companyId } = req.params;
 
-        const userRoles = await db.all(
-            `SELECT ur.*, r.name as roleName, r.description, r.permissions
-       FROM user_roles ur
-       JOIN roles r ON ur.roleId = r.id
-       WHERE ur.userId = ? AND ur.companyId = ?`,
-            [userId, companyId]
-        );
+        if (!userId || !companyId) throw new AppError('userId and companyId are required', 400);
 
-        const parsed = userRoles.map(ur => ({
-            ...ur,
-            permissions: ur.permissions ? JSON.parse(ur.permissions) : []
-        }));
+        const permissions = await permissionService.getUserPermissions(userId, companyId);
 
-        res.json(parsed);
+        // Return a simplified structure for now as we don't have multiple roles per user per company in this schema
+        // The membership table currently has one role field
+        const db = getDb();
+        const membership = await db.get('SELECT role FROM memberships WHERE userId = ? AND companyId = ?', [userId, companyId]);
+
+        res.json([{
+            userId,
+            companyId,
+            roleId: membership?.role || UserRole.READ_ONLY,
+            permissions
+        }]);
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getAllPermissions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const permissions = await permissionService.getPermissions();
+        res.json(permissions);
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getRolePermissions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const role = req.params.role as UserRole;
+        if (!role) throw new AppError('Role is required', 400);
+        const permissions = await permissionService.getRolePermissions(role);
+        res.json(permissions);
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getCurrentUserPermissions = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).userId;
+        const tenantId = (req as any).tenantId;
+
+        if (!userId) throw new AppError('Authentication required', 401);
+        if (!tenantId) throw new AppError('Company selection required', 400);
+
+        const permissions = await permissionService.getUserPermissions(userId, tenantId);
+        res.json(permissions);
     } catch (e) {
         next(e);
     }

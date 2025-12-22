@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Mail, User, Users, AlertCircle, CheckCircle, Send, Loader } from 'lucide-react';
-import { TeamMember } from '@/types';
+import { TeamMember, UserRole } from '@/types';
 import { emailService } from '@/services/emailService';
 import { Modal } from './Modal';
 
@@ -11,7 +11,7 @@ interface AddMemberModalProps {
   projectName?: string;
 }
 
-const roles = ['Project Manager', 'Supervisor', 'Worker', 'Inspector', 'Safety Officer', 'Equipment Manager'];
+const roles = Object.values(UserRole);
 
 export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   isOpen,
@@ -192,7 +192,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
               >
                 {roles.map(role => (
                   <option key={role} value={role}>
-                    {role}
+                    {role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
                   </option>
                 ))}
               </select>
