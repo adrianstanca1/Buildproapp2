@@ -14,7 +14,7 @@ export const ResourceCalendarView: React.FC = () => {
     // Calculate date range
     const { startDate, endDate, dateRange } = useMemo(() => {
         const start = new Date(currentDate);
-        const end = new Date(current Date);
+        const end = new Date(currentDate);
 
         if (viewMode === 'week') {
             start.setDate(start.getDate() - start.getDay()); // Start of week
@@ -74,8 +74,8 @@ export const ResourceCalendarView: React.FC = () => {
                         <button
                             onClick={() => setViewMode('week')}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition ${viewMode === 'week'
-                                    ? 'bg-white shadow text-zinc-900'
-                                    : 'text-zinc-600 hover:text-zinc-900'
+                                ? 'bg-white shadow text-zinc-900'
+                                : 'text-zinc-600 hover:text-zinc-900'
                                 }`}
                         >
                             Week
@@ -83,8 +83,8 @@ export const ResourceCalendarView: React.FC = () => {
                         <button
                             onClick={() => setViewMode('month')}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition ${viewMode === 'month'
-                                    ? 'bg-white shadow text-zinc-900'
-                                    : 'text-zinc-600 hover:text-zinc-900'
+                                ? 'bg-white shadow text-zinc-900'
+                                : 'text-zinc-600 hover:text-zinc-900'
                                 }`}
                         >
                             Month
