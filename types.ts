@@ -322,6 +322,8 @@ export interface Task {
   longitude?: number;
   startDate?: string; // ISO date string
   duration?: number; // Number of days
+  progress?: number; // 0-100 percentage for Gantt chart
+  color?: string; // Hex color for Gantt visualization
 }
 
 export interface Certification {

@@ -86,7 +86,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                     name: t.title,
                     start: startDay,
                     duration: t.duration || 1,
-                    progress: t.status === 'Done' ? 100 : t.status === 'In Progress' ? 50 : 0,
+                    progress: t.progress || (t.status === 'Done' ? 100 : t.status === 'In Progress' ? 50 : 0),
                     type: 'construction',
                     dependencies: t.dependencies || [],
                     assignee: t.assigneeName || 'Unassigned',
@@ -95,8 +95,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                     hasDocs: hasLinkedDocs(t.id),
                     dueDate: t.dueDate,
                     startDate: t.startDate,
-                    color: t.color,
-                    progress: t.progress
+                    color: t.color || '#0f5c82'
                 };
             }).sort((a, b) => a.start - b.start);
         }
@@ -471,7 +470,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                                             startDate: task.startDate || new Date().toISOString().split('T')[0],
                                                             duration: task.duration,
                                                             dueDate: task.dueDate,
-                                                            projectId: projectId || 'p1'
+                                                            projectId: projectId || 'p1',
+                                                            progress: task.progress || 0,
+                                                            color: task.color || '#3b82f6'
                                                         });
                                                         setShowTaskModal(true);
                                                     }}
@@ -523,7 +524,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                                     startDate: task.startDate || new Date().toISOString().split('T')[0],
                                                     duration: task.duration,
                                                     dueDate: task.dueDate,
-                                                    projectId: projectId || 'p1'
+                                                    projectId: projectId || 'p1',
+                                                    progress: task.progress || 0,
+                                                    color: task.color || '#3b82f6'
                                                 });
                                                 setShowTaskModal(true);
                                             }}
