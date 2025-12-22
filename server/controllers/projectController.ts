@@ -1,168 +1,192 @@
-import { Request, Response, NextFunction } from 'express';
-import { getDb } from '../database.js';
-import { v4 as uuidv4 } from 'uuid';
+import { Request, Response } from 'express';
+import { z } from 'zod';
+import { projectService } from '../services/projectService.js';
 import { AppError } from '../utils/AppError.js';
-import { projectSchema, updateProjectSchema } from '../schemas/projectSchema.js';
-import { logger } from '../utils/logger.js';
+import logger from '../logger.js';
 
-export const getProjects = async (req: Request, res: Response, next: NextFunction) => {
+// Validation schemas
+const createProjectSchema = z.object({
+    name: z.string().min(1, 'Project name is required'),
+    code: z.string().optional(),
+    description: z.string().optional(),
+    location: z.string().optional(),
+    type: z.string().optional(),
+    status: z.string().optional(),
+    health: z.string().optional(),
+    progress: z.number().min(0).max(100).optional(),
+    budget: z.number().optional(),
+    spent: z.number().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    manager: z.string().optional(),
+    image: z.string().optional(),
+    teamSize: z.number().optional(),
+    weatherLocation: z.any().optional(),
+    aiAnalysis: z.string().optional(),
+    zones: z.array(z.any()).optional(),
+    phases: z.array(z.any()).optional(),
+    timelineOptimizations: z.array(z.any()).optional(),
+});
+
+const updateProjectSchema = createProjectSchema.partial();
+
+/**
+ * Get all projects for the current tenant
+ */
+export const getProjects = async (req: Request, res: Response) => {
     try {
-        const db = getDb();
-        const tenantId = (req as any).tenantId;
+        const userId = (req as any).user?.id;
+        const tenantId = req.tenantId;
 
-        // Filter by tenant if present (Tenancy Hardening)
-        let whereClause = '';
-        const params: any[] = [];
-        if (tenantId) {
-            whereClause = 'WHERE companyId = ?';
-            params.push(tenantId);
+        if (!userId) {
+            throw new AppError('User not authenticated', 401);
         }
 
-        const projects = await db.all(`
-      SELECT
-        p.*,
-        COUNT(t.id) AS tasks_total,
-        SUM(CASE WHEN t.status = 'Done' THEN 1 ELSE 0 END) AS tasks_completed,
-        SUM(CASE WHEN t.dueDate < date('now') AND t.status != 'Done' THEN 1 ELSE 0 END) AS tasks_overdue
-      FROM projects p
-      LEFT JOIN tasks t ON p.id = t.projectId
-      ${whereClause}
-      GROUP BY p.id
-    `, params);
+        if (!tenantId) {
+            throw new AppError('Tenant context required', 400);
+        }
 
-        const parsed = projects.map(p => ({
-            ...p,
-            weatherLocation: p.weatherLocation ? JSON.parse(p.weatherLocation) : null,
-            zones: p.zones ? JSON.parse(p.zones) : [],
-            phases: p.phases ? JSON.parse(p.phases) : [],
-            timelineOptimizations: p.timelineOptimizations ? JSON.parse(p.timelineOptimizations) : [],
-            tasks: {
-                total: Number(p.tasks_total),
-                completed: Number(p.tasks_completed),
-                overdue: Number(p.tasks_overdue)
-            }
-        }));
-
-        res.json(parsed);
-    } catch (e) {
-        next(e);
+        const projects = await projectService.getProjects(userId, tenantId);
+        res.json(projects);
+    } catch (error) {
+        logger.error('Error fetching projects:', error);
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to fetch projects' });
+        }
     }
 };
 
-export const createProject = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * Get a single project by ID
+ */
+export const getProject = async (req: Request, res: Response) => {
     try {
-        const db = getDb();
-        const tenantId = (req as any).tenantId;
-
-        // Validate Input
-        const validationResult = projectSchema.safeParse(req.body);
-        if (!validationResult.success) {
-            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-            throw new AppError(`Validation Error: ${errorMessages}`, 400);
-        }
-
-        const p = validationResult.data;
-
-        // Enforce Tenancy
-        if (tenantId) {
-            p.companyId = tenantId;
-        }
-
-        const id = p.id || uuidv4();
-        const weatherLocation = p.weatherLocation ? JSON.stringify(p.weatherLocation) : null;
-        const zones = p.zones ? JSON.stringify(p.zones) : '[]';
-        const phases = p.phases ? JSON.stringify(p.phases) : '[]';
-        const timelineOptimizations = p.timelineOptimizations ? JSON.stringify(p.timelineOptimizations) : '[]';
-
-        await db.run(
-            `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, weatherLocation, p.aiAnalysis, zones, phases, timelineOptimizations]
-        );
-
-        logger.info(`Project created: ${p.name} (${id})`);
-        res.status(201).json({ ...p, id });
-    } catch (e) {
-        next(e);
-    }
-};
-
-export const updateProject = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const db = getDb();
+        const userId = (req as any).user?.id;
+        const tenantId = req.tenantId;
         const { id } = req.params;
-        const tenantId = (req as any).tenantId;
 
-        // Validate Input
+        if (!userId) {
+            throw new AppError('User not authenticated', 401);
+        }
+
+        if (!tenantId) {
+            throw new AppError('Tenant context required', 400);
+        }
+
+        const project = await projectService.getProject(userId, tenantId, id);
+        res.json(project);
+    } catch (error) {
+        logger.error('Error fetching project:', error);
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to fetch project' });
+        }
+    }
+};
+
+/**
+ * Create a new project
+ */
+export const createProject = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        const tenantId = req.tenantId;
+
+        if (!userId) {
+            throw new AppError('User not authenticated', 401);
+        }
+
+        if (!tenantId) {
+            throw new AppError('Tenant context required', 400);
+        }
+
+        // Validate request body
+        const validationResult = createProjectSchema.safeParse(req.body);
+        if (!validationResult.success) {
+            return res.status(400).json({
+                error: 'Validation failed',
+                details: validationResult.error.issues,
+            });
+        }
+
+        const project = await projectService.createProject(userId, tenantId, validationResult.data);
+        res.status(201).json(project);
+    } catch (error) {
+        logger.error('Error creating project:', error);
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to create project' });
+        }
+    }
+};
+
+/**
+ * Update a project
+ */
+export const updateProject = async (req: Request, res: Response) => {
+    try {
+        const userId = (req as any).user?.id;
+        const tenantId = req.tenantId;
+        const { id } = req.params;
+
+        if (!userId) {
+            throw new AppError('User not authenticated', 401);
+        }
+
+        if (!tenantId) {
+            throw new AppError('Tenant context required', 400);
+        }
+
+        // Validate request body
         const validationResult = updateProjectSchema.safeParse(req.body);
         if (!validationResult.success) {
-            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
-            throw new AppError(`Validation Error: ${errorMessages}`, 400);
+            return res.status(400).json({
+                error: 'Validation failed',
+                details: validationResult.error.issues,
+            });
         }
 
-        const updates = validationResult.data as any;
-
-        // Handle JSON fields
-        if (updates.weatherLocation) updates.weatherLocation = JSON.stringify(updates.weatherLocation);
-        if (updates.zones) updates.zones = JSON.stringify(updates.zones);
-        if (updates.phases) updates.phases = JSON.stringify(updates.phases);
-        if (updates.timelineOptimizations) updates.timelineOptimizations = JSON.stringify(updates.timelineOptimizations);
-
-        delete updates.id;
-        delete updates.tasks; // computed
-
-        const keys = Object.keys(updates);
-        if (keys.length === 0) {
-            throw new AppError('No fields to update', 400);
+        const project = await projectService.updateProject(userId, tenantId, id, validationResult.data);
+        res.json(project);
+    } catch (error) {
+        logger.error('Error updating project:', error);
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to update project' });
         }
-
-        const values = Object.values(updates);
-        const setClause = keys.map(k => `${k} = ?`).join(',');
-
-        let sql = `UPDATE projects SET ${setClause} WHERE id = ?`;
-        const params = [...values, id];
-
-        // Tenancy Check
-        if (tenantId) {
-            sql += ` AND companyId = ?`;
-            params.push(tenantId);
-        }
-
-        const result = await db.run(sql, params);
-
-        if (result.changes === 0) {
-            throw new AppError('Project not found or unauthorized', 404);
-        }
-
-        res.json({ ...updates, id });
-    } catch (e) {
-        next(e);
     }
 };
 
-export const deleteProject = async (req: Request, res: Response, next: NextFunction) => {
+/**
+ * Delete a project
+ */
+export const deleteProject = async (req: Request, res: Response) => {
     try {
-        const db = getDb();
+        const userId = (req as any).user?.id;
+        const tenantId = req.tenantId;
         const { id } = req.params;
-        const tenantId = (req as any).tenantId;
 
-        let sql = 'DELETE FROM projects WHERE id = ?';
-        const params = [id];
-
-        if (tenantId) {
-            sql += ' AND companyId = ?';
-            params.push(tenantId);
+        if (!userId) {
+            throw new AppError('User not authenticated', 401);
         }
 
-        const result = await db.run(sql, params);
-
-        if (result.changes === 0) {
-            throw new AppError('Project not found or unauthorized', 404);
+        if (!tenantId) {
+            throw new AppError('Tenant context required', 400);
         }
 
-        logger.info(`Project deleted: ${id}`);
-        res.json({ success: true });
-    } catch (e) {
-        next(e);
+        const result = await projectService.deleteProject(userId, tenantId, id);
+        res.json(result);
+    } catch (error) {
+        logger.error('Error deleting project:', error);
+        if (error instanceof AppError) {
+            res.status(error.statusCode).json({ error: error.message });
+        } else {
+            res.status(500).json({ error: 'Failed to delete project' });
+        }
     }
 };
