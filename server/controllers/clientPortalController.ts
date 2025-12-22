@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import { AuthenticatedRequest } from '../types/express.js';
 import { v4 as uuidv4 } from 'uuid';
 import { createHash, randomBytes } from 'crypto';
 import { getDb } from '../database.js';
@@ -14,7 +15,7 @@ import { SharedLink } from '../../types.js';
 /**
  * Generate a secure share link for a project
  */
-export const generateShareLink = async (req: Request, res: Response, next: NextFunction) => {
+export const generateShareLink = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { userId, tenantId } = req.context;
         const { projectId } = req.params;
@@ -98,7 +99,7 @@ export const generateShareLink = async (req: Request, res: Response, next: NextF
 /**
  * Get all share links for a project
  */
-export const getProjectShareLinks = async (req: Request, res: Response, next: NextFunction) => {
+export const getProjectShareLinks = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { userId, tenantId } = req.context;
         const { projectId } = req.params;
@@ -125,7 +126,7 @@ export const getProjectShareLinks = async (req: Request, res: Response, next: Ne
 /**
  * Revoke a share link
  */
-export const revokeShareLink = async (req: Request, res: Response, next: NextFunction) => {
+export const revokeShareLink = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { userId, tenantId } = req.context;
         const { linkId } = req.params;

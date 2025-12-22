@@ -98,7 +98,7 @@ export const getStatistics = async (req: AuthenticatedRequest, res: Response, ne
 /**
  * Get dashboard metrics
  */
-export const getDashboardMetrics = async (req: Request, res: Response, next: NextFunction) => {
+export const getFinancialTrends = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { tenantId } = req.context;
 
