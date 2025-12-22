@@ -1,4 +1,4 @@
-import { getDb } from './database.js';
+import { getDb } from '../database.js';
 
 /**
  * Transaction helper for multi-step database operations

@@ -44,7 +44,7 @@ const CompanyManagementView: React.FC = () => {
             joinedDate: new Date().toISOString(),
             settings: { timezone: 'UTC', language: 'en', currency: 'USD' },
             subscription: {
-                plan: newCompany.plan,
+                planId: newCompany.plan,
                 status: 'active',
                 startDate: new Date().toISOString(),
             },

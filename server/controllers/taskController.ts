@@ -102,7 +102,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         res.status(201).json({ success: true, data: task });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            next(new AppError('Validation failed', 400, error.issues));
+            next(new AppError('Validation failed: ' + JSON.stringify(error.issues), 400));
         } else {
             next(error);
         }
@@ -141,7 +141,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
         res.json({ success: true, data: updatedTask });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            next(new AppError('Validation failed', 400, error.issues));
+            next(new AppError('Validation failed: ' + JSON.stringify(error.issues), 400));
         } else {
             next(error);
         }

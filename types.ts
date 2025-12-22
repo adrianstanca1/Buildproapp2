@@ -91,21 +91,21 @@ export interface Tenant {
   country?: string;
   plan: 'Enterprise' | 'Business' | 'Starter' | 'Custom';
   status: 'Active' | 'Suspended' | 'Trial' | 'Inactive';
-  settings: TenantSettings;
+  settings: {
+    timezone: string;
+    language: string;
+    dateFormat: string;
+    currency: string;
+    emailNotifications: boolean;
+    dataRetention: number;
+    twoFactorAuth: boolean;
+    ipWhitelist?: string[];
+    sso: boolean;
+    customBranding: boolean;
+    primaryColor?: string;
+    accentColor?: string;
+  };
   subscription: TenantSubscription;
-  createdAt: string;
-  updatedAt: string;
-  maxUsers?: number;
-  maxProjects?: number;
-  features?: TenantFeature[];
-  // Enhanced stats types
-  users?: number;
-  projects?: number;
-  mrr?: number;
-  joinedDate?: string;
-  members?: Array<{ id: string; name: string; email: string; role?: string; lastActive?: string; }>;  // Platform view aggregation
-}
-  twoFactorAuth: boolean;
 
 export interface TenantSubscription {
   id: string;

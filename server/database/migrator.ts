@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { getDb } from './database.js';
+import { getDb } from '../database.js';
 
 interface Migration {
     id: number;

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '@/services/db';
-import { Tenant, TenantAuditLog, TenantMember, TenantUsage, TenantSettings, AccessLog, Vendor, TeamMember, Client, SystemSettings } from '@/types';
+import { Tenant, TenantAuditLog, TenantMember, TenantUsage, AccessLog, Vendor, TeamMember, Client, SystemSettings } from '@/types';
 
 interface TenantContextType {
   // Current tenant (simplified API)
