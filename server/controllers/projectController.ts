@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import { projectService } from '../services/projectService.js';
 import { AppError } from '../utils/AppError.js';
-import logger from '../logger.js';
+import { logger } from '../utils/logger.js';
 
 // Validation schemas
 const createProjectSchema = z.object({

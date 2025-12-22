@@ -19,21 +19,61 @@ export async function seedDatabase() {
     {
       id: 'c1',
       name: 'BuildCorp Solutions',
-      plan: 'Enterprise',
-      status: 'Active',
-      joinedDate: '2025-01-01',
-      description: 'A global leader in sustainable construction.',
-      city: 'London',
-      country: 'UK',
+      subscriptionTier: 'ENTERPRISE',
+      maxProjects: 100,
+      maxUsers: 50,
+      isActive: true,
       createdAt: new Date().toISOString()
     }
   ];
 
   for (const c of companies) {
     await db.run(
-      `INSERT INTO companies (id, name, plan, status, joinedDate, description, city, country, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [c.id, c.name, c.plan, c.status, c.joinedDate, c.description, c.city, c.country, c.createdAt]
+      `INSERT INTO companies (id, name, subscriptionTier, maxProjects, maxUsers, isActive, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [c.id, c.name, c.subscriptionTier, c.maxProjects, c.maxUsers, c.isActive ? 1 : 0, c.createdAt]
+    );
+  }
+
+  // --- Users ---
+  const users = [
+    {
+      id: 'demo-user',
+      email: 'demo@buildpro.app',
+      password: 'demo-password-hash',
+      name: 'Demo User',
+      role: 'admin',
+      companyId: 'c1',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'u1',
+      email: 'john@buildcorp.com',
+      password: 'password-hash',
+      name: 'John Anderson',
+      role: 'admin',
+      companyId: 'c1',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'u2',
+      email: 'sarah@buildcorp.com',
+      password: 'password-hash',
+      name: 'Sarah Mitchell',
+      role: 'admin',
+      companyId: 'c1',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  for (const u of users) {
+    await db.run(
+      `INSERT INTO users (id, email, password, name, role, companyId, isActive, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [u.id, u.email, u.password, u.name, u.role, u.companyId, u.isActive ? 1 : 0, u.createdAt]
     );
   }
 

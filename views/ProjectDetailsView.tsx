@@ -954,6 +954,15 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
                 onClose={() => setActiveModal(null)}
             />
 
+            {/* Share Project Modal */}
+            {showShareModal && (
+                <ShareProjectModal
+                    projectId={project.id}
+                    projectName={project.name}
+                    onClose={() => setShowShareModal(false)}
+                />
+            )}
+
             {/* Project Header */}
             <div className="bg-white border-b border-zinc-200 px-8 py-6 flex-shrink-0 shadow-sm z-10">
                 <div className="flex items-center gap-2 text-zinc-500 text-sm mb-4">
