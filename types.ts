@@ -501,7 +501,7 @@ export interface RFI {
   subject: string;
   question: string;
   assignedTo: string;
-  status: 'Open' | 'Closed';
+  status: 'Draft' | 'Open' | 'Closed';
   dueDate: string;
   createdAt: string;
   answer?: string;
@@ -535,6 +535,7 @@ export interface DailyLog {
   status: 'Draft' | 'Signed';
   signedBy?: string;
   signedAt?: string;
+  attachments?: { url: string; name: string }[];
 }
 
 export interface DayworkLabor {

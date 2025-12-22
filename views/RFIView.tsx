@@ -24,7 +24,7 @@ const RFIView: React.FC = () => {
     const [answerText, setAnswerText] = useState('');
     const [isAnswering, setIsAnswering] = useState(false);
 
-    const handleCreate = async () => {
+    const handleCreate = async (initialStatus: 'Draft' | 'Open' = 'Open') => {
         if (!newRfi.subject || !newRfi.question) return;
 
         // Ensure we have a valid project ID
@@ -41,7 +41,7 @@ const RFIView: React.FC = () => {
             subject: newRfi.subject,
             question: newRfi.question,
             assignedTo: newRfi.assignedTo || 'Unassigned',
-            status: 'Open',
+            status: initialStatus,
             dueDate: newRfi.dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
             createdAt: new Date().toISOString().split('T')[0]
         };
@@ -50,10 +50,22 @@ const RFIView: React.FC = () => {
             await addRFI(rfi);
             setIsCreating(false);
             setNewRfi({ subject: '', question: '', assignedTo: '', dueDate: '' });
-            addToast("RFI Created Successfully", "success");
+            addToast(`RFI ${initialStatus === 'Draft' ? 'Saved as Draft' : 'Created'} Successfully`, "success");
         } catch (error) {
             console.error("Failed to create RFI", error);
             addToast("Failed to create RFI", "error");
+        }
+    };
+
+    const handleSubmitDraft = async () => {
+        if (!selectedRfi) return;
+        try {
+            await updateRFI(selectedRfi.id, { status: 'Open' });
+            addToast("RFI Submitted Successfully", "success");
+            setSelectedRfi(prev => prev ? { ...prev, status: 'Open' } : null);
+        } catch (error) {
+            console.error("Failed to submit RFI", error);
+            addToast("Failed to submit RFI", "error");
         }
     };
 
@@ -122,7 +134,7 @@ const RFIView: React.FC = () => {
                             >
                                 <div className="flex justify-between items-start mb-2">
                                     <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full">{rfi.number}</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${rfi.status === 'Open' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${rfi.status === 'Open' ? 'bg-amber-100 text-amber-700' : rfi.status === 'Draft' ? 'bg-zinc-200 text-zinc-600' : 'bg-green-100 text-green-700'}`}>
                                         {rfi.status}
                                     </span>
                                 </div>
@@ -173,51 +185,66 @@ const RFIView: React.FC = () => {
                                     </p>
                                 </div>
 
-                                {/* Answer Section */}
-                                {selectedRfi.answer ? (
-                                    <div className="bg-green-50/50 p-6 rounded-3xl border border-green-100">
-                                        <h3 className="text-sm font-bold text-green-800 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                            <CheckCircle2 size={16} /> Official Response
-                                        </h3>
-                                        <p className="text-zinc-800 leading-relaxed font-medium">
-                                            {selectedRfi.answer}
-                                        </p>
-                                    </div>
-                                ) : isAnswering ? (
-                                    <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-lg animate-in fade-in zoom-in-95 duration-200">
-                                        <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-3">Submit Official Response</h3>
-                                        <textarea
-                                            value={answerText}
-                                            onChange={(e) => setAnswerText(e.target.value)}
-                                            className="w-full h-32 p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none resize-none mb-4 font-medium"
-                                            placeholder="Enter the official answer or resolution..."
-                                            autoFocus
-                                        />
-                                        <div className="flex justify-end gap-3">
-                                            <button
-                                                onClick={() => setIsAnswering(false)}
-                                                className="px-4 py-2 text-zinc-500 font-bold hover:bg-zinc-100 rounded-lg"
-                                            >
-                                                Cancel
-                                            </button>
-                                            <button
-                                                onClick={handleAnswerSubmit}
-                                                className="px-6 py-2 bg-[#0f5c82] text-white font-bold rounded-xl hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10"
-                                            >
-                                                Submit & Close RFI
-                                            </button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="border-2 border-dashed border-zinc-200 rounded-3xl p-8 text-center bg-zinc-50">
-                                        <p className="text-zinc-400 font-bold mb-4">No official response yet.</p>
+                                {/* Action Section for Drafts */}
+                                {selectedRfi.status === 'Draft' && (
+                                    <div className="bg-zinc-50 p-6 rounded-3xl border border-zinc-200 text-center">
+                                        <p className="text-zinc-500 mb-4 font-medium">This RFI is currently a draft.</p>
                                         <button
-                                            onClick={() => setIsAnswering(true)}
-                                            className="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 font-bold rounded-xl shadow-sm hover:bg-zinc-50"
+                                            onClick={handleSubmitDraft}
+                                            className="px-6 py-3 bg-[#0f5c82] text-white font-bold rounded-xl hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10 flex items-center justify-center gap-2 mx-auto w-full sm:w-auto"
                                         >
-                                            Submit Answer
+                                            <CheckCircle2 size={18} /> Submit RFI
                                         </button>
                                     </div>
+                                )}
+
+                                {/* Answer Section */}
+                                {selectedRfi.status !== 'Draft' && (
+                                    selectedRfi.answer ? (
+                                        <div className="bg-green-50/50 p-6 rounded-3xl border border-green-100">
+                                            <h3 className="text-sm font-bold text-green-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                                <CheckCircle2 size={16} /> Official Response
+                                            </h3>
+                                            <p className="text-zinc-800 leading-relaxed font-medium">
+                                                {selectedRfi.answer}
+                                            </p>
+                                        </div>
+                                    ) : isAnswering ? (
+                                        <div className="bg-white p-6 rounded-3xl border border-zinc-200 shadow-lg animate-in fade-in zoom-in-95 duration-200">
+                                            <h3 className="text-sm font-bold text-zinc-900 uppercase tracking-wider mb-3">Submit Official Response</h3>
+                                            <textarea
+                                                value={answerText}
+                                                onChange={(e) => setAnswerText(e.target.value)}
+                                                className="w-full h-32 p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none resize-none mb-4 font-medium"
+                                                placeholder="Enter the official answer or resolution..."
+                                                autoFocus
+                                            />
+                                            <div className="flex justify-end gap-3">
+                                                <button
+                                                    onClick={() => setIsAnswering(false)}
+                                                    className="px-4 py-2 text-zinc-500 font-bold hover:bg-zinc-100 rounded-lg"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleAnswerSubmit}
+                                                    className="px-6 py-2 bg-[#0f5c82] text-white font-bold rounded-xl hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10"
+                                                >
+                                                    Submit & Close RFI
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="border-2 border-dashed border-zinc-200 rounded-3xl p-8 text-center bg-zinc-50">
+                                            <p className="text-zinc-400 font-bold mb-4">No official response yet.</p>
+                                            <button
+                                                onClick={() => setIsAnswering(true)}
+                                                className="px-6 py-2 bg-white border border-zinc-200 text-zinc-700 font-bold rounded-xl shadow-sm hover:bg-zinc-50"
+                                            >
+                                                Submit Answer
+                                            </button>
+                                        </div>
+                                    )
                                 )}
                             </div>
                         </div>
@@ -285,7 +312,8 @@ const RFIView: React.FC = () => {
                         </div>
                         <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex justify-end gap-3">
                             <button onClick={() => setIsCreating(false)} className="px-6 py-3 font-bold text-zinc-500 hover:text-zinc-800">Cancel</button>
-                            <button onClick={handleCreate} className="px-8 py-3 bg-[#0f5c82] text-white rounded-xl font-bold hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10">Create RFI</button>
+                            <button onClick={() => handleCreate('Draft')} className="px-6 py-3 font-bold text-zinc-600 hover:bg-zinc-200 rounded-xl">Save Draft</button>
+                            <button onClick={() => handleCreate('Open')} className="px-8 py-3 bg-[#0f5c82] text-white rounded-xl font-bold hover:bg-[#0c4a6e] shadow-lg shadow-blue-900/10">Create RFI</button>
                         </div>
                     </div>
                 </div>

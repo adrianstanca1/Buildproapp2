@@ -379,10 +379,20 @@ async function initializeSchema(db: IDatabase) {
       safetyIssues TEXT,
       notes TEXT,
       createdBy TEXT,
+      status TEXT DEFAULT 'Draft',
+      signedBy TEXT,
+      signedAt TEXT,
+      attachments TEXT,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
       FOREIGN KEY (companyId) REFERENCES companies (id) ON DELETE CASCADE
     )
   `);
+
+  // Daily Logs Schema Migration (Safe Add)
+  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Draft';`);
+  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS signedBy TEXT;`);
+  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS signedAt TEXT;`);
+  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS attachments TEXT;`);
 
   // Dayworks
   await db.exec(`
@@ -417,6 +427,24 @@ async function initializeSchema(db: IDatabase) {
       personInvolved TEXT,
       actionTaken TEXT,
       status TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Safety Hazards
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS safety_hazards (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      type TEXT,
+      severity TEXT,
+      riskScore REAL,
+      description TEXT,
+      recommendation TEXT,
+      regulation TEXT,
+      box_2d TEXT,
+      timestamp TEXT,
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);

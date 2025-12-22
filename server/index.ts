@@ -95,6 +95,9 @@ app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyCont
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
+import * as dailyLogController from './controllers/dailyLogController.js';
+import * as rfiController from './controllers/rfiController.js';
+import * as safetyController from './controllers/safetyController.js';
 app.get('/api/system-settings', systemController.getSystemSettings);
 app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), systemController.updateSystemSetting);
 
@@ -208,6 +211,26 @@ app.patch('/api/tasks/:id/status', requirePermission('tasks', 'update'), taskCon
 // --- Client Portal Routes ---
 import clientPortalRoutes from './routes/clientPortalRoutes.js';
 app.use('/api/client-portal', clientPortalRoutes);
+
+// --- Construction Management Routes ---
+// Daily Logs
+app.get('/api/daily_logs', authenticateToken, dailyLogController.getDailyLogs);
+app.post('/api/daily_logs', authenticateToken, dailyLogController.createDailyLog);
+app.put('/api/daily_logs/:id', authenticateToken, dailyLogController.updateDailyLog);
+
+// RFIs
+app.get('/api/rfis', authenticateToken, rfiController.getRFIs);
+app.post('/api/rfis', authenticateToken, rfiController.createRFI);
+app.put('/api/rfis/:id', authenticateToken, rfiController.updateRFI);
+
+// Safety Incidents
+app.get('/api/safety_incidents', authenticateToken, requirePermission('safety', 'read'), safetyController.getSafetyIncidents);
+app.post('/api/safety_incidents', authenticateToken, requirePermission('safety', 'create'), safetyController.createSafetyIncident);
+app.put('/api/safety_incidents/:id', authenticateToken, requirePermission('safety', 'update'), safetyController.updateSafetyIncident);
+
+// Safety Hazards
+app.get('/api/safety_hazards', authenticateToken, requirePermission('safety', 'read'), safetyController.getSafetyHazards);
+app.post('/api/safety_hazards', authenticateToken, requirePermission('safety', 'create'), safetyController.createSafetyHazard);
 
 // --- Generic CRUD Helper ---
 const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {

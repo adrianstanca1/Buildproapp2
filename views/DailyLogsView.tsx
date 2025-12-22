@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { Calendar, Cloud, Users, FileText, Plus, Sun, CloudRain, Wind, Thermometer, Save, PenTool } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Cloud, Users, FileText, Plus, Sun, CloudRain, Wind, Thermometer, Save, PenTool, Trash2, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
+import FileUploadZone from '@/components/FileUploadZone';
+
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
 import { DailyLog } from '@/types';
+import { getWeather } from '@/services/weatherService';
 
 const DailyLogsView: React.FC = () => {
     const { projects, dailyLogs, addDailyLog } = useProjects();
@@ -14,11 +17,30 @@ const DailyLogsView: React.FC = () => {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedProject, setSelectedProject] = useState(projects[0]?.id || '');
 
-    // Form State (Mocked per project/day)
+    // Form State
     const [weather, setWeather] = useState({ condition: 'Sunny', temp: '72°F', wind: '5mph' });
     const [crewCount, setCrewCount] = useState(15);
     const [notes, setNotes] = useState('');
     const [workPerformed, setWorkPerformed] = useState('');
+    const [attachments, setAttachments] = useState<{ url: string; name: string }[]>([]);
+
+    useEffect(() => {
+        const fetchWeather = async () => {
+            if (!selectedDate) return;
+            try {
+                const data = await getWeather(selectedDate);
+                setWeather({
+                    condition: data.condition,
+                    temp: `${data.temp}°F`,
+                    wind: `${data.windSpeed}mph`
+                });
+            } catch (error) {
+                console.error("Failed to fetch weather", error);
+            }
+        };
+        fetchWeather();
+    }, [selectedDate]);
+
 
     const handleSignAndSubmit = async () => {
         if (!selectedProject) {
@@ -42,7 +64,8 @@ const DailyLogsView: React.FC = () => {
             createdAt: new Date().toISOString(),
             status: 'Signed',
             signedBy: user?.name || 'Unknown',
-            signedAt: new Date().toISOString()
+            signedAt: new Date().toISOString(),
+            attachments: attachments
         };
 
         try {
@@ -51,6 +74,7 @@ const DailyLogsView: React.FC = () => {
             // Reset form for next day/entry
             setWorkPerformed('');
             setNotes('');
+            setAttachments([]);
         } catch (error) {
             console.error("Failed to save daily log", error);
             addToast("Failed to save daily log", "error");
@@ -152,6 +176,58 @@ const DailyLogsView: React.FC = () => {
                             placeholder="Deliveries, visitors, safety observations..."
                             className="w-full h-32 p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none resize-none"
                         />
+                    </div>
+
+                    {/* Site Photos & Attachments */}
+                    <div className="bg-white rounded-3xl p-8 border border-zinc-100 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-2 bg-pink-50 text-pink-600 rounded-xl">
+                                <ImageIcon size={24} />
+                            </div>
+                            <h2 className="text-xl font-bold">Site Photos & Attachments</h2>
+                        </div>
+
+                        <div className="space-y-4">
+                            <FileUploadZone
+                                onUploadComplete={(url, file) => {
+                                    setAttachments(prev => [...prev, { url, name: file.name }]);
+                                }}
+                                bucket="project-documents"
+                                label="Upload Site Photos"
+                                description="Images, PDFs, or Documents"
+                            />
+
+                            {/* Attachment List */}
+                            {attachments.length > 0 && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                                    {attachments.map((file, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-zinc-50 rounded-xl border border-zinc-200 group">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="w-10 h-10 bg-white rounded-lg border border-zinc-200 flex items-center justify-center text-zinc-400 shrink-0">
+                                                    {file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                        <ImageIcon size={20} />
+                                                    ) : (
+                                                        <LinkIcon size={20} />
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-sm font-bold text-zinc-900 truncate">{file.name}</p>
+                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                                                        View File
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setAttachments(prev => prev.filter((_, i) => i !== idx))}
+                                                className="p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                 </div>
