@@ -17,23 +17,25 @@ export class AuditService {
         const id = uuidv4();
         const now = new Date().toISOString();
 
-        const metadata = event.metadata ? JSON.stringify(event.metadata) : null;
+        const changes = event.metadata ? JSON.stringify(event.metadata) : null;
 
         try {
             await db.run(
-                `INSERT INTO audit_logs (id, userId, companyId, action, resource, resourceId, metadata, ipAddress, userAgent, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO audit_logs (id, userId, userName, companyId, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     id,
                     event.userId,
+                    'system', // Default userName if not provided in DTO
                     event.companyId,
                     event.action,
                     event.resource,
                     event.resourceId,
-                    metadata,
-                    event.ipAddress,
-                    event.userAgent,
+                    changes,
+                    'success', // Default status
                     now,
+                    event.ipAddress,
+                    event.userAgent
                 ]
             );
 

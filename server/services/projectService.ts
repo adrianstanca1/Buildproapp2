@@ -20,12 +20,12 @@ export class ProjectService extends BaseTenantService {
 
         const db = this.getDb();
         const { query, params } = this.scopeQueryByTenant(
-            'SELECT * FROM projects',
+            'SELECT * FROM projects p',
             tenantId,
             'p'
         );
 
-        const projects = await db.all(`${query} ORDER BY createdAt DESC`, params);
+        const projects = await db.all(`${query} ORDER BY p.createdAt DESC`, params);
 
         return projects.map(p => ({
             ...p,
@@ -45,7 +45,7 @@ export class ProjectService extends BaseTenantService {
 
         const db = this.getDb();
         const { query, params } = this.scopeQueryByTenant(
-            'SELECT * FROM projects WHERE id = ?',
+            'SELECT * FROM projects p WHERE id = ?',
             tenantId,
             'p'
         );
@@ -94,14 +94,16 @@ export class ProjectService extends BaseTenantService {
             `INSERT INTO projects (
         id, companyId, name, code, description, location, type, status, health,
         progress, budget, spent, startDate, endDate, manager, image, teamSize,
-        weatherLocation, aiAnalysis, zones, phases, timelineOptimizations
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        weatherLocation, aiAnalysis, zones, phases, timelineOptimizations,
+        createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 id, tenantId, project.name, project.code, project.description,
                 project.location, project.type, project.status, project.health,
                 project.progress, project.budget, project.spent, project.startDate,
                 project.endDate, project.manager, project.image, project.teamSize,
-                weatherLocation, project.aiAnalysis, zones, phases, timelineOptimizations
+                weatherLocation, project.aiAnalysis, zones, phases, timelineOptimizations,
+                now, now
             ]
         );
 

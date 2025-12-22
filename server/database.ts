@@ -165,7 +165,9 @@ async function initSchema(db: IDatabase) {
       aiAnalysis TEXT,
       zones TEXT, -- JSON array
       phases TEXT, -- JSON array
-      timelineOptimizations TEXT -- JSON array
+      timelineOptimizations TEXT, -- JSON array
+      createdAt TEXT,
+      updatedAt TEXT
     );
 
     CREATE TABLE IF NOT EXISTS tasks (
@@ -601,6 +603,10 @@ async function initSchema(db: IDatabase) {
   try { await db.exec('ALTER TABLE transactions ADD COLUMN costCodeId TEXT'); } catch (e) { }
   try { await db.exec('ALTER TABLE transactions ADD COLUMN isExported INTEGER DEFAULT 0'); } catch (e) { }
   try { await db.exec('ALTER TABLE transactions ADD COLUMN exportDate TEXT'); } catch (e) { }
+
+  // Migration: Add timestamps to projects (Fix for missing columns)
+  try { await db.exec('ALTER TABLE projects ADD COLUMN createdAt TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE projects ADD COLUMN updatedAt TEXT'); } catch (e) { }
 }
 
 /**
