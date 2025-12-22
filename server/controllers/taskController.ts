@@ -3,6 +3,9 @@ import { AuthenticatedRequest } from '../types/express.js';
 import { BucketRegistry } from '../buckets/DataBucket.js';
 import { z } from 'zod';
 import { AppError } from '../utils/AppError.js';
+import { getDb } from '../database.js';
+import { v4 as uuidv4 } from 'uuid';
+import { createTaskSchema, updateTaskSchema } from '../validation/schemas.js';
 
 /**
  * Task Controller
