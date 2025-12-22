@@ -48,8 +48,8 @@ export class Migrator {
         const db = getDb();
 
         try {
-            const migrations = await db.all<Migration[]>('SELECT * FROM migrations ORDER BY id ASC');
-            return migrations;
+            const migrations = await db.all('SELECT * FROM migrations ORDER BY id ASC') as Migration[];
+            return migrations || [];
         } catch (error) {
             // Table doesn't exist yet
             return [];

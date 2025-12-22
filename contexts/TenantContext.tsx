@@ -24,8 +24,8 @@ interface TenantContextType {
   getTenantById: (id: string) => Tenant | undefined;
 
   // Tenant settings
-  updateTenantSettings: (tenantId: string, settings: Partial<TenantSettings>) => Promise<void>;
-  getTenantSettings: (tenantId: string) => TenantSettings | null;
+  updateTenantSettings: (tenantId: string, settings: Partial<Tenant['settings']>) => Promise<void>;
+  getTenantSettings: (tenantId: string) => Tenant['settings'] | null;
 
   // Tenant members
   tenantMembers: TenantMember[];
@@ -359,7 +359,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     return tenants.find((t) => t.id === id);
   }, [tenants]);
 
-  const updateTenantSettings = useCallback(async (tenantId: string, settings: Partial<TenantSettings>) => {
+  const updateTenantSettings = useCallback(async (tenantId: string, settings: Partial<Tenant['settings']>) => {
     try {
       setIsLoading(true);
       setError(null);

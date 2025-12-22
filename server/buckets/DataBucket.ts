@@ -116,7 +116,7 @@ export class DataBucket {
 
         // Audit log
         if (userId) {
-            await auditService.logAction({
+            await auditService.log({
                 userId,
                 companyId: tenantId,
                 action: 'create',
@@ -165,7 +165,7 @@ export class DataBucket {
 
         // Audit log
         if (userId) {
-            await auditService.logAction({
+            await auditService.log({
                 userId,
                 companyId: tenantId,
                 action: 'update',
@@ -199,7 +199,7 @@ export class DataBucket {
 
         // Audit log
         if (userId) {
-            await auditService.logAction({
+            await auditService.log({
                 userId,
                 companyId: tenantId,
                 action: 'delete',

@@ -54,9 +54,12 @@ const CompanyManagementView: React.FC = () => {
                 customBranding: false
             },
             subscription: {
+                id: `sub-${newId}`,
                 planId: newCompany.plan,
                 status: 'active',
-                startDate: new Date().toISOString(),
+                currentPeriodStart: new Date().toISOString(),
+                currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                billingEmail: newCompany.email,
             },
             features: [],
             maxUsers: newCompany.plan === 'enterprise' ? 1000 : newCompany.plan === 'professional' ? 100 : 25,

@@ -126,7 +126,7 @@ export class FileBucket {
         const url = `/uploads/${relativePath.replace(/\\/g, '/')}`;
 
         // Audit log
-        await auditService.logAction({
+        await auditService.log({
             userId,
             companyId: tenantId,
             action: 'upload',
@@ -185,7 +185,7 @@ export class FileBucket {
             await fs.unlink(filePath);
 
             // Audit log
-            await auditService.logAction({
+            await auditService.log({
                 userId,
                 companyId: tenantId,
                 action: 'delete',
