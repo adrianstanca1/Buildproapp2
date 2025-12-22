@@ -9,7 +9,8 @@
         "preview": "vite preview",
         "start": "NODE_ENV=development npx tsx server/index.ts",
         "migrate": "npx tsx server/scripts/migrate.ts",
-        "migrate:status": "npx tsx server/scripts/migrate.ts status"
+        "migrate:status": "npx tsx server/scripts/migrate.ts status",
+        "lint": "eslint \"**/*.{ts,tsx}\""
     },
     "dependencies": {
         "@google/genai": "^1.30.0",

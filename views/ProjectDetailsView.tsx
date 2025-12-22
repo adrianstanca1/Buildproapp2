@@ -922,13 +922,15 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
     const [activeModal, setActiveModal] = useState<'RFI' | 'PUNCH' | 'LOG' | 'DAYWORK' | 'PHOTO' | null>(null);
     const [showShareModal, setShowShareModal] = useState(false);
 
+    // Reset tab when project changes
     useEffect(() => {
-        setActiveTab('OVERVIEW');
+        if (activeTab !== 'OVERVIEW') {
+            setActiveTab('OVERVIEW');
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projectId]);
 
-    const project = useMemo(() => {
-        return projectId ? getProject(projectId) : null;
-    }, [projectId, getProject]);
+    const project = projectId ? getProject(projectId) : null;
 
     if (!project) {
         return <div className="p-8 text-center">Project not found.</div>;

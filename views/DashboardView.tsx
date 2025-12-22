@@ -303,6 +303,12 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
         return (tenants.length * 0.45).toFixed(2);
     }, [tenants]);
 
+    // Use lazy initialization for random data to ensure purity and avoid effects
+    const [chartData] = useState(() => ({
+        growth: Math.floor(Math.random() * 15) + 5,
+        bars: [...Array(20)].map(() => Math.random() * 100)
+    }));
+
     return (
         <div className="p-8 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
@@ -351,11 +357,11 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                     <div className="relative z-10">
                         <h3 className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Global Revenue (MRR)</h3>
                         <div className="text-4xl font-bold mb-1">£{totalMRR.toLocaleString()}</div>
-                        <div className="text-green-400 text-xs font-medium flex items-center gap-1"><TrendingUp size={12} /> +{Math.floor(Math.random() * 15) + 5}% this month</div>
+                        <div className="text-green-400 text-xs font-medium flex items-center gap-1"><TrendingUp size={12} /> +{chartData.growth}% this month</div>
                     </div>
                     {/* Simulated Graph Line */}
                     <div className="absolute bottom-0 left-0 right-0 h-12 flex items-end opacity-30">
-                        {[...Array(20)].map((_, i) => <div key={i} className="flex-1 bg-white mx-[1px]" style={{ height: `${Math.random() * 100}%` }} />)}
+                        {chartData.bars.map((height, i) => <div key={i} className="flex-1 bg-white mx-[1px]" style={{ height: `${height}%` }} />)}
                     </div>
                 </div>
                 <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
