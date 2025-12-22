@@ -3,6 +3,7 @@
 import { Megaphone, X, ShieldAlert } from 'lucide-react';
 import React, { useState, lazy, Suspense, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
+import SuperadminSidebar from '@/components/SuperadminSidebar';
 import TopBar from '@/components/TopBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { CommandPalette } from '@/components/CommandPalette';
@@ -70,6 +71,13 @@ const ResourceOptimizationView = lazyWithReload(() => import('@/views/ResourceOp
 const DailyLogsView = lazyWithReload(() => import('@/views/DailyLogsView'));
 const RFIView = lazyWithReload(() => import('@/views/RFIView'));
 const ClientPortalView = lazyWithReload(() => import('@/views/ClientPortalView'));
+
+// Platform/Superadmin Views
+const PlatformDashboardView = lazyWithReload(() => import('@/views/platform/PlatformDashboardView'));
+const CompanyManagementView = lazyWithReload(() => import('@/views/platform/CompanyManagementView'));
+const PlatformMembersView = lazyWithReload(() => import('@/views/platform/PlatformMembersView'));
+const AccessControlView = lazyWithReload(() => import('@/views/platform/AccessControlView'));
+const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);
@@ -171,16 +179,28 @@ const AuthenticatedApp: React.FC = () => {
         />
       )}
 
-      {/* Sidebar Navigation */}
-      <Sidebar
-        currentPage={page}
-        setPage={(p) => {
-          setPage(p);
-          setIsSidebarOpen(false); // Close on selection on mobile
-        }}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-      />
+      {/* Sidebar Navigation - Role-based */}
+      {user?.role === UserRole.SUPER_ADMIN ? (
+        <SuperadminSidebar
+          currentPage={page}
+          setPage={(p) => {
+            setPage(p);
+            setIsSidebarOpen(false);
+          }}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      ) : (
+        <Sidebar
+          currentPage={page}
+          setPage={(p) => {
+            setPage(p);
+            setIsSidebarOpen(false);
+          }}
+          isOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Main Content Area */}
       <div className={`flex-1 flex flex-col h-full relative overflow-hidden transition-all duration-300 ${broadcastMessage ? 'pt-12' : ''}`}>
@@ -244,6 +264,12 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.DAILY_LOGS && <DailyLogsView />}
               {page === Page.RFI && <RFIView />}
               {page === Page.CLIENT_PORTAL && <ClientPortalView />}
+              {/* Platform/Superadmin Routes */}
+              {page === Page.PLATFORM_DASHBOARD && <PlatformDashboardView />}
+              {page === Page.COMPANY_MANAGEMENT && <CompanyManagementView />}
+              {page === Page.PLATFORM_MEMBERS && <PlatformMembersView />}
+              {page === Page.ACCESS_CONTROL && <AccessControlView />}
+              {page === Page.SYSTEM_LOGS && <SystemLogsView />}
             </Suspense>
           </ErrorBoundary>
         </main>
