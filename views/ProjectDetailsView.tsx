@@ -902,7 +902,6 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
 const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBack }) => {
     const { getProject, updateProject, addDocument, tasks, rfis, punchItems, dailyLogs, dayworks } = useProjects();
     const [activeTab, setActiveTab] = useState<Tab>('OVERVIEW');
-    const [project, setProject] = useState<Project | undefined>(undefined);
     const [rfiSearch, setRfiSearch] = useState('');
 
     // Modal State

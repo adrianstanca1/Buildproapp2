@@ -818,8 +818,6 @@ const FieldCard = ({ title, icon: Icon, onClick, addAction }: any) => (
 const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
     const { user } = useAuth();
 
-    const { user } = useAuth();
-
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
