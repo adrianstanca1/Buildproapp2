@@ -105,7 +105,6 @@ export interface Tenant {
     primaryColor?: string;
     accentColor?: string;
   };
-  subscription: TenantSubscription;
 
 export interface TenantSubscription {
   id: string;
