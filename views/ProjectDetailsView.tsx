@@ -11,7 +11,8 @@ import {
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
-import { Project, Task, ProjectDocument, RFI, PunchItem, DailyLog, ProjectPhase } from '@/types';
+import { Project, Task, ProjectDocument, RFI, PunchItem, DailyLog, ProjectPhase, UserRole } from '@/types';
+import { Can } from '@/components/Can';
 import ScheduleView from './ScheduleView';
 import SafetyView from './SafetyView';
 import EquipmentView from './EquipmentView';
@@ -901,7 +902,19 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
 
 const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBack }) => {
     const { getProject, updateProject, addDocument, tasks, rfis, punchItems, dailyLogs, dayworks } = useProjects();
+    const { addToast } = useToast();
     const [activeTab, setActiveTab] = useState<Tab>('OVERVIEW');
+
+    const handleUpdateProject = async (updates: Partial<Project>) => {
+        if (!project) return;
+        try {
+            await updateProject(project.id, updates);
+            addToast('Project updated successfully', 'success');
+        } catch (error) {
+            addToast('Failed to update project', 'error');
+        }
+    };
+
     const [rfiSearch, setRfiSearch] = useState('');
 
     // Modal State
@@ -1220,6 +1233,89 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
                             </div>
                         )}
                     />
+                )}
+
+                {activeTab === 'SETTINGS' && (
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        <Can permission="projects.update" minRole={UserRole.PROJECT_MANAGER} fallback={
+                            <div className="bg-zinc-50 border border-zinc-200 rounded-xl p-6 text-center text-zinc-500">
+                                You do not have permission to edit project settings.
+                            </div>
+                        }>
+                            <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-6">
+                                <h3 className="text-lg font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                                    <SettingsIcon size={20} /> General Settings
+                                </h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Project Name</label>
+                                        <input
+                                            type="text"
+                                            defaultValue={project.name}
+                                            onBlur={(e) => handleUpdateProject({ name: e.target.value })}
+                                            className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Description</label>
+                                        <textarea
+                                            defaultValue={project.description}
+                                            onBlur={(e) => handleUpdateProject({ description: e.target.value })}
+                                            rows={3}
+                                            className="w-full px-3 py-2 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-[#0f5c82] outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-xl border border-zinc-200 shadow-sm p-6">
+                                <h3 className="text-lg font-bold text-zinc-900 mb-4 flex items-center gap-2">
+                                    <Archive size={20} /> Project Status
+                                </h3>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    {['Planning', 'Active', 'On Hold', 'Completed'].map(status => (
+                                        <button
+                                            key={status}
+                                            onClick={() => handleUpdateProject({ status: status as any })}
+                                            className={`py-3 rounded-xl border font-bold text-sm transition-all ${project.status === status
+                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                : 'bg-white border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`
+                                            }
+                                        >
+                                            {status}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </Can>
+
+                        <Can permission="projects.delete" minRole={UserRole.COMPANY_ADMIN}>
+                            <div className="bg-red-50 border border-red-100 rounded-xl p-6">
+                                <h3 className="text-lg font-bold text-red-900 mb-4 flex items-center gap-2">
+                                    <AlertTriangle size={20} /> Danger Zone
+                                </h3>
+                                <p className="text-sm text-red-700 mb-4">
+                                    Archiving a project will remove it from active lists. Deleting it is permanent.
+                                </p>
+                                <div className="flex gap-4">
+                                    <button className="px-4 py-2 bg-white border border-red-200 text-red-700 font-bold rounded-lg hover:bg-red-50 cursor-not-allowed opacity-60">
+                                        Archive Project
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Are you sure you want to delete this project? This cannot be undone.')) {
+                                                // onBack(); // Go back to portfolio where they can delete
+                                                alert('Please delete from portfolio view');
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700"
+                                    >
+                                        Delete Project
+                                    </button>
+                                </div>
+                            </div>
+                        </Can>
+                    </div>
                 )}
             </div>
         </div>

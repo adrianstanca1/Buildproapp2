@@ -69,7 +69,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
     });
 
     // --- Permissions Helpers ---
-    const isManager = user && [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR].includes(user.role);
+    const isManager = user && [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR].includes(user.role);
 
     const canEditDetails = useMemo(() => {
         if (!editingTask) return isManager; // Only managers create tasks
@@ -146,6 +146,14 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
             result = result.filter(t => t.projectId === projectId);
         }
 
+        // --- RBAC Enforcement: Operatives see ONLY their tasks ---
+        if (user?.role === UserRole.OPERATIVE) {
+            result = result.filter(t =>
+                (t.assigneeType === 'user' && t.assigneeName === user.name) ||
+                (t.assigneeType === 'role' && t.assigneeName === 'Operative')
+            );
+        }
+
         if (searchQuery) {
             const q = searchQuery.toLowerCase();
             result = result.filter(t =>
@@ -220,7 +228,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
 
         // Temporary logic: Check permissions immediately after setting state won't work synchronously
         // So we calculate based on the task passed in.
-        const isMgr = user && [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR].includes(user.role);
+        const isMgr = user && [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR].includes(user.role);
         const isAsgn = user && (
             (task.assigneeType === 'user' && task.assigneeName === user.name) ||
             (task.assigneeType === 'role' && task.assigneeName === 'Operative' && user.role === UserRole.OPERATIVE)
@@ -506,7 +514,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
         }
     };
 
-    const canManageTask = user && [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR].includes(user.role);
+    const canManageTask = user && [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR].includes(user.role);
 
     const assigneeOptions = useMemo(() => {
         const names = new Set(tasks.map(t => t.assigneeName).filter(Boolean));
