@@ -48,7 +48,7 @@ const UserManagementView: React.FC = () => {
     const handleRoleChange = async (userId: string, newRole: string) => {
         if (!confirm(`Change user role to ${newRole}?`)) return;
         try {
-            await db.updateUserRole(userId, newRole);
+            await db.updateUserRole(userId, users.find(u => u.id === userId)?.companyId || '', newRole);
             setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
         } catch (e) {
             console.error('Failed to update role', e);

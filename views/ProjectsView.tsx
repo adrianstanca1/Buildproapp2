@@ -130,7 +130,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                             <ListIcon size={18} />
                         </button>
                     </div>
-                    <Can I="create" a="projects">
+                    <Can permission="projects.create">
                         <button
                             onClick={() => {
                                 if (!canAddResource('projects')) {
@@ -282,7 +282,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                         >
                                             <CheckSquare size={14} className="text-zinc-400" /> Tasks
                                         </button>
-                                        <Can I="update" a="projects">
+                                        <Can permission="projects.update">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
@@ -293,7 +293,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                                 <Activity size={14} /> Status
                                             </button>
                                         </Can>
-                                        <Can I="delete" a="projects">
+                                        <Can permission="projects.delete">
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
