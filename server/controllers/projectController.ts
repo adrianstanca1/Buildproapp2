@@ -57,7 +57,7 @@ export const createProject = async (req: Request, res: Response, next: NextFunct
         // Validate Input
         const validationResult = projectSchema.safeParse(req.body);
         if (!validationResult.success) {
-            const errorMessages = validationResult.error?.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Invalid input';
+            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
             throw new AppError(`Validation Error: ${errorMessages}`, 400);
         }
 
@@ -96,7 +96,7 @@ export const updateProject = async (req: Request, res: Response, next: NextFunct
         // Validate Input
         const validationResult = updateProjectSchema.safeParse(req.body);
         if (!validationResult.success) {
-            const errorMessages = validationResult.error?.errors?.map((e: any) => `${e.path.join('.')}: ${e.message}`).join(', ') || 'Invalid input';
+            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
             throw new AppError(`Validation Error: ${errorMessages}`, 400);
         }
 
