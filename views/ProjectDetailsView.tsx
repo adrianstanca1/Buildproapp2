@@ -7,7 +7,7 @@ import {
     Camera, Hammer, Clipboard, ChevronRight, Building, HelpCircle, List, Link, Wrench, Navigation, Shield,
     Sparkles, BrainCircuit, Send, Loader2, Bot, User, CheckCircle2, MoreHorizontal, Search, Paperclip,
     Clock, Zap, X, Building2, Info, RefreshCw, ScanLine, MessageSquare, Maximize2, Eye, ChevronUp, ChevronDown,
-    GitCommit, LineChart, Brain, Settings as SettingsIcon, Archive, Trash2
+    GitCommit, LineChart, Brain, Settings as SettingsIcon, Archive, Trash2, Share2
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -24,6 +24,7 @@ import ProjectPhasesView from './ProjectPhasesView';
 import { ProjectActionModals } from '@/components/ProjectActionModals';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import FileUploadZone from '@/components/FileUploadZone';
+import ShareProjectModal from '@/components/ShareProjectModal';
 
 interface ProjectDetailsViewProps {
     projectId: string | null;
@@ -919,6 +920,7 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
 
     // Modal State
     const [activeModal, setActiveModal] = useState<'RFI' | 'PUNCH' | 'LOG' | 'DAYWORK' | 'PHOTO' | null>(null);
+    const [showShareModal, setShowShareModal] = useState(false);
 
     useEffect(() => {
         setActiveTab('OVERVIEW');
@@ -990,22 +992,36 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
                         </div>
                     </div>
 
-                    {/* Weather Widget */}
-                    {project.weatherLocation && (
-                        <div className="flex items-center gap-4 bg-white border border-zinc-200 px-4 py-2 rounded-xl shadow-sm">
-                            <div className="flex items-center gap-3 border-r border-zinc-100 pr-4">
-                                <div className="text-amber-500 bg-amber-50 p-2 rounded-full"><CloudRain size={18} /></div>
-                                <div>
-                                    <div className="text-base font-bold text-zinc-800">{project.weatherLocation.temp}</div>
-                                    <div className="text-[10px] text-zinc-500 uppercase font-bold">{project.weatherLocation.condition}</div>
+                    {/* Weather Widget & Share Button */}
+                    <div className="flex items-center gap-3">
+                        {project.weatherLocation && (
+                            <div className="flex items-center gap-4 bg-white border border-zinc-200 px-4 py-2 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-3 border-r border-zinc-100 pr-4">
+                                    <div className="text-amber-500 bg-amber-50 p-2 rounded-full"><CloudRain size={18} /></div>
+                                    <div>
+                                        <div className="text-base font-bold text-zinc-800">{project.weatherLocation.temp}</div>
+                                        <div className="text-[10px] text-zinc-500 uppercase font-bold">{project.weatherLocation.condition}</div>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col justify-center">
+                                    <span className="text-zinc-900 font-medium text-xs">{project.weatherLocation.city}</span>
+                                    <span className="text-zinc-400 text-[10px]">Local Site Weather</span>
                                 </div>
                             </div>
-                            <div className="flex flex-col justify-center">
-                                <span className="text-zinc-900 font-medium text-xs">{project.weatherLocation.city}</span>
-                                <span className="text-zinc-400 text-[10px]">Local Site Weather</span>
-                            </div>
-                        </div>
-                    )}
+                        )}
+
+                        {/* Share Project Button */}
+                        <Can permission="projects.update" minRole={UserRole.PROJECT_MANAGER}>
+                            <button
+                                onClick={() => setShowShareModal(true)}
+                                className="bg-blue-600 text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+                                title="Share project with external clients"
+                            >
+                                <Share2 size={18} />
+                                Share Project
+                            </button>
+                        </Can>
+                    </div>
                 </div>
 
                 {/* Navigation Tabs */}
