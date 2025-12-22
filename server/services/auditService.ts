@@ -197,3 +197,23 @@ export class AuditService {
 
 // Export singleton instance
 export const auditService = new AuditService();
+
+/**
+ * Log an action to audit trail
+ */
+export async function logAction(params: {
+  userId: string;
+  companyId: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  metadata?: any;
+}): Promise<void> {
+  // In production, this would write to audit_logs table
+  // For now, just log to console
+  console.log('[AUDIT]', params);
+}
+
+export const auditService = {
+  logAction,
+};

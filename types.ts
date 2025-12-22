@@ -105,12 +105,6 @@ export interface Tenant {
   joinedDate?: string;
   members?: Array<{ id: string; name: string; email: string; role?: string; lastActive?: string; }>;  // Platform view aggregation
 }
-  timezone: string;
-  language: string;
-  dateFormat: string;
-  currency: string;
-  emailNotifications: boolean;
-  dataRetention: number; // days
   twoFactorAuth: boolean;
 
 export interface TenantSubscription {

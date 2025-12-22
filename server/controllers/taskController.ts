@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { BucketRegistry } from '../buckets/DataBucket.js';
 import { z } from 'zod';
-import { AppError } from '../middleware/errorHandler.js';
+import { AppError } from '../utils/AppError.js';
 
 /**
  * Task Controller
@@ -102,7 +102,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
         res.status(201).json({ success: true, data: task });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            next(new AppError('Validation failed', 400, error.errors));
+            next(new AppError('Validation failed', 400, error.issues));
         } else {
             next(error);
         }
@@ -141,7 +141,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
         res.json({ success: true, data: updatedTask });
     } catch (error) {
         if (error instanceof z.ZodError) {
-            next(new AppError('Validation failed', 400, error.errors));
+            next(new AppError('Validation failed', 400, error.issues));
         } else {
             next(error);
         }

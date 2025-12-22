@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { analyticsBucket } from '../buckets/AnalyticsBucket.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { AppError } from '../utils/AppError.js';
 
 /**
  * Analytics Controller

@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { fileBucket } from '../buckets/FileBucket.js';
 import { BucketRegistry } from '../buckets/DataBucket.js';
-import { AppError } from '../middleware/errorHandler.js';
+import { AppError } from '../utils/AppError.js';
 
 /**
  * Document Controller
