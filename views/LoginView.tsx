@@ -16,9 +16,26 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper: Role-based redirect
+  const getDashboardForRole = (role: UserRole): Page => {
+    switch (role) {
+      case UserRole.SUPERADMIN:
+        return Page.PLATFORM_DASHBOARD;
+      case UserRole.COMPANY_ADMIN:
+        return Page.DASHBOARD; // Main Company Dashboard
+      case UserRole.SUPERVISOR:
+      case UserRole.OPERATIVE:
+        return Page.PROJECTS; // Operational focus
+      case UserRole.READ_ONLY:
+        return Page.CLIENT_PORTAL;
+      default:
+        return Page.DASHBOARD;
+    }
+  };
+
   const handleDemoLogin = (role: UserRole) => {
     login(role);
-    setPage(Page.IMAGINE);
+    setPage(getDashboardForRole(role));
   };
 
   const handleSupabaseLogin = async (e: React.FormEvent) => {
@@ -26,14 +43,16 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       if (error) throw error;
-      // AuthContext will pick up the session change and set the user
-      // We just need to redirect
-      setPage(Page.IMAGINE);
+
+      // Determine role from metadata (fallback to OPERATIVE if missing)
+      const role = (data.user?.user_metadata?.role as UserRole) || UserRole.OPERATIVE;
+
+      setPage(getDashboardForRole(role));
     } catch (err: any) {
       setError(err.message);
     } finally {

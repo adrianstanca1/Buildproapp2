@@ -4,6 +4,7 @@ import {
     LogOut, ChevronRight
 } from 'lucide-react';
 import { Page } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SuperadminSidebarProps {
     currentPage: Page;
@@ -23,6 +24,8 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
     isOpen,
     onClose,
 }) => {
+    const { logout } = useAuth();
+
     const platformMenu = [
         {
             icon: LayoutDashboard,
@@ -109,8 +112,8 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
                                         onClose();
                                     }}
                                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all ${isActive
-                                            ? 'bg-white/20 text-white shadow-lg'
-                                            : 'text-purple-100 hover:bg-white/10 hover:text-white'
+                                        ? 'bg-white/20 text-white shadow-lg'
+                                        : 'text-purple-100 hover:bg-white/10 hover:text-white'
                                         }`}
                                 >
                                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -129,7 +132,10 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
                 {/* Footer */}
                 <div className="p-4 border-t border-white/10">
                     <button
-                        onClick={() => setPage(Page.LOGIN)}
+                        onClick={() => {
+                            logout();
+                            setPage(Page.LOGIN);
+                        }}
                         className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-purple-100 hover:bg-white/10 hover:text-white transition-all"
                     >
                         <LogOut className="w-5 h-5" />

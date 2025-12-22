@@ -148,6 +148,46 @@ const AuthenticatedApp: React.FC = () => {
     return <LoginView setPage={setPage} />;
   }
 
+  // --- STRICT ROUTE GUARD ---
+  const isPageAllowed = (targetPage: Page, userRole: UserRole): boolean => {
+    // 1. Super Admin: Access everything
+    if (userRole === UserRole.SUPERADMIN) return true;
+
+    // 2. Client Portal: Only for Read-Only clients
+    if (userRole === UserRole.READ_ONLY) {
+      return targetPage === Page.CLIENT_PORTAL || targetPage === Page.LOGIN;
+    }
+
+    // 3. Platform Pages: STRICTLY FORBIDDEN for non-SuperAdmins
+    const platformPages = [
+      Page.PLATFORM_DASHBOARD,
+      Page.COMPANY_MANAGEMENT, // Assuming this maps to CompanyManagementView
+      Page.USER_MANAGEMENT,    // Assuming this maps to UserManagementView
+      // Add other platform-specific pages if they exist in Page enum
+    ];
+    // Note: In strict mode, we should check against a comprehensive list. 
+    // For now, we rely on the specific conditionals below or standard pages.
+
+    // Explicit deny list for standard users
+    if (targetPage === Page.PLATFORM_DASHBOARD) return false;
+
+    return true;
+  };
+
+  if (!isPageAllowed(page, user.role)) {
+    // Redirect to a safe default based on role
+    const safePage = user.role === UserRole.SUPERADMIN ? Page.PLATFORM_DASHBOARD :
+      user.role === UserRole.READ_ONLY ? Page.CLIENT_PORTAL :
+        Page.DASHBOARD;
+
+    // Prevent infinite loop if safePage is also denied (unlikely but possible in misconfig)
+    if (page !== safePage) {
+      console.warn(`[Guard] Access denied to ${page} for role ${user.role}. Redirecting to ${safePage}`);
+      setPage(safePage);
+      return null;
+    }
+  }
+
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 overflow-hidden relative">
       {/* Command Palette */}

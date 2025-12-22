@@ -15,15 +15,20 @@ export const contextMiddleware = async (req: any, res: Response, next: NextFunct
         const userId = req.userId;
 
         if (!tenantId || !userId || userId === 'anonymous' || userId === 'demo-user') {
-            // For now, allow partial context for anonymous/demo
-            req.context = {
-                tenantId: tenantId || 'c1',
-                userId: userId || 'demo-user',
-                role: 'admin', // Demo default
-                permissions: ['*'],
-                isSuperadmin: true
-            };
-            return next();
+            // STRICT MODE: Only allow implicit demo context in development
+            if (process.env.NODE_ENV === 'development') {
+                req.context = {
+                    tenantId: tenantId || 'c1',
+                    userId: userId || 'demo-user',
+                    role: 'admin', // Demo default
+                    permissions: ['*'],
+                    isSuperadmin: true
+                };
+                return next();
+            }
+
+            // In production, incomplete context is a 403
+            return res.status(403).json({ error: 'Valid security context required' });
         }
 
         // Fetch full context from services

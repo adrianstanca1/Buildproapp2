@@ -14,26 +14,9 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-        // DEMO MODE: Allow unauthenticated access for development/demo
-        // Create a mock demo user instead of rejecting the request
-        console.log('[Auth] No token provided - using demo mode');
-        req.user = {
-            id: 'demo-user',
-            email: 'demo@buildpro.app',
-            role: 'admin'
-        };
-        req.userId = 'demo-user';
-        req.tenantId = req.headers['x-company-id'] || 'c1'; // Default to first company
-        return next();
-    }
-
-    try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
-
-        if (error || !user) {
-            console.error('Auth Error:', error);
-            // Fall back to demo mode instead of rejecting
-            console.log('[Auth] Invalid token - falling back to demo mode');
+        // STRICT MODE: Only allow demo fallback in development
+        if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEMO_AUTH === 'true') {
+            console.log('[Auth] No token provided - using demo mode (DEV ONLY)');
             req.user = {
                 id: 'demo-user',
                 email: 'demo@buildpro.app',
@@ -42,6 +25,27 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
             req.userId = 'demo-user';
             req.tenantId = req.headers['x-company-id'] || 'c1';
             return next();
+        }
+
+        return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+
+        if (error || !user) {
+            console.error('Auth Error:', error);
+
+            // STRICT MODE
+            if (process.env.NODE_ENV === 'development') {
+                console.log('[Auth] Invalid token - falling back to demo mode (DEV ONLY)');
+                req.user = { id: 'demo-user', email: 'demo@buildpro.app', role: 'admin' };
+                req.userId = 'demo-user';
+                req.tenantId = req.headers['x-company-id'] || 'c1';
+                return next();
+            }
+
+            return res.status(403).json({ error: 'Invalid or expired token' });
         }
 
         req.user = user;
@@ -53,23 +57,15 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
         req.tenantId = jwtTenantId || headerTenantId;
 
-        if (!req.tenantId && !process.env.ALLOW_ANONYMOUS_TENANT) {
+        if (!req.tenantId) {
+            // Block request if no tenant context implies security risk
             console.warn(`[Auth] No tenant context for user ${user.id}`);
-            // In strict mode, we might throw 403 here, but for now we follow existing permissive patterns
+            return res.status(403).json({ error: 'Tenant context required' });
         }
 
         next();
     } catch (err) {
         console.error('Auth Exception:', err);
-        // Fall back to demo mode instead of rejecting
-        console.log('[Auth] Auth exception - falling back to demo mode');
-        req.user = {
-            id: 'demo-user',
-            email: 'demo@buildpro.app',
-            role: 'admin'
-        };
-        req.userId = 'demo-user';
-        req.tenantId = req.headers['x-company-id'] || 'c1';
-        return next();
+        return res.status(500).json({ error: 'Internal auth error' });
     }
 };

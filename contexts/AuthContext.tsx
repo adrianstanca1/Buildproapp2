@@ -58,15 +58,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (session?.user) {
             mapSupabaseUser(session.user);
           } else {
-            // Only clear if we are not using a demo account
-            setUser(prev => {
-              // Demo accounts have short IDs (u1, u2, etc)
-              // Supabase accounts have UUIDs
-              if (prev && prev.id.length < 10) {
-                return prev;
-              }
-              return null;
-            });
+            // Session expired or logged out
+            setUser(null);
           }
         });
 
@@ -184,10 +177,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    // 1. Clear Supabase Session
     if (user && user.id.length > 10 && isSupabaseConnected) {
       await supabase.auth.signOut();
     }
+
+    // 2. Clear Local State
     setUser(null);
+
+    // 3. Clear Storage (Clean Slate)
+    localStorage.removeItem('sb-access-token');
+    localStorage.removeItem('sb-refresh-token');
+    // Clear any potential app-specific keys
+    sessionStorage.clear();
+
+    // 4. Force Reload to clear in-memory sensitive data (Redux/Context/Zustand)
+    // This prevents "back button" access to protected pages
+    window.location.reload();
   };
 
   const hasPermission = (permission: string) => {
