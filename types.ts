@@ -112,12 +112,6 @@ export interface Tenant {
   emailNotifications: boolean;
   dataRetention: number; // days
   twoFactorAuth: boolean;
-  ipWhitelist?: string[];
-  sso: boolean;
-  customBranding: boolean;
-  primaryColor?: string;
-  accentColor?: string;
-}
 
 export interface TenantSubscription {
   id: string;

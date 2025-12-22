@@ -26,14 +26,6 @@ class SqliteAdapter implements IDatabase {
   async exec(sql: string) { return this.db.exec(sql); }
 }
 
-// PostgreSQL connection pool configuration
-  connectionString: process.env.DATABASE_URL,
-  min: 2,
-  max: 10,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-};
-
 class PostgresAdapter implements IDatabase {
   private pool: any;
   constructor(connectionString: string) {
