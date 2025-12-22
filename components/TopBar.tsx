@@ -154,7 +154,7 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
                             {result.title}
                           </p>
                           <p className="text-[11px] text-zinc-500">{result.subtitle}</p>
-                          <p className="text-[9px] text-blue-500 mt-0.5 bg-blue-50 w-fit px-1.5 py-0.5 rounded italic">"{result.relevance}"</p>
+                          <p className="text-[9px] text-blue-500 mt-0.5 bg-blue-50 w-fit px-1.5 py-0.5 rounded italic">&quot;{result.relevance}&quot;</p>
                         </div>
                         <span className="text-[9px] font-black text-zinc-400 uppercase bg-zinc-100 px-1.5 py-0.5 rounded">
                           {result.type}

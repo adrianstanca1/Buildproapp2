@@ -306,7 +306,7 @@ export const EditMemberModal: React.FC<EditMemberModalProps> = ({
             </div>
             <h3 className="text-lg font-bold text-zinc-900">Changes Saved!</h3>
             <p className="text-sm text-zinc-600 text-center">
-              {formData.name}'s profile has been updated
+              {formData.name}&apos;s profile has been updated
             </p>
           </div>
         )}

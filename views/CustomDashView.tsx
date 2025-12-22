@@ -52,9 +52,6 @@ const CustomDashView: React.FC = () => {
   ];
 
   // Initialize Dashboard on Mount
-  useEffect(() => {
-    loadSavedLayouts();
-  }, []);
 
   // Load all saved layouts from localStorage
   const loadSavedLayouts = () => {
@@ -117,6 +114,7 @@ const CustomDashView: React.FC = () => {
   const addWidget = (widgetType: Omit<Widget, 'id' | 'position' | 'visible'>) => {
     const newWidget: Widget = {
       ...widgetType,
+      // eslint-disable-next-line react-hooks/purity
       id: `widget-${Date.now()}`,
       position: widgets.length,
       visible: true,

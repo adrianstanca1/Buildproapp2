@@ -587,26 +587,26 @@ async function initSchema(db: IDatabase) {
   }
 
   // Migration: Add Versioning to documents
-  try { await db.exec('ALTER TABLE documents ADD COLUMN currentVersion INTEGER DEFAULT 1'); } catch (e) { }
-  try { await db.exec('ALTER TABLE documents ADD COLUMN versions TEXT'); } catch (e) { }
-  try { await db.exec('ALTER TABLE documents ADD COLUMN markupLayers TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE documents ADD COLUMN currentVersion INTEGER DEFAULT 1'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE documents ADD COLUMN versions TEXT'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE documents ADD COLUMN markupLayers TEXT'); } catch (e) { /* ignore */ }
 
   // Migration: Add planMetadata to RFIs and Punch Items
-  try { await db.exec('ALTER TABLE rfis ADD COLUMN planMetadata TEXT'); } catch (e) { }
-  try { await db.exec('ALTER TABLE punch_items ADD COLUMN planMetadata TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE rfis ADD COLUMN planMetadata TEXT'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE punch_items ADD COLUMN planMetadata TEXT'); } catch (e) { /* ignore */ }
 
   // Migration: Add startDate and duration to tasks
-  try { await db.exec('ALTER TABLE tasks ADD COLUMN startDate TEXT'); } catch (e) { }
-  try { await db.exec('ALTER TABLE tasks ADD COLUMN duration INTEGER'); } catch (e) { }
+  try { await db.exec('ALTER TABLE tasks ADD COLUMN startDate TEXT'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE tasks ADD COLUMN duration INTEGER'); } catch (e) { /* ignore */ }
 
   // Migration: Add costCodeId and export info to transactions
-  try { await db.exec('ALTER TABLE transactions ADD COLUMN costCodeId TEXT'); } catch (e) { }
-  try { await db.exec('ALTER TABLE transactions ADD COLUMN isExported INTEGER DEFAULT 0'); } catch (e) { }
-  try { await db.exec('ALTER TABLE transactions ADD COLUMN exportDate TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE transactions ADD COLUMN costCodeId TEXT'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE transactions ADD COLUMN isExported INTEGER DEFAULT 0'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE transactions ADD COLUMN exportDate TEXT'); } catch (e) { /* ignore */ }
 
   // Migration: Add timestamps to projects (Fix for missing columns)
-  try { await db.exec('ALTER TABLE projects ADD COLUMN createdAt TEXT'); } catch (e) { }
-  try { await db.exec('ALTER TABLE projects ADD COLUMN updatedAt TEXT'); } catch (e) { }
+  try { await db.exec('ALTER TABLE projects ADD COLUMN createdAt TEXT'); } catch (e) { /* ignore */ }
+  try { await db.exec('ALTER TABLE projects ADD COLUMN updatedAt TEXT'); } catch (e) { /* ignore */ }
 }
 
 /**

@@ -284,7 +284,7 @@ const InventoryView: React.FC = () => {
                                                 <span className="text-xs font-bold text-zinc-900">{predictions[item.name].daysLeft} Days Left</span>
                                             </div>
                                             <p className="text-[9px] text-zinc-500 leading-tight italic truncate max-w-[180px]" title={predictions[item.name].recommendation}>
-                                                "{predictions[item.name].recommendation}"
+                                                &quot;{predictions[item.name].recommendation}&quot;
                                             </p>
                                         </div>
                                     ) : (

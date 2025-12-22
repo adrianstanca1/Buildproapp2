@@ -65,7 +65,7 @@ export const SkeletonChart: React.FC = () => (
                 <Skeleton
                     key={i}
                     width="100%"
-                    height={Math.random() * 150 + 50}
+                    height={(i * 37) % 150 + 50}
                     className="flex-1"
                 />
             ))}

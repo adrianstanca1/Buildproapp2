@@ -20,7 +20,10 @@ interface SearchItem {
 export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose, setPage }) => {
     const [query, setQuery] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
-    const [recentSearches, setRecentSearches] = useState<string[]>([]);
+    const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+        const stored = localStorage.getItem('buildpro-recent-searches');
+        return stored ? JSON.parse(stored) : [];
+    });
     const inputRef = useRef<HTMLInputElement>(null);
 
     // Sample search items - in production, this would come from context/API
@@ -75,9 +78,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         }
     }, [isOpen]);
 
-    useEffect(() => {
-        setSelectedIndex(0);
-    }, [query]);
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'ArrowDown') {
@@ -101,12 +101,6 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
         localStorage.setItem('buildpro-recent-searches', JSON.stringify(updated));
     };
 
-    useEffect(() => {
-        const stored = localStorage.getItem('buildpro-recent-searches');
-        if (stored) {
-            setRecentSearches(JSON.parse(stored));
-        }
-    }, []);
 
     if (!isOpen) return null;
 
@@ -120,7 +114,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                         ref={inputRef}
                         type="text"
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={(e) => {
+                            setQuery(e.target.value);
+                            setSelectedIndex(0);
+                        }}
                         onKeyDown={handleKeyDown}
                         placeholder="Search projects, tasks, team..."
                         className="flex-1 bg-transparent text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none text-lg"
@@ -164,14 +161,14 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                                         addToRecentSearches(item.title);
                                     }}
                                     className={`w-full px-3 py-3 text-left rounded-lg transition-all flex items-center justify-between group ${index === selectedIndex
-                                            ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
-                                            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                                        ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                                        : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
                                         }`}
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={`p-2 rounded-lg ${index === selectedIndex
-                                                ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-                                                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+                                            ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
+                                            : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
                                             }`}>
                                             {item.icon}
                                         </div>
@@ -193,7 +190,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ isOpen, onClose,
                     ) : query.length > 0 ? (
                         <div className="p-12 text-center text-zinc-500 dark:text-zinc-400">
                             <Search size={48} className="mx-auto mb-4 opacity-20" />
-                            <p className="font-medium">No results found for "{query}"</p>
+                            <p className="font-medium">No results found for &quot;{query}&quot;</p>
                             <p className="text-sm mt-1">Try searching for projects, tasks, or team members</p>
                         </div>
                     ) : null}

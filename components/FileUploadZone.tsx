@@ -52,7 +52,7 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
             // Attempt Supabase upload
             // Attempt Supabase upload
-            // @ts-ignore
+            // @ts-expect-error - Vite env types
             // Attempt Supabase upload via Backend API
             if (import.meta.env.VITE_SUPABASE_URL) {
                 try {

@@ -173,11 +173,11 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
                         <div className="p-6 bg-zinc-900 rounded-3xl text-white shadow-xl shadow-zinc-900/10">
                             <TrendingUp size={24} className="text-green-400 mb-4" />
                             <p className="text-[10px] font-black text-zinc-500 uppercase mb-2">Key Win</p>
-                            <p className="text-sm font-bold italic">"{briefing.wins?.[0]}"</p>
+                            <p className="text-sm font-bold italic">&quot;{briefing.wins?.[0]}&quot;</p>
                         </div>
                         <div className="px-6 border-l-4 border-[#0f5c82]/20 py-2">
                             <p className="text-[10px] text-zinc-400 font-bold mb-1 uppercase tracking-tighter">Daily Wisdom</p>
-                            <p className="text-xs text-zinc-500 font-medium italic">"{briefing.quote}"</p>
+                            <p className="text-xs text-zinc-500 font-medium italic">&quot;{briefing.quote}&quot;</p>
                         </div>
                     </div>
                 </div>
@@ -795,28 +795,31 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
     );
 };
 
+const FieldCard = ({ title, icon: Icon, onClick, addAction }: any) => (
+    <div onClick={onClick} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all cursor-pointer group relative flex flex-col justify-between min-h-[140px]">
+        <div className="flex justify-between items-start">
+            <div className="p-2.5 bg-zinc-50 rounded-xl group-hover:bg-blue-50 group-hover:text-[#0f5c82] transition-colors text-zinc-600">
+                <Icon size={24} />
+            </div>
+            {addAction && (
+                <button onClick={(e) => { e.stopPropagation(); addAction(); }} className="p-1.5 bg-zinc-100 hover:bg-[#0f5c82] hover:text-white rounded-lg text-zinc-400 transition-colors">
+                    <Plus size={16} />
+                </button>
+            )}
+        </div>
+        <div>
+            <h3 className="font-bold text-zinc-900 text-sm mb-1">{title}</h3>
+            <p className="text-[10px] text-zinc-400 uppercase font-medium tracking-wide group-hover:text-[#0f5c82] transition-colors">View All</p>
+        </div>
+    </div>
+);
+
 // --- 3. SUPERVISOR DASHBOARD (FIELD VIEW) ---
 const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
     const { user } = useAuth();
 
-    const FieldCard = ({ title, icon: Icon, onClick, addAction }: any) => (
-        <div onClick={onClick} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all cursor-pointer group relative flex flex-col justify-between min-h-[140px]">
-            <div className="flex justify-between items-start">
-                <div className="p-2.5 bg-zinc-50 rounded-xl group-hover:bg-blue-50 group-hover:text-[#0f5c82] transition-colors text-zinc-600">
-                    <Icon size={24} />
-                </div>
-                {addAction && (
-                    <button onClick={(e) => { e.stopPropagation(); addAction(); }} className="p-1.5 bg-zinc-100 hover:bg-[#0f5c82] hover:text-white rounded-lg text-zinc-400 transition-colors">
-                        <Plus size={16} />
-                    </button>
-                )}
-            </div>
-            <div>
-                <h3 className="font-bold text-zinc-900 text-sm mb-1">{title}</h3>
-                <p className="text-[10px] text-zinc-400 uppercase font-medium tracking-wide group-hover:text-[#0f5c82] transition-colors">View All</p>
-            </div>
-        </div>
-    );
+    const { user } = useAuth();
+
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">

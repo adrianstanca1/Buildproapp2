@@ -625,7 +625,7 @@ const EquipmentView: React.FC<EquipmentViewProps> = ({ projectId }) => {
 
                             <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4">
                                 <div className="text-[10px] font-bold text-zinc-400 uppercase mb-2 flex items-center gap-1"><Zap size={10} /> AI Analysis</div>
-                                <p className="text-sm text-zinc-700 leading-relaxed font-medium">"{predictionResult.prediction}"</p>
+                                <p className="text-sm text-zinc-700 leading-relaxed font-medium">&quot;{predictionResult.prediction}&quot;</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">

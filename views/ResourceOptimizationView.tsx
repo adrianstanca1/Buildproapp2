@@ -141,7 +141,7 @@ export const ResourceOptimizationView: React.FC = () => {
                             </div>
                             <h3 className="text-2xl font-black mb-4 leading-tight">Projected bottle-neck detected in MEP labor for Q1.</h3>
                             <p className="text-zinc-400 text-sm leading-relaxed mb-6">
-                                Demand for Plumbing and HVAC across "Highline Residences" and "The Wharf" exceeds available capacity by 24% between Jan 15 - Feb 10. Recommend re-allocating 2 junior operatives from site maintenance.
+                                Demand for Plumbing and HVAC across &quot;Highline Residences&quot; and &quot;The Wharf&quot; exceeds available capacity by 24% between Jan 15 - Feb 10. Recommend re-allocating 2 junior operatives from site maintenance.
                             </p>
                             <button className="bg-white text-zinc-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-zinc-200 transition-all">
                                 Apply Optimization
@@ -160,10 +160,10 @@ export const ResourceOptimizationView: React.FC = () => {
                                 <div key={p.id}>
                                     <div className="flex justify-between items-center text-xs font-bold text-zinc-500 mb-2">
                                         <span>{p.name}</span>
-                                        <span className="text-zinc-900">{Math.floor(Math.random() * 40 + 60)}% Capacity</span>
+                                        <span className="text-zinc-900">{75 + (p.name.length % 20)}% Capacity</span>
                                     </div>
                                     <div className="w-full bg-zinc-100 h-2 rounded-full">
-                                        <div className="bg-zinc-900 h-full rounded-full" style={{ width: `${Math.floor(Math.random() * 40 + 60)}%` }} />
+                                        <div className="bg-zinc-900 h-full rounded-full" style={{ width: `${75 + (p.name.length % 20)}%` }} />
                                     </div>
                                 </div>
                             ))}

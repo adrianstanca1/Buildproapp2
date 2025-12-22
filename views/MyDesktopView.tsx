@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-Monitor, X, Minus, Square, Power, Search, Grid,
-Folder, Terminal, Activity, FileText, Globe,
-Settings, Calculator, Video, Type,
-MessageSquare, Briefcase, HardHat, Layers, Shield,
-Wand2, Navigation, ChevronLeft, ChevronRight, ArrowUp,
-Save, MoreVertical, RefreshCw, Wifi, Battery, Volume2,
-Calendar as CalendarIcon, Trash2, Plus, Code
+  Monitor, X, Minus, Square, Power, Search, Grid,
+  Folder, Terminal, Activity, FileText, Globe,
+  Settings, Calculator, Video, Type,
+  MessageSquare, Briefcase, HardHat, Layers, Shield,
+  Wand2, Navigation, ChevronLeft, ChevronRight, ArrowUp,
+  Save, MoreVertical, RefreshCw, Wifi, Battery, Volume2,
+  Calendar as CalendarIcon, Trash2, Plus, Code
 } from 'lucide-react';
 import { Page } from '@/types';
 import DevSandboxView from './DevSandboxView';
@@ -481,7 +481,7 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ({ installedApps, setPage })
         case 'help':
           output.push('Available commands:', '  ls - List directory contents', '  cd <path> - Change directory', '  mkdir <name> - Create directory', '  touch <name> - Create file', '  rm <name> - Remove file/directory', '  cat <name> - Display file content', '  whoami - Current user', '  date - Current system time', '  clear - Clear terminal');
           break;
-        case 'ls':
+        case 'ls': {
           const children = fileSystem[cwdId].children || [];
           const names = children.map(id => {
             const node = fileSystem[id];
@@ -489,7 +489,8 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ({ installedApps, setPage })
           });
           output.push(names.join('  '));
           break;
-        case 'cd':
+        }
+        case 'cd': {
           if (!args[1]) break;
           const targetId = resolvePath(cwdId, args[1]);
           if (targetId && fileSystem[targetId].type === 'folder') {
@@ -498,6 +499,7 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ({ installedApps, setPage })
             output.push(`cd: no such file or directory: ${args[1]}`);
           }
           break;
+        }
         case 'mkdir':
           if (args[1]) {
             createFile(cwdId, args[1], 'folder');
@@ -521,7 +523,7 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ({ installedApps, setPage })
             }
           }
           break;
-        case 'cat':
+        case 'cat': {
           if (args[1]) {
             const targetFile = (fileSystem[cwdId].children || []).find(id => fileSystem[id].name === args[1]);
             if (targetFile && fileSystem[targetFile].type === 'file') {
@@ -531,6 +533,7 @@ const MyDesktopView: React.FC<MyDesktopViewProps> = ({ installedApps, setPage })
             }
           }
           break;
+        }
         case 'whoami':
           output.push('root');
           break;

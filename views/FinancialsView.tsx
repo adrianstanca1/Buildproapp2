@@ -400,7 +400,7 @@ const FinancialsView: React.FC = () => {
                       <span className="text-xs font-bold text-zinc-900 pr-2 leading-tight">{risk.title}</span>
                       <span className={`text-[9px] px-1.5 py-0.5 rounded font-black uppercase ${risk.severity === 'High' ? 'bg-red-600 text-white' : 'bg-orange-500 text-white'}`}>{risk.severity}</span>
                     </div>
-                    <div className="text-[10px] text-zinc-600 italic">"Impact: {risk.impact}"</div>
+                    <div className="text-[10px] text-zinc-600 italic">&quot;Impact: {risk.impact}&quot;</div>
                     <div className="mt-1 p-2 bg-zinc-50 rounded text-[9px] text-[#0f5c82] font-medium leading-snug">
                       <span className="font-bold mr-1 uppercase text-[8px]">Mitigation:</span> {risk.mitigation}
                     </div>
@@ -710,7 +710,7 @@ const FinancialsView: React.FC = () => {
                 <Brain size={12} /> Strategic Recommendation
               </h4>
               <p className="text-sm text-zinc-800 leading-relaxed italic">
-                Based on current progress and historical material trends, we recommend adjusting the "Plaster & Gypsum" contingency by 12% to account for upcoming seasonal logistics delays. Overall project health remains stable.
+                Based on current progress and historical material trends, we recommend adjusting the &quot;Plaster &amp; Gypsum&quot; contingency by 12% to account for upcoming seasonal logistics delays. Overall project health remains stable.
               </p>
             </div>
             <div className="bg-zinc-900 rounded-xl p-6 text-white shadow-xl flex items-center justify-between">

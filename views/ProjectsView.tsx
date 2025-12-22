@@ -156,7 +156,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                     <AlertCircle size={20} className="flex-shrink-0" />
                     <div>
                         <p className="text-sm font-bold">Project limit approaching</p>
-                        <p className="text-xs">You've reached your maximum of {currentTenant?.maxProjects || 5} projects. <button className="underline font-bold">Upgrade your plan</button> to add more.</p>
+                        <p className="text-xs">You&apos;ve reached your maximum of {currentTenant?.maxProjects || 5} projects. <button className="underline font-bold">Upgrade your plan</button> to add more.</p>
                     </div>
                 </div>
             )}
@@ -276,7 +276,7 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                onProjectSelect && onProjectSelect(project.id);
+                                                if (onProjectSelect) onProjectSelect(project.id);
                                             }}
                                             className="flex-1 py-2.5 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 text-[10px] font-bold rounded-lg transition-colors border border-zinc-200 flex items-center justify-center gap-1.5 shadow-sm"
                                         >

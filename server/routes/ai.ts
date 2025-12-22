@@ -130,7 +130,7 @@ router.post('/image', async (req: any, res: any) => {
                 parts: [{ text: prompt }],
             },
             config: {
-                // @ts-ignore - types might be outdated for imageConfig
+                // @ts-expect-error - Config types
                 imageConfig: {
                     aspectRatio: aspectRatio || "1:1",
                     imageSize: "1K"

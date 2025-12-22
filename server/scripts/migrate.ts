@@ -12,15 +12,17 @@ async function main() {
 
   try {
     switch (command) {
-      case 'up':
+      case 'up': {
         await migrator.up();
         break;
+      }
 
-      case 'down':
+      case 'down': {
         await migrator.down();
         break;
+      }
 
-      case 'status':
+      case 'status': {
         const status = await migrator.status();
         console.log('\nMigration Status:');
         console.log('================');
@@ -41,6 +43,7 @@ async function main() {
           });
         }
         break;
+      }
 
       default:
         console.log('Usage: npm run migrate [up|down|status]');

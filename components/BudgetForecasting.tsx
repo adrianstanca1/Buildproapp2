@@ -110,7 +110,7 @@ const BudgetForecasting: React.FC<{ projectId: string }> = ({ projectId }) => {
                         <div className="bg-zinc-900 p-4 rounded-xl">
                             <p className="text-[10px] font-bold text-zinc-400 uppercase mb-1">AI Recommendation</p>
                             <p className="text-xs text-white leading-relaxed italic">
-                                "{forecast.recommendation || 'Maintain current procurement velocity. Consider early ordering of Phase 3 materials to lock in rates.'}"
+                                &quot;{forecast.recommendation || 'Maintain current procurement velocity. Consider early ordering of Phase 3 materials to lock in rates.'}&quot;
                             </p>
                         </div>
                     </div>

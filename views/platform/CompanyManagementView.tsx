@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-    Building2, Plus, Search, MoreVertical, Users, FolderKanban,
-    DollarSign, Calendar, AlertCircle, CheckCircle, XCircle, Pause
+    Building2, Plus, Search, MoreVertical, Users,
+    DollarSign, AlertCircle, CheckCircle, XCircle, Pause
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { Modal } from '@/components/Modal';
@@ -31,6 +31,7 @@ const CompanyManagementView: React.FC = () => {
     );
 
     const handleCreateCompany = () => {
+        // eslint-disable-next-line react-hooks/purity
         const newId = `tenant-${Date.now()}`;
         addTenant({
             id: newId,
@@ -58,6 +59,7 @@ const CompanyManagementView: React.FC = () => {
                 planId: newCompany.plan,
                 status: 'active',
                 currentPeriodStart: new Date().toISOString(),
+                // eslint-disable-next-line react-hooks/purity
                 currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 billingEmail: newCompany.email,
             },

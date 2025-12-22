@@ -32,6 +32,19 @@ interface ProjectDetailsViewProps {
 type Tab = 'OVERVIEW' | 'TIMELINE' | 'SCHEDULE' | 'TASKS' | 'TEAM' | 'SAFETY' | 'EQUIPMENT' | 'LIVE_MAP' | 'DOCUMENTS' | 'FINANCIALS' | 'BIM_MODEL' | 'RFI' | 'QUALITY' | 'SITE_LOGS' | 'VARIATIONS' | 'PHOTOS';
 
 // --- Interfaces for AI Chat ---
+const TabButton = ({ id, label, icon: Icon, activeTab, onClick }: { id: Tab, label: string, icon: any, activeTab: Tab, onClick: (id: Tab) => void }) => (
+    <button
+        onClick={() => onClick(id)}
+        className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === id
+            ? 'border-[#0f5c82] text-[#0f5c82]'
+            : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50/50'
+            }`}
+    >
+        <Icon size={16} />
+        {label}
+    </button>
+);
+
 interface ChatMessage {
     id: string;
     role: 'user' | 'ai';
@@ -899,11 +912,8 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
         setActiveTab('OVERVIEW');
     }, [projectId]);
 
-    useEffect(() => {
-        if (projectId) {
-            const p = getProject(projectId);
-            setProject(p);
-        }
+    const project = useMemo(() => {
+        return projectId ? getProject(projectId) : null;
     }, [projectId, getProject]);
 
     if (!project) {
@@ -920,18 +930,6 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
     const projectLogs = (dailyLogs || []).filter(l => l.projectId === project.id);
     const projectDayworks = (dayworks || []).filter(d => d.projectId === project.id);
 
-    const TabButton = ({ id, label, icon: Icon }: { id: Tab, label: string, icon: any }) => (
-        <button
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === id
-                ? 'border-[#0f5c82] text-[#0f5c82]'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:bg-zinc-50/50'
-                }`}
-        >
-            <Icon size={16} />
-            {label}
-        </button>
-    );
 
     return (
         <div className="flex flex-col h-full bg-zinc-50 relative">
@@ -1000,21 +998,21 @@ const ProjectDetailsView: React.FC<ProjectDetailsViewProps> = ({ projectId, onBa
 
                 {/* Navigation Tabs */}
                 <div className="flex items-center gap-1 mt-8 border-b border-zinc-100 overflow-x-auto -mb-6 pb-0 hide-scrollbar">
-                    <TabButton id="OVERVIEW" label="Overview" icon={LayoutDashboard} />
-                    <TabButton id="TIMELINE" label="Phases" icon={GitCommit} />
-                    <TabButton id="PHOTOS" label="Photos" icon={ImageIcon} />
-                    <TabButton id="LIVE_MAP" label="Live Map" icon={Navigation} />
-                    <TabButton id="SCHEDULE" label="Schedule" icon={Calendar} />
-                    <TabButton id="TASKS" label="Tasks" icon={CheckSquare} />
-                    <TabButton id="RFI" label="RFIs" icon={HelpCircle} />
-                    <TabButton id="VARIATIONS" label="Dayworks" icon={Hammer} />
-                    <TabButton id="QUALITY" label="Quality" icon={CheckCircle2} />
-                    <TabButton id="SITE_LOGS" label="Logs" icon={Clipboard} />
-                    <TabButton id="TEAM" label="Team" icon={Users} />
-                    <TabButton id="SAFETY" label="Safety" icon={Shield} />
-                    <TabButton id="EQUIPMENT" label="Equipment" icon={Wrench} />
-                    <TabButton id="DOCUMENTS" label="Documents" icon={FileText} />
-                    <TabButton id="FINANCIALS" label="Financials" icon={PoundSterling} />
+                    <TabButton id="OVERVIEW" label="Overview" icon={LayoutDashboard} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="TIMELINE" label="Phases" icon={GitCommit} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="PHOTOS" label="Photos" icon={ImageIcon} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="LIVE_MAP" label="Live Map" icon={Navigation} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="SCHEDULE" label="Schedule" icon={Calendar} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="TASKS" label="Tasks" icon={CheckSquare} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="RFI" label="RFIs" icon={HelpCircle} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="VARIATIONS" label="Dayworks" icon={Hammer} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="QUALITY" label="Quality" icon={CheckCircle2} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="SITE_LOGS" label="Logs" icon={Clipboard} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="TEAM" label="Team" icon={Users} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="SAFETY" label="Safety" icon={Shield} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="EQUIPMENT" label="Equipment" icon={Wrench} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="DOCUMENTS" label="Documents" icon={FileText} activeTab={activeTab} onClick={setActiveTab} />
+                    <TabButton id="FINANCIALS" label="Financials" icon={PoundSterling} activeTab={activeTab} onClick={setActiveTab} />
                 </div>
             </div>
 

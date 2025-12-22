@@ -103,7 +103,7 @@ export function TenantUsageWidget() {
             {metrics.some(m => getUsagePercentage(m.current, m.limit) >= 90) && (
                 <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-800 font-medium">
-                        ⚠️ You're approaching your plan limits
+                        ⚠️ You&apos;re approaching your plan limits
                     </p>
                     <p className="text-xs text-red-600 mt-1">
                         Consider upgrading your plan to avoid service interruptions

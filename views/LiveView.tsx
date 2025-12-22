@@ -142,7 +142,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                             setCurrentModelText("");
                         }
                         if (msg.serverContent?.interrupted) {
-                            activeSourcesRef.current.forEach(source => { try { source.stop(); } catch (e) { } });
+                            activeSourcesRef.current.forEach(source => { try { source.stop(); } catch (e) { /* ignore */ } });
                             activeSourcesRef.current.clear();
                             nextStartTimeRef.current = 0;
                             setCurrentModelText("");
@@ -288,7 +288,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
         inputContextRef.current = null;
         audioContextRef.current = null;
 
-        activeSourcesRef.current.forEach(s => { try { s.stop(); } catch (e) { } });
+        activeSourcesRef.current.forEach(s => { try { s.stop(); } catch (e) { /* ignore */ } });
         activeSourcesRef.current.clear();
         sessionRef.current = null;
     };

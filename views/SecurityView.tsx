@@ -113,14 +113,17 @@ const SecurityView: React.FC = () => {
     { id: 'u6', name: 'Robert Martinez', email: 'robert@buildpro.com', role: 'Operative', lastLogin: '5h ago', status: 'active', twoFaEnabled: false },
   ];
 
-  const auditLogs: AuditLog[] = [
-    { id: 'a1', timestamp: new Date(Date.now() - 2 * 60000).toLocaleString(), user: 'Sarah Mitchell', action: 'User login', resource: 'Authentication', details: 'Successful login with 2FA', status: 'success', ipAddress: '192.168.1.100' },
-    { id: 'a2', timestamp: new Date(Date.now() - 15 * 60000).toLocaleString(), user: 'Mike Thompson', action: 'Permission change', resource: 'Role Management', details: 'Updated John Anderson role to Project Manager', status: 'success', ipAddress: '192.168.1.101' },
-    { id: 'a3', timestamp: new Date(Date.now() - 1 * 60 * 60000).toLocaleString(), user: 'System', action: 'API key generated', resource: 'API Access', details: 'New API key created for integration', status: 'success', ipAddress: '192.168.1.102' },
-    { id: 'a4', timestamp: new Date(Date.now() - 2 * 60 * 60000).toLocaleString(), user: 'David Chen', action: 'User deletion attempt', resource: 'User Management', details: 'Insufficient permissions - access denied', status: 'failure', ipAddress: '192.168.1.103' },
-    { id: 'a5', timestamp: new Date(Date.now() - 4 * 60 * 60000).toLocaleString(), user: 'Sarah Mitchell', action: 'Password changed', resource: 'Account Security', details: 'Password update successful', status: 'success', ipAddress: '192.168.1.100' },
-    { id: 'a6', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60000).toLocaleString(), user: 'John Anderson', action: 'Suspicious login attempt', resource: 'Authentication', details: 'Failed login from unknown location', status: 'warning', ipAddress: '203.0.113.45' },
-  ];
+  const [auditLogs] = useState<AuditLog[]>(() => {
+    const now = Date.now();
+    return [
+      { id: 'a1', timestamp: new Date(now - 2 * 60000).toLocaleString(), user: 'Sarah Mitchell', action: 'User login', resource: 'Authentication', details: 'Successful login with 2FA', status: 'success', ipAddress: '192.168.1.100' },
+      { id: 'a2', timestamp: new Date(now - 15 * 60000).toLocaleString(), user: 'Mike Thompson', action: 'Permission change', resource: 'Role Management', details: 'Updated John Anderson role to Project Manager', status: 'success', ipAddress: '192.168.1.101' },
+      { id: 'a3', timestamp: new Date(now - 1 * 60 * 60000).toLocaleString(), user: 'System', action: 'API key generated', resource: 'API Access', details: 'New API key created for integration', status: 'success', ipAddress: '192.168.1.102' },
+      { id: 'a4', timestamp: new Date(now - 2 * 60 * 60000).toLocaleString(), user: 'David Chen', action: 'User deletion attempt', resource: 'User Management', details: 'Insufficient permissions - access denied', status: 'failure', ipAddress: '192.168.1.103' },
+      { id: 'a5', timestamp: new Date(now - 4 * 60 * 60000).toLocaleString(), user: 'Sarah Mitchell', action: 'Password changed', resource: 'Account Security', details: 'Password update successful', status: 'success', ipAddress: '192.168.1.100' },
+      { id: 'a6', timestamp: new Date(now - 1 * 24 * 60 * 60000).toLocaleString(), user: 'John Anderson', action: 'Suspicious login attempt', resource: 'Authentication', details: 'Failed login from unknown location', status: 'warning', ipAddress: '203.0.113.45' },
+    ];
+  });
 
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -182,11 +185,10 @@ const SecurityView: React.FC = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`py-4 font-medium text-sm border-b-2 transition-colors ${
-                activeTab === tab
+              className={`py-4 font-medium text-sm border-b-2 transition-colors ${activeTab === tab
                   ? 'border-[#0f5c82] text-[#0f5c82]'
                   : 'border-transparent text-zinc-600 hover:text-zinc-900'
-              }`}>
+                }`}>
               {tab === 'roles' && 'Role Management'}
               {tab === 'users' && 'User Management'}
               {tab === 'audit' && 'Audit Logs'}
@@ -351,11 +353,10 @@ const SecurityView: React.FC = () => {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-medium text-zinc-900">{log.action}</p>
-                      <span className={`text-xs px-2 py-1 rounded font-medium ${
-                        log.status === 'success' ? 'bg-green-100 text-green-700' :
-                        log.status === 'failure' ? 'bg-red-100 text-red-700' :
-                        'bg-orange-100 text-orange-700'
-                      }`}>
+                      <span className={`text-xs px-2 py-1 rounded font-medium ${log.status === 'success' ? 'bg-green-100 text-green-700' :
+                          log.status === 'failure' ? 'bg-red-100 text-red-700' :
+                            'bg-orange-100 text-orange-700'
+                        }`}>
                         {log.status.toUpperCase()}
                       </span>
                     </div>

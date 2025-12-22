@@ -63,7 +63,7 @@ const SupplyChainIntelligence: React.FC = () => {
             <div className="p-5">
                 <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6">
                     <p className="text-blue-900 text-sm leading-relaxed font-medium italic">
-                        "{insights}"
+                        &quot;{insights}&quot;
                     </p>
                 </div>
 
@@ -83,8 +83,8 @@ const SupplyChainIntelligence: React.FC = () => {
                             <div className="flex items-baseline gap-2 mb-1">
                                 <span className="text-xl font-black text-zinc-900">{t.change}</span>
                                 <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${t.risk === 'High' ? 'bg-red-100 text-red-700' :
-                                        t.risk === 'Medium' ? 'bg-amber-100 text-amber-700' :
-                                            'bg-green-100 text-green-700'
+                                    t.risk === 'Medium' ? 'bg-amber-100 text-amber-700' :
+                                        'bg-green-100 text-green-700'
                                     }`}>
                                     {t.risk} Risk
                                 </span>

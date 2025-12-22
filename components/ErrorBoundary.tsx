@@ -26,16 +26,15 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   handleReset = () => {
-    // @ts-ignore
+    // @ts-expect-error - Legacy state type mismatch
     this.setState({ hasError: false, error: null });
   };
 
   render(): ReactNode {
-    // @ts-ignore
+    // @ts-expect-error - Legacy state type mismatch
     if (this.state.hasError) {
-      // @ts-ignore
       if (this.props.fallback) {
-        // @ts-ignore
+        // @ts-expect-error - Legacy fallback return
         return this.props.fallback;
       }
 
@@ -44,7 +43,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <AlertTriangle size={48} className="text-red-500 mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Something went wrong</h1>
           <p className="text-gray-600 text-center max-w-md mb-6">
-            {/* @ts-ignore */}
+            {/* @ts-expect-error - Legacy error object access */}
             {this.state.error?.message || 'An unexpected error occurred. Please try refreshing the page.'}
           </p>
           <button
@@ -57,7 +56,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       );
     }
 
-    // @ts-ignore
+    // @ts-expect-error - Legacy children return
     return this.props.children;
   }
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
     LayoutDashboard, Building2, Users, TrendingUp, AlertCircle,
     DollarSign, Activity, Database, Server, Shield
@@ -14,7 +14,6 @@ const PlatformDashboardView: React.FC = () => {
 
     // Calculate platform metrics
     const totalCompanies = tenants.length;
-    const activeCompanies = tenants.filter(t => t.status === 'Active').length;
     const totalUsers = tenants.reduce((sum, t) => sum + (t.users || 0), 0);
     const totalProjects = tenants.reduce((sum, t) => sum + (t.projects || 0), 0);
     const totalMRR = tenants.reduce((sum, t) => sum + (t.mrr || 0), 0);

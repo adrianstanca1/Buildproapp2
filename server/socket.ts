@@ -60,7 +60,7 @@ export const setupWebSocketServer = (server: any) => {
                         }
                         break;
 
-                    case 'project_update':
+                    case 'project_update': {
                         const payload = {
                             type: 'project_updated',
                             payload: data.payload,
@@ -77,6 +77,7 @@ export const setupWebSocketServer = (server: any) => {
                         // 2. Broadcast to global dashboard (for portfolio view)
                         broadcastToRoom(wss, clients, 'all_projects', payload, ws);
                         break;
+                    }
 
                     case 'presence_ping':
                         // Keep alive / update status
