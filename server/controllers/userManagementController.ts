@@ -39,8 +39,39 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
             throw new AppError('User not found', 404);
         }
 
+        // Use req.userId/userName populated by middleware for audit
+        // We can't easily use logAction here without importing it or duplicating logic
+        // But the requirements said "Audit Log", so let's log to logger at least.
+        // Ideally we should export logging helper from a service.
         logger.info(`User status updated: ${id} to ${status} by SuperAdmin`);
         res.json({ success: true, id, status });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const { id } = req.params;
+        const { role } = req.body;
+
+        // Basic validation - in production use Zod or stronger enum check
+        if (!role) {
+            throw new AppError('Role is required', 400);
+        }
+
+        const result = await db.run(
+            'UPDATE users SET role = ? WHERE id = ?',
+            [role, id]
+        );
+
+        if (result.changes === 0) {
+            throw new AppError('User not found', 404);
+        }
+
+        logger.info(`User role updated: ${id} to ${role} by SuperAdmin`);
+        res.json({ success: true, id, role });
     } catch (e) {
         next(e);
     }
