@@ -1,5 +1,6 @@
 import { BaseTenantService } from './baseTenantService.js';
 import { v4 as uuidv4 } from 'uuid';
+import { getDb } from '../database.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 import type { TenantContext, UserRole } from '../types/rbac.js';

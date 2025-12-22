@@ -258,12 +258,12 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   // const visibleSafety = safetyIncidents; // Replaced by useMemo below
   const visibleEquipment = useMemo(() => {
     if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return equipment;
+    if (user.role === UserRole.SUPERADMIN) return equipment;
     return equipment.filter(e => e.companyId === user.companyId);
   }, [equipment, user]);
   const visibleTimesheets = useMemo(() => {
     if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return timesheets;
+    if (user.role === UserRole.SUPERADMIN) return timesheets;
     return timesheets.filter(t => t.companyId === user.companyId);
   }, [timesheets, user]);
 
@@ -342,7 +342,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   // Channels are tenant-global.
   const visibleChannels = useMemo(() => {
     if (!user) return [];
-    if (user.role === UserRole.SUPER_ADMIN) return channels;
+    if (user.role === UserRole.SUPERADMIN) return channels;
     return channels.filter(c => c.companyId === user.companyId);
   }, [channels, user]);
 
@@ -352,7 +352,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
   const addProject = async (project: Project) => {
     const projectWithTenant = { ...project, companyId: user?.companyId || 'c1' };
     setProjects((prev) => [projectWithTenant, ...prev]);
-    if (user && user.role !== UserRole.SUPER_ADMIN && addProjectId) {
+    if (user && user.role !== UserRole.SUPERADMIN && addProjectId) {
       addProjectId(projectWithTenant.id);
     }
     await db.addProject(projectWithTenant);

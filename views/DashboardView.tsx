@@ -29,7 +29,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ setPage }) => {
     if (!user) return null;
 
     switch (user.role) {
-        case UserRole.SUPER_ADMIN:
+        case UserRole.SUPERADMIN:
             return <SuperAdminDashboard setPage={setPage} />;
         case UserRole.COMPANY_ADMIN:
             return <CompanyAdminDashboard setPage={setPage} />;
@@ -342,7 +342,7 @@ const SuperAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
                 </div>
             )}
 
-            <AIDailyBriefing role={UserRole.SUPER_ADMIN} />
+            <AIDailyBriefing role={UserRole.SUPERADMIN} />
 
             {/* Infrastructure Health */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -907,7 +907,7 @@ const OperativeDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPa
 
             // Role check
             if (t.assigneeType === 'role') {
-                if (user.role === UserRole.OPERATIVE && t.assigneeName === 'Operative') return true;
+                if (user.role === UserRole.SUPERADMIN && t.assigneeName === 'Operative') return true;
             }
             // User check
             if (t.assigneeType === 'user' && t.assigneeName === user.name) return true;

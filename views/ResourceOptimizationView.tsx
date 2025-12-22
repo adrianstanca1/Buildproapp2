@@ -47,7 +47,7 @@ export const ResourceOptimizationView: React.FC = () => {
         };
     }, [projects, teamMembers, tasks]);
 
-    if (!user || ![UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN].includes(user.role as UserRole)) {
+    if (!user || ![UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN].includes(user.role as UserRole)) {
         return <div className="p-12 text-center text-zinc-500 font-bold">Access Restricted to Administrators</div>;
     }
 

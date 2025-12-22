@@ -5,6 +5,7 @@ import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/AppError.js';
 import { permissionService } from '../services/permissionService.js';
 import { membershipService } from '../services/membershipService.js';
+import { tenantService, getTenantUsage } from '../services/tenantService.js';
 import { UserRole } from '../types/rbac.js';
 
 // Helper for audit logging (duplicating temporarily until AuditService is created, or importing if I extracted it)
@@ -174,7 +175,7 @@ export const getCurrentUserContext = async (req: Request, res: Response, next: N
 
         // Fetch additional aggregate data
         const [usage, tenant] = await Promise.all([
-            tenantService.getTenantUsage(context.tenantId),
+            getTenantUsage(context.tenantId),
             tenantService.getTenant(context.tenantId)
         ]);
 
