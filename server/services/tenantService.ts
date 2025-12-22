@@ -1,5 +1,15 @@
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
+import { AppError } from '../utils/AppError.js';
+import { logger } from '../utils/logger.js';
+import type { TenantContext, UserRole } from '../types/rbac.js';
+import { membershipService } from './membershipService.js';
+import { permissionService } from './permissionService.js';
+import { isSuperadmin } from '../types/rbac.js';
+
+// ============================================================================
+// EXISTING TYPES (Preserved)
+// ============================================================================
 
 export interface TenantUsage {
     tenantId: string;
@@ -28,6 +38,200 @@ export interface TenantAnalytics {
         count: number;
     }>;
 }
+
+// ============================================================================
+// RBAC TENANT SERVICE (New)
+// ============================================================================
+
+/**
+ * TenantService
+ * Manages tenant (company) operations and access validation
+ */
+export class TenantService {
+    /**
+     * Validate that a user has access to a tenant
+     */
+    async validateTenantAccess(userId: string, tenantId: string): Promise<boolean> {
+        try {
+            const membership = await membershipService.getMembership(userId, tenantId);
+            return membership !== null && membership.status === 'active';
+        } catch (error) {
+            logger.error(`Tenant access validation failed: ${error}`);
+            return false;
+        }
+    }
+
+    /**
+     * Get tenant context for a user
+     */
+    async getTenantContext(userId: string, tenantId: string): Promise<TenantContext> {
+        const membership = await membershipService.getMembership(userId, tenantId);
+
+        if (!membership || membership.status !== 'active') {
+            throw new AppError('No active membership in this tenant', 403);
+        }
+
+        const permissions = await permissionService.getUserPermissions(userId, tenantId);
+
+        return {
+            tenantId,
+            userId,
+            role: membership.role as UserRole,
+            permissions,
+            isSuperadmin: isSuperadmin(membership.role as UserRole),
+        };
+    }
+
+    /**
+     * Get all tenants for a user
+     */
+    async getUserTenants(userId: string) {
+        const db = getDb();
+
+        const rows = await db.all(
+            `SELECT c.* 
+       FROM companies c
+       JOIN memberships m ON c.id = m.companyId
+       WHERE m.userId = ? AND m.status = 'active'
+       ORDER BY c.name`,
+            [userId]
+        );
+
+        return rows.map(row => ({
+            ...row,
+            settings: row.settings ? JSON.parse(row.settings) : {},
+            subscription: row.subscription ? JSON.parse(row.subscription) : {},
+            features: row.features ? JSON.parse(row.features) : [],
+        }));
+    }
+
+    /**
+     * Get tenant by ID
+     */
+    async getTenant(id: string) {
+        const db = getDb();
+
+        const row = await db.get('SELECT * FROM companies WHERE id = ?', [id]);
+
+        if (!row) {
+            return null;
+        }
+
+        return {
+            ...row,
+            settings: row.settings ? JSON.parse(row.settings) : {},
+            subscription: row.subscription ? JSON.parse(row.subscription) : {},
+            features: row.features ? JSON.parse(row.features) : [],
+        };
+    }
+
+    /**
+     * Create a new tenant (Superadmin only)
+     */
+    async createTenant(data: any) {
+        const db = getDb();
+
+        const id = data.id || uuidv4();
+        const now = new Date().toISOString();
+
+        const settings = data.settings ? JSON.stringify(data.settings) : '{}';
+        const subscription = data.subscription ? JSON.stringify(data.subscription) : '{}';
+        const features = data.features ? JSON.stringify(data.features) : '[]';
+
+        await db.run(
+            `INSERT INTO companies (
+        id, name, plan, status, users, projects, mrr, joinedDate,
+        description, logo, website, email, phone, address, city, state, zipCode, country,
+        settings, subscription, features, maxUsers, maxProjects, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                id, data.name, data.plan, data.status, data.users || 0, data.projects || 0,
+                data.mrr || 0, data.joinedDate || now, data.description, data.logo,
+                data.website, data.email, data.phone, data.address, data.city, data.state,
+                data.zipCode, data.country, settings, subscription, features,
+                data.maxUsers || 10, data.maxProjects || 5, now, now
+            ]
+        );
+
+        logger.info(`Tenant created: ${data.name} (${id})`);
+
+        return this.getTenant(id);
+    }
+
+    /**
+     * Update tenant
+     */
+    async updateTenant(id: string, updates: any) {
+        const db = getDb();
+        const now = new Date().toISOString();
+
+        const fields: string[] = [];
+        const values: any[] = [];
+
+        // Handle JSON fields
+        if (updates.settings) {
+            updates.settings = JSON.stringify(updates.settings);
+        }
+        if (updates.subscription) {
+            updates.subscription = JSON.stringify(updates.subscription);
+        }
+        if (updates.features) {
+            updates.features = JSON.stringify(updates.features);
+        }
+
+        // Build update query
+        for (const [key, value] of Object.entries(updates)) {
+            if (key !== 'id') {
+                fields.push(`${key} = ?`);
+                values.push(value);
+            }
+        }
+
+        if (fields.length === 0) {
+            throw new AppError('No fields to update', 400);
+        }
+
+        fields.push('updatedAt = ?');
+        values.push(now);
+        values.push(id);
+
+        await db.run(
+            `UPDATE companies SET ${fields.join(', ')} WHERE id = ?`,
+            values
+        );
+
+        logger.info(`Tenant updated: ${id}`);
+
+        return this.getTenant(id);
+    }
+
+    /**
+     * Suspend a tenant
+     */
+    async suspendTenant(id: string): Promise<void> {
+        await this.updateTenant(id, { status: 'Suspended' });
+        logger.info(`Tenant suspended: ${id}`);
+    }
+
+    /**
+     * Delete a tenant (Superadmin only)
+     */
+    async deleteTenant(id: string): Promise<void> {
+        const db = getDb();
+
+        const result = await db.run('DELETE FROM companies WHERE id = ?', [id]);
+
+        if (result.changes === 0) {
+            throw new AppError('Tenant not found', 404);
+        }
+
+        logger.info(`Tenant deleted: ${id}`);
+    }
+}
+
+// ============================================================================
+// EXISTING USAGE FUNCTIONS (Preserved)
+// ============================================================================
 
 /**
  * Get current usage for a tenant
@@ -175,9 +379,13 @@ export async function getTenantAnalytics(tenantId: string): Promise<TenantAnalyt
     };
 }
 
+// Export singleton instance and legacy functions
+export const tenantService = new TenantService();
+
 export default {
     getTenantUsage,
     logUsage,
     checkTenantLimits,
-    getTenantAnalytics
+    getTenantAnalytics,
+    tenantService
 };
