@@ -103,8 +103,22 @@ export interface Tenant {
   projects?: number;
   mrr?: number;
   joinedDate?: string;
+  // Platform view aggregation
+  members?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    role?: string;
+    lastActive?: string;
+  }>;
 }
-
+  members?: Array<{
+    id: string;
+    name: string;
+    email: string;
+    role?: string;
+    lastActive?: string;
+  }>;
 export interface TenantSettings {
   timezone: string;
   language: string;

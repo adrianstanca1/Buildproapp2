@@ -31,13 +31,27 @@ const CompanyManagementView: React.FC = () => {
     );
 
     const handleCreateCompany = () => {
+        const newId = `tenant-${Date.now()}`;
         addTenant({
+            id: newId,
+            companyId: newId,
             ...newCompany,
             status: 'Active',
+            plan: newCompany.plan as 'Enterprise' | 'Business' | 'Starter',
             users: 0,
             projects: 0,
             mrr: getPlanMRR(newCompany.plan),
             joinedDate: new Date().toISOString(),
+            settings: { timezone: 'UTC', language: 'en', currency: 'USD' },
+            subscription: {
+                plan: newCompany.plan,
+                status: 'active',
+                startDate: new Date().toISOString(),
+            },
+            features: [],
+            maxUsers: newCompany.plan === 'enterprise' ? 1000 : newCompany.plan === 'professional' ? 100 : 25,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
         });
         setShowCreateModal(false);
         setNewCompany({ name: '', plan: 'starter', email: '', phone: '', address: '' });

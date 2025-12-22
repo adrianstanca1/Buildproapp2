@@ -83,7 +83,7 @@ const AccessControlView: React.FC = () => {
     const hasPermission = (role: UserRole, category: string, permission: string): boolean => {
         if (role === UserRole.SUPERADMIN) return true;
         if (role === UserRole.READ_ONLY) return permission === 'read';
-        if (category === 'Platform') return role === UserRole.SUPERADMIN;
+        if (category === 'Platform') return false;
         if (category === 'Finance') return [UserRole.COMPANY_ADMIN, UserRole.FINANCE].includes(role);
         return [UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER].includes(role);
     };
