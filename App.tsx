@@ -161,8 +161,10 @@ const AuthenticatedApp: React.FC = () => {
     // 3. Platform Pages: STRICTLY FORBIDDEN for non-SuperAdmins
     const platformPages = [
       Page.PLATFORM_DASHBOARD,
-      Page.COMPANY_MANAGEMENT, // Assuming this maps to CompanyManagementView
-      Page.USER_MANAGEMENT,    // Assuming this maps to UserManagementView
+      Page.COMPANY_MANAGEMENT,
+      Page.PLATFORM_MEMBERS,  // UserManagementView route
+      Page.ACCESS_CONTROL,
+      Page.SYSTEM_LOGS,
       // Add other platform-specific pages if they exist in Page enum
     ];
     // Note: In strict mode, we should check against a comprehensive list. 

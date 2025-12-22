@@ -154,7 +154,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!import.meta.env.VITE_SUPABASE_URL) return;
 
     // Check if supabase client is valid (not placeholder)
-    if (supabase.supabaseUrl === 'https://placeholder.supabase.co') return;
+    if (import.meta.env.VITE_SUPABASE_URL === 'https://placeholder.supabase.co') return;
 
     const channel = supabase
       .channel('public:team_messages')

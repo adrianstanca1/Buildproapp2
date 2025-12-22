@@ -56,13 +56,15 @@ export class TenantService extends BaseTenantService {
     /**
      * Validate that a user has access to a tenant
      */
-    async validateTenantAccess(userId: string, tenantId: string): Promise<boolean> {
+    async validateTenantAccess(userId: string, tenantId: string): Promise<void> {
         try {
             const membership = await membershipService.getMembership(userId, tenantId);
-            return membership !== null && membership.status === 'active';
+            if (!membership || membership.status !== 'active') {
+                throw new AppError('No active membership in this tenant', 403);
+            }
         } catch (error) {
             logger.error(`Tenant access validation failed: ${error}`);
-            return false;
+            throw error;
         }
     }
 
