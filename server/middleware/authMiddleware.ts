@@ -24,6 +24,12 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
             };
             req.userId = 'demo-user';
             req.tenantId = req.headers['x-company-id'] || 'c1';
+            // Setup req.context for RBAC middleware
+            req.context = {
+                userId: req.userId,
+                tenantId: req.tenantId,
+                role: 'admin'
+            };
             return next();
         }
 
@@ -42,6 +48,12 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
                 req.user = { id: 'demo-user', email: 'demo@buildpro.app', role: 'admin' };
                 req.userId = 'demo-user';
                 req.tenantId = req.headers['x-company-id'] || 'c1';
+                // Setup req.context for RBAC middleware
+                req.context = {
+                    userId: req.userId,
+                    tenantId: req.tenantId,
+                    role: 'admin'
+                };
                 return next();
             }
 
@@ -62,6 +74,13 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
             console.warn(`[Auth] No tenant context for user ${user.id}`);
             return res.status(403).json({ error: 'Tenant context required' });
         }
+
+        // Setup req.context for RBAC middleware
+        req.context = {
+            userId: req.userId,
+            tenantId: req.tenantId,
+            role: user.user_metadata?.role || 'user'
+        };
 
         next();
     } catch (err) {
