@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Bell, WifiOff, AlertOctagon, X, Siren, Send, Wifi, Loader2, Menu } from 'lucide-react';
+import { Search, Bell, WifiOff, AlertOctagon, X, Siren, Send, Wifi, Loader2, Menu, Moon, Sun } from 'lucide-react';
 import { Page } from '@/types';
 import { offlineQueue } from '../services/offlineQueue';
 import { useToast } from '../contexts/ToastContext';
@@ -9,6 +9,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { useProjects } from '../contexts/ProjectContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { searchService, SearchResult } from '../services/SearchService';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface TopBarProps {
   setPage: (page: Page) => void;
@@ -22,6 +23,7 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
   const [sosSent, setSosSent] = useState(false);
   const { addToast } = useToast();
   const { tenant } = useTenant();
+  const { theme, toggleTheme } = useTheme();
   const { projects, tasks, teamMembers, defects, safetyIncidents } = useProjects();
   const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
 
@@ -187,7 +189,16 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
             <AlertOctagon size={16} /> SOS
           </button>
 
-          <div className="h-6 w-px bg-zinc-200 mx-2" />
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-all"
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+          >
+            {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
+
+          <div className="h-6 w-px bg-zinc-200 dark:bg-zinc-700 mx-2" />
 
           <div className="hidden lg:block">
             <TenantSelector />

@@ -1,10 +1,11 @@
 
 
 import { Megaphone, X, ShieldAlert } from 'lucide-react';
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, lazy, Suspense, useEffect } from 'react';
 import Sidebar from '@/components/Sidebar';
 import TopBar from '@/components/TopBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { CommandPalette } from '@/components/CommandPalette';
 import { Page, UserRole } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -12,6 +13,7 @@ import { TenantProvider, useTenant } from '@/contexts/TenantContext';
 import ToastProvider from '@/contexts/ToastContext';
 import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // Utility to handle chunk load errors by reloading the page
 const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
@@ -72,11 +74,24 @@ const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(Page.LOGIN);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { user } = useAuth();
   const { broadcastMessage, setBroadcastMessage, systemSettings } = useTenant();
 
   // Shared State for Marketplace Apps
   const [installedApps, setInstalledApps] = useState<string[]>(['Procore', 'Slack', 'QuickBooks']);
+
+  // Cmd+K keyboard shortcut for command palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Maintenance Mode Check (Super Admins Bypass)
   if (systemSettings.maintenance && user?.role !== UserRole.SUPER_ADMIN) {
@@ -124,7 +139,13 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-50 text-zinc-900 overflow-hidden relative">
+    <div className="flex h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 overflow-hidden relative">
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        setPage={setPage}
+      />
       {/* Global Broadcast Banner */}
       {broadcastMessage && (
         <div className="absolute top-0 left-0 right-0 z-50 bg-gradient-to-r from-indigo-600 to-[#0f5c82] text-white px-4 py-3 shadow-lg flex items-center justify-between animate-in slide-in-from-top duration-500">
@@ -232,21 +253,23 @@ const AuthenticatedApp: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <NotificationProvider>
-          <TenantProvider>
-            <ProjectProvider>
-              <WebSocketProvider>
-                <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50">Loading BuildPro...</div>}>
-                  <AuthenticatedApp />
-                </Suspense>
-              </WebSocketProvider>
-            </ProjectProvider>
-          </TenantProvider>
-        </NotificationProvider>
-      </AuthProvider>
-    </ToastProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <TenantProvider>
+              <ProjectProvider>
+                <WebSocketProvider>
+                  <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
+                    <AuthenticatedApp />
+                  </Suspense>
+                </WebSocketProvider>
+              </ProjectProvider>
+            </TenantProvider>
+          </NotificationProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 };
 
