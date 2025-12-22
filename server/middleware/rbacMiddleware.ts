@@ -6,7 +6,7 @@ import { logger } from '../utils/logger.js';
 /**
  * Middleware to check if user has required role(s)
  */
-export const requireRole = (allowedRoles: UserRole[]) => {
+export const requireRole = (allowedRoles: string[]) => {
     return async (req: any, res: Response, next: NextFunction) => {
         try {
             const { userId, tenantId, role } = req.context || {};
