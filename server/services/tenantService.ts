@@ -1,4 +1,4 @@
-import { getDb } from '../database.js';
+import { BaseTenantService } from './baseTenantService.js';
 import { v4 as uuidv4 } from 'uuid';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
@@ -47,7 +47,11 @@ export interface TenantAnalytics {
  * TenantService
  * Manages tenant (company) operations and access validation
  */
-export class TenantService {
+export class TenantService extends BaseTenantService {
+    constructor() {
+        super('TenantService');
+    }
+
     /**
      * Validate that a user has access to a tenant
      */
@@ -86,7 +90,7 @@ export class TenantService {
      * Get all tenants for a user
      */
     async getUserTenants(userId: string) {
-        const db = getDb();
+        const db = this.getDb();
 
         const rows = await db.all(
             `SELECT c.* 
@@ -109,7 +113,7 @@ export class TenantService {
      * Get tenant by ID
      */
     async getTenant(id: string) {
-        const db = getDb();
+        const db = this.getDb();
 
         const row = await db.get('SELECT * FROM companies WHERE id = ?', [id]);
 
@@ -129,7 +133,7 @@ export class TenantService {
      * Create a new tenant (Superadmin only)
      */
     async createTenant(data: any) {
-        const db = getDb();
+        const db = this.getDb();
 
         const id = data.id || uuidv4();
         const now = new Date().toISOString();
@@ -153,6 +157,9 @@ export class TenantService {
             ]
         );
 
+        // For tenant creation, we use the tenantId as the companyId itself
+        await this.auditAction('createTenant', 'system', id, 'companies', id, { name: data.name }); // Use system for now as actor
+
         logger.info(`Tenant created: ${data.name} (${id})`);
 
         return this.getTenant(id);
@@ -162,7 +169,7 @@ export class TenantService {
      * Update tenant
      */
     async updateTenant(id: string, updates: any) {
-        const db = getDb();
+        const db = this.getDb();
         const now = new Date().toISOString();
 
         const fields: string[] = [];
@@ -200,6 +207,8 @@ export class TenantService {
             values
         );
 
+        await this.auditAction('updateTenant', 'system', id, 'companies', id, updates);
+
         logger.info(`Tenant updated: ${id}`);
 
         return this.getTenant(id);
@@ -217,13 +226,15 @@ export class TenantService {
      * Delete a tenant (Superadmin only)
      */
     async deleteTenant(id: string): Promise<void> {
-        const db = getDb();
+        const db = this.getDb();
 
         const result = await db.run('DELETE FROM companies WHERE id = ?', [id]);
 
         if (result.changes === 0) {
             throw new AppError('Tenant not found', 404);
         }
+
+        await this.auditAction('deleteTenant', 'system', id, 'companies', id);
 
         logger.info(`Tenant deleted: ${id}`);
     }

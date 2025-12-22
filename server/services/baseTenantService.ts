@@ -2,7 +2,6 @@ import { getDb } from '../database.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 import { auditService } from './auditService.js';
-import { membershipService } from './membershipService.js';
 
 /**
  * BaseTenantService
@@ -21,6 +20,8 @@ export abstract class BaseTenantService {
      * Throws 403 if access is denied
      */
     protected async validateTenantAccess(userId: string, tenantId: string): Promise<void> {
+        // Dynamic import to avoid circular dependency
+        const { membershipService } = await import('./membershipService.js');
         const membership = await membershipService.getMembership(userId, tenantId);
 
         if (!membership || membership.status !== 'active') {
@@ -31,17 +32,44 @@ export abstract class BaseTenantService {
 
     /**
      * Scope a SQL query by tenantId
-     * Adds WHERE companyId = ? condition
+     * Adds WHERE [alias.]companyId = ? condition
      */
-    protected scopeQueryByTenant(baseQuery: string, tenantId: string): { query: string; params: any[] } {
+    protected scopeQueryByTenant(baseQuery: string, tenantId: string, tableAlias?: string): { query: string; params: any[] } {
         // If query already has WHERE, add AND
         const hasWhere = baseQuery.toLowerCase().includes('where');
         const connector = hasWhere ? 'AND' : 'WHERE';
+        const prefix = tableAlias ? `${tableAlias}.` : '';
 
         return {
-            query: `${baseQuery} ${connector} companyId = ?`,
+            query: `${baseQuery} ${connector} ${prefix}companyId = ?`,
             params: [tenantId],
         };
+    }
+
+    /**
+     * Validate cross-resource ownership (e.g., Task belongs to Project which belongs to Tenant)
+     */
+    protected async validateResourceAccess(
+        childTable: string,
+        childId: string,
+        parentTable: string,
+        parentId: string,
+        tenantId: string
+    ): Promise<void> {
+        const db = getDb();
+
+        // Verify child belongs to parent AND parent belongs to tenant
+        const query = `
+            SELECT c.id FROM ${childTable} c
+            JOIN ${parentTable} p ON c.projectId = p.id
+            WHERE c.id = ? AND p.id = ? AND p.companyId = ?
+        `;
+
+        const row = await db.get(query, [childId, parentId, tenantId]);
+
+        if (!row) {
+            throw new AppError(`Access denied: Hierarchical validation failed for ${childTable}:${childId}`, 403);
+        }
     }
 
     /**

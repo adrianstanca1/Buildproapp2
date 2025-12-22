@@ -10,6 +10,6 @@ router.get('/user-roles/:userId/:companyId', authController.getUserRoles);
 router.get('/user/permissions', authController.getCurrentUserPermissions);
 router.get('/permissions', authController.getAllPermissions);
 router.get('/roles/:role/permissions', authController.getRolePermissions);
-router.get('/roles', authController.getRoles);
+router.get('/me/context', authController.getCurrentUserContext);
 
 export default router;

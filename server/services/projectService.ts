@@ -19,10 +19,13 @@ export class ProjectService extends BaseTenantService {
         await this.validateTenantAccess(userId, tenantId);
 
         const db = this.getDb();
-        const projects = await db.all(
-            'SELECT * FROM projects WHERE companyId = ? ORDER BY createdAt DESC',
-            [tenantId]
+        const { query, params } = this.scopeQueryByTenant(
+            'SELECT * FROM projects',
+            tenantId,
+            'p'
         );
+
+        const projects = await db.all(`${query} ORDER BY createdAt DESC`, params);
 
         return projects.map(p => ({
             ...p,
@@ -41,10 +44,13 @@ export class ProjectService extends BaseTenantService {
         await this.validateResourceTenant('projects', projectId, tenantId);
 
         const db = this.getDb();
-        const project = await db.get(
-            'SELECT * FROM projects WHERE id = ? AND companyId = ?',
-            [projectId, tenantId]
+        const { query, params } = this.scopeQueryByTenant(
+            'SELECT * FROM projects WHERE id = ?',
+            tenantId,
+            'p'
         );
+
+        const project = await db.get(query, [projectId, ...params]);
 
         if (!project) {
             throw new AppError('Project not found', 404);

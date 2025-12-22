@@ -144,14 +144,45 @@ export const getRolePermissions = async (req: Request, res: Response, next: Next
 
 export const getCurrentUserPermissions = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const userId = (req as any).userId;
-        const tenantId = (req as any).tenantId;
+        const { userId, tenantId } = (req as any).context || {};
 
         if (!userId) throw new AppError('Authentication required', 401);
         if (!tenantId) throw new AppError('Company selection required', 400);
 
         const permissions = await permissionService.getUserPermissions(userId, tenantId);
         res.json(permissions);
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Get comprehensive context for the current user and tenant
+ * Aggregates permissions, usage, and tenant details
+ */
+export const getCurrentUserContext = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const context = (req as any).context;
+
+        if (!context || !context.userId) {
+            throw new AppError('Authentication required', 401);
+        }
+
+        if (!context.tenantId) {
+            throw new AppError('Tenant context required', 400);
+        }
+
+        // Fetch additional aggregate data
+        const [usage, tenant] = await Promise.all([
+            tenantService.getTenantUsage(context.tenantId),
+            tenantService.getTenant(context.tenantId)
+        ]);
+
+        res.json({
+            ...context,
+            usage,
+            tenant
+        });
     } catch (e) {
         next(e);
     }

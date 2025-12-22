@@ -68,9 +68,10 @@ const logAction = async (req: any, action: string, resource: string, resourceId:
 
 
 import { authenticateToken } from './middleware/authMiddleware.js';
+import { contextMiddleware } from './middleware/contextMiddleware.js';
 
 // app.use(tenantMiddleware); // Legacy
-app.use('/api', authenticateToken); // Protect all API routes
+app.use('/api', authenticateToken, contextMiddleware); // Protect and contextualize all API routes
 
 import aiRoutes from './routes/ai.js';
 app.use('/api/ai', aiRoutes);
@@ -80,140 +81,21 @@ app.use('/api/storage', storageRoutes);
 
 
 // --- Companies Routes ---
-app.get('/api/companies', async (req: any, res: any) => {
-    try {
-        const db = getDb();
-        // In a real app, we'd filter this based on the user's "global" role.
-        // For now, return all companies so the user can select one (Mocking a multi-tenant login)
-        const companies = await db.all('SELECT * FROM companies');
+import * as companyController from './controllers/companyController.js';
 
-        const parsed = companies.map(c => ({
-            ...c,
-            settings: c.settings ? JSON.parse(c.settings) : {},
-            subscription: c.subscription ? JSON.parse(c.subscription) : {},
-            features: c.features ? JSON.parse(c.features) : []
-        }));
+app.get('/api/companies', requireRole(['super_admin', 'admin']), companyController.getCompanies);
+app.post('/api/companies', requireRole(['super_admin']), companyController.createCompany);
 
-        res.json(parsed);
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-app.post('/api/companies', async (req, res, next) => {
-    try {
-        const db = getDb();
-        const c = req.body;
-
-        if (!c.name) {
-            throw new AppError('Company name is required', 400);
-        }
-
-        const id = c.id || uuidv4();
-        const settings = c.settings ? JSON.stringify(c.settings) : '{}';
-        const subscription = c.subscription ? JSON.stringify(c.subscription) : '{}';
-        const features = c.features ? JSON.stringify(c.features) : '[]';
-
-        // Ensure numeric fields have defaults if missing
-        const users = c.users || 0;
-        const projects = c.projects || 0;
-        const mrr = c.mrr || 0;
-        const maxUsers = c.maxUsers || 10;
-        const maxProjects = c.maxProjects || 5;
-
-        await db.run(
-            `INSERT INTO companies (
-        id, name, plan, status, users, projects, mrr, joinedDate, 
-        description, logo, website, email, phone, address, city, state, zipCode, country,
-        settings, subscription, features, maxUsers, maxProjects, createdAt, updatedAt
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                id, c.name, c.plan, c.status, users, projects, mrr, c.joinedDate || new Date().toISOString(),
-                c.description, c.logo, c.website, c.email, c.phone, c.address, c.city, c.state, c.zipCode, c.country,
-                settings, subscription, features, maxUsers, maxProjects, new Date().toISOString(), new Date().toISOString()
-            ]
-        );
-        res.status(201).json({ ...c, id });
-
-        // Log successful creation
-        logger.info(`Company created: ${c.name} (${id})`);
-
-    } catch (e) {
-        next(e);
-    }
-});
-
-app.put('/api/companies/:id', async (req, res) => {
-    try {
-        const db = getDb();
-        const { id } = req.params;
-        const updates = req.body;
-
-        // Handle JSON fields
-        if (updates.settings) updates.settings = JSON.stringify(updates.settings);
-        if (updates.subscription) updates.subscription = JSON.stringify(updates.subscription);
-        if (updates.features) updates.features = JSON.stringify(updates.features);
-
-        // Always update timestamp
-        updates.updatedAt = new Date().toISOString();
-
-        delete updates.id;
-
-        const keys = Object.keys(updates);
-        const values = Object.values(updates);
-        const setClause = keys.map(k => `${k} = ?`).join(',');
-
-        await db.run(
-            `UPDATE companies SET ${setClause} WHERE id = ?`,
-            [...values, id]
-        );
-        res.json({ ...updates, id });
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-app.delete('/api/companies/:id', async (req, res) => {
-    try {
-        const db = getDb();
-        const { id } = req.params;
-        await db.run('DELETE FROM companies WHERE id = ?', [id]);
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
+app.put('/api/companies/:id', requireRole(['super_admin', 'admin']), companyController.updateCompany);
+app.delete('/api/companies/:id', requireRole(['super_admin']), companyController.deleteCompany);
 
 // --- Tenant Analytics Routes ---
-app.get('/api/tenants/:id/usage', async (req: any, res: any) => {
+import { getTenantUsage } from './services/tenantService.js';
+
+app.get('/api/tenants/:id/usage', requireRole(['super_admin', 'admin']), async (req: any, res: any) => {
     try {
-        const db = getDb();
         const { id } = req.params;
-
-        // Query the company record
-        const companies = await db.all('SELECT * FROM companies WHERE id = ?', [id]);
-        if (companies.length === 0) return res.status(404).json({ error: 'Tenant not found' });
-        const company = companies[0];
-
-        // Table counts
-        const projectsCount = await db.all('SELECT COUNT(*) as count FROM projects WHERE companyId = ?', [id]);
-        const usersCount = await db.all('SELECT COUNT(*) as count FROM team WHERE companyId = ?', [id]);
-
-        const usage = {
-            tenantId: id,
-            currentUsers: usersCount[0].count,
-            currentProjects: projectsCount[0].count,
-            currentStorage: 0,
-            currentApiCalls: 0,
-            period: new Date().toISOString().substring(0, 7),
-            limit: {
-                users: company.maxUsers || 10,
-                projects: company.maxProjects || 5,
-                storage: 1024,
-                apiCalls: 10000
-            }
-        };
-
+        const usage = await getTenantUsage(id);
         res.json(usage);
     } catch (e) {
         res.status(500).json({ error: (e as Error).message });
@@ -280,81 +162,15 @@ import projectRoutes from './routes/projectRoutes.js';
 app.use('/api/projects', projectRoutes);
 
 // --- Tasks Routes ---
-app.get('/api/tasks', async (req, res) => {
-    try {
-        const db = getDb();
-        // Tasks should be joined with projects to filter by companyId
-        let sql = 'SELECT * FROM tasks';
-        const params: any[] = [];
+import * as taskController from './controllers/taskController.js';
 
-        if (req.tenantId) {
-            sql = `SELECT t.* FROM tasks t JOIN projects p ON t.projectId = p.id WHERE p.companyId = ?`;
-            params.push(req.tenantId);
-        }
-
-        const tasks = await db.all(sql, params);
-        const parsed = tasks.map(t => ({
-            ...t,
-            dependencies: t.dependencies ? JSON.parse(t.dependencies) : []
-        }));
-        res.json(parsed);
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-app.post('/api/tasks', async (req, res) => {
-    try {
-        const db = getDb();
-        const t = req.body;
-        const id = t.id || uuidv4();
-        const dependencies = t.dependencies ? JSON.stringify(t.dependencies) : '[]';
-
-        await db.run(
-            `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeId, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, dependencies]
-        );
-        res.json({ ...t, id });
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-app.put('/api/tasks/:id', async (req, res) => {
-    try {
-        const db = getDb();
-        const { id } = req.params;
-        const updates = req.body;
-
-        if (updates.dependencies) updates.dependencies = JSON.stringify(updates.dependencies);
-
-        delete updates.id;
-
-        const keys = Object.keys(updates);
-        const values = Object.values(updates);
-        const setClause = keys.map(k => `${k} = ?`).join(',');
-
-        await db.run(
-            `UPDATE tasks SET ${setClause} WHERE id = ?`,
-            [...values, id]
-        );
-        res.json({ ...updates, id });
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-app.delete('/api/tasks/:id', async (req, res) => {
-    try {
-        const db = getDb();
-        const { id } = req.params;
-        await db.run('DELETE FROM tasks WHERE id = ?', [id]);
-        res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
+app.get('/api/tasks', requirePermission('tasks', 'read'), taskController.getTasks);
+app.get('/api/tasks/:id', requirePermission('tasks', 'read'), taskController.getTask);
+app.post('/api/tasks', requirePermission('tasks', 'create'), taskController.createTask);
+app.put('/api/tasks/:id', requirePermission('tasks', 'update'), taskController.updateTask);
+app.delete('/api/tasks/:id', requirePermission('tasks', 'delete'), taskController.deleteTask);
+app.patch('/api/tasks/:id/assign', requirePermission('tasks', 'update'), taskController.assignTask);
+app.patch('/api/tasks/:id/status', requirePermission('tasks', 'update'), taskController.updateTaskStatus);
 
 // --- Generic CRUD Helper ---
 const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {

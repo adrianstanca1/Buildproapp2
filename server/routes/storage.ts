@@ -4,6 +4,8 @@ import multer from 'multer';
 import { uploadFile, getSignedUrl, deleteFile } from '../services/storageService.js';
 import { logger } from '../utils/logger.js';
 
+import { requirePermission } from '../middleware/rbacMiddleware.js';
+
 const router = express.Router();
 
 // Memory storage for multer (files are uploaded to Supabase immediately)
@@ -15,7 +17,7 @@ const upload = multer({
 });
 
 // POST /api/storage/upload
-router.post('/upload', upload.single('file'), async (req: any, res: any) => {
+router.post('/upload', requirePermission('documents', 'create'), upload.single('file'), async (req: any, res: any) => {
     try {
         if (!req.file) {
             return res.status(400).json({ error: 'No file uploaded' });

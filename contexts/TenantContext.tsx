@@ -163,17 +163,24 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           db.setTenantId(activeTenant.id);
           localStorage.setItem('selectedTenantId', activeTenant.id);
 
-          // 4. Fetch Usage, Audit Logs, Workforce, & Clients for active tenant
-          const [usage, logs, team, clientList] = await Promise.all([
-            db.getTenantUsage(activeTenant.id),
-            db.getAuditLogs(activeTenant.id),
-            db.getTeam(), // In a real app, pass activeTenant.id
-            db.getClients() // In a real app, pass activeTenant.id
-          ]);
-          setTenantUsage(usage);
-          setAuditLogs(logs);
-          setWorkforce(team);
-          setClients(clientList);
+          // 4. Fetch Rich Context (Permissions, Usage, Role) in ONE go
+          const contextData = await db.getContext();
+
+          if (contextData) {
+            setTenantUsage(contextData.usage);
+            // We can also set permissions/role here if we add them to the context state
+            // For now, we update usage and refresh logs/team separately if needed, 
+            // but use the aggregate whenever possible.
+
+            const [logs, team, clientList] = await Promise.all([
+              db.getAuditLogs(activeTenant.id),
+              db.getTeam(),
+              db.getClients()
+            ]);
+            setAuditLogs(logs);
+            setWorkforce(team);
+            setClients(clientList);
+          }
 
           // 5. Apply Dynamic Branding
           applyBranding(activeTenant.settings);
@@ -578,8 +585,12 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     db.setTenantId(t?.id || null);
     if (t) {
       localStorage.setItem('selectedTenantId', t.id);
-      // Refresh usage data for new tenant
-      db.getTenantUsage(t.id).then(setTenantUsage).catch(console.error);
+      // Refresh context for new tenant
+      db.getContext().then(contextData => {
+        if (contextData) {
+          setTenantUsage(contextData.usage);
+        }
+      }).catch(console.error);
       db.getAuditLogs(t.id).then(setAuditLogs).catch(console.error);
       applyBranding(t.settings);
     } else {

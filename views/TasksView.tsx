@@ -12,6 +12,8 @@ import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import { UserRole, Task, ProjectDocument } from '@/types';
+import { Can } from '@/components/Can';
+import { usePermissions } from '@/hooks/usePermissions';
 
 interface TasksViewProps {
     projectId?: string;
@@ -22,6 +24,7 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
     const { user } = useAuth();
     const { tasks, projects, documents, addTask, updateTask, updateDocument, addDocument } = useProjects();
     const { workforce } = useTenant();
+    const { can } = usePermissions();
     const teamMembers = workforce; // Map for compatibility
     const [showModal, setShowModal] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -529,14 +532,14 @@ const TasksView: React.FC<TasksViewProps> = ({ projectId }) => {
                     <p className="text-zinc-500">Manage dependencies, track progress, and assign work.</p>
                 </div>
 
-                {canManageTask && (
+                <Can permission="tasks.create">
                     <button
                         onClick={openCreateModal}
                         className="flex items-center gap-2 bg-[#0f5c82] text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-[#0c4a6e] shadow-sm transition-colors"
                     >
                         <Plus size={18} /> New Task
                     </button>
-                )}
+                </Can>
             </div>
 
             {/* Controls & Filters */}

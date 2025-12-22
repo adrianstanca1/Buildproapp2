@@ -283,9 +283,9 @@ const App: React.FC = () => {
     <QueryProvider>
       <ThemeProvider>
         <ToastProvider>
-          <AuthProvider>
-            <NotificationProvider>
-              <TenantProvider>
+          <TenantProvider>
+            <AuthProvider>
+              <NotificationProvider>
                 <ProjectProvider>
                   <WebSocketProvider>
                     <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
@@ -293,9 +293,9 @@ const App: React.FC = () => {
                     </Suspense>
                   </WebSocketProvider>
                 </ProjectProvider>
-              </TenantProvider>
-            </NotificationProvider>
-          </AuthProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </TenantProvider>
         </ToastProvider>
       </ThemeProvider>
     </QueryProvider>

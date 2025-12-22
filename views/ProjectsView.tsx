@@ -13,6 +13,7 @@ import { useWebSocket } from '@/contexts/WebSocketContext';
 import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProjectModal } from '@/components/AddProjectModal';
+import { Can } from '@/components/Can';
 
 interface ProjectsViewProps {
     onProjectSelect?: (projectId: string) => void;
@@ -129,22 +130,24 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                             <ListIcon size={18} />
                         </button>
                     </div>
-                    <button
-                        onClick={() => {
-                            if (!canAddResource('projects')) {
-                                addToast(`Project limit reached for ${currentTenant?.plan} plan.`, 'error');
-                                return;
-                            }
-                            setIsCreateModalOpen(true);
-                        }}
-                        disabled={!canAddResource('projects')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('projects')
-                            ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
-                            : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
-                            }`}
-                    >
-                        <Plus size={18} /> New Project
-                    </button>
+                    <Can I="create" a="projects">
+                        <button
+                            onClick={() => {
+                                if (!canAddResource('projects')) {
+                                    addToast(`Project limit reached for ${currentTenant?.plan} plan.`, 'error');
+                                    return;
+                                }
+                                setIsCreateModalOpen(true);
+                            }}
+                            disabled={!canAddResource('projects')}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('projects')
+                                ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
+                                : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
+                                }`}
+                        >
+                            <Plus size={18} /> New Project
+                        </button>
+                    </Can>
                 </div>
             </div>
 
@@ -279,24 +282,28 @@ const ProjectsView: React.FC<ProjectsViewProps> = ({ onProjectSelect, setPage, a
                                         >
                                             <CheckSquare size={14} className="text-zinc-400" /> Tasks
                                         </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setEditingProjectStatus(project);
-                                            }}
-                                            className="flex-1 py-2.5 bg-white border border-zinc-200 hover:border-[#0f5c82] hover:text-[#0f5c82] text-zinc-600 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                                        >
-                                            <Activity size={14} /> Status
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setProjectToDelete(project);
-                                            }}
-                                            className="flex-1 py-2.5 bg-white border border-zinc-200 hover:border-red-500 hover:text-red-600 text-zinc-600 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                                        >
-                                            <Trash2 size={14} /> Delete
-                                        </button>
+                                        <Can I="update" a="projects">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setEditingProjectStatus(project);
+                                                }}
+                                                className="flex-1 py-2.5 bg-white border border-zinc-200 hover:border-[#0f5c82] hover:text-[#0f5c82] text-zinc-600 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                            >
+                                                <Activity size={14} /> Status
+                                            </button>
+                                        </Can>
+                                        <Can I="delete" a="projects">
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setProjectToDelete(project);
+                                                }}
+                                                className="flex-1 py-2.5 bg-white border border-zinc-200 hover:border-red-500 hover:text-red-600 text-zinc-600 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                                            >
+                                                <Trash2 size={14} /> Delete
+                                            </button>
+                                        </Can>
                                     </div>
                                 </div>
                             )

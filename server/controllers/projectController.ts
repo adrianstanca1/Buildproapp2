@@ -35,8 +35,7 @@ const updateProjectSchema = createProjectSchema.partial();
  */
 export const getProjects = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.id;
-        const tenantId = req.tenantId;
+        const { userId, tenantId } = req.context;
 
         if (!userId) {
             throw new AppError('User not authenticated', 401);
@@ -63,8 +62,7 @@ export const getProjects = async (req: Request, res: Response) => {
  */
 export const getProject = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.id;
-        const tenantId = req.tenantId;
+        const { userId, tenantId } = req.context;
         const { id } = req.params;
 
         if (!userId) {
@@ -92,8 +90,7 @@ export const getProject = async (req: Request, res: Response) => {
  */
 export const createProject = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.id;
-        const tenantId = req.tenantId;
+        const { userId, tenantId } = req.context;
 
         if (!userId) {
             throw new AppError('User not authenticated', 401);
@@ -129,8 +126,7 @@ export const createProject = async (req: Request, res: Response) => {
  */
 export const updateProject = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.id;
-        const tenantId = req.tenantId;
+        const { userId, tenantId } = req.context;
         const { id } = req.params;
 
         if (!userId) {
@@ -167,8 +163,7 @@ export const updateProject = async (req: Request, res: Response) => {
  */
 export const deleteProject = async (req: Request, res: Response) => {
     try {
-        const userId = (req as any).user?.id;
-        const tenantId = req.tenantId;
+        const { userId, tenantId } = req.context;
         const { id } = req.params;
 
         if (!userId) {

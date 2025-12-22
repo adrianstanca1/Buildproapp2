@@ -19,13 +19,19 @@ export class TaskService extends BaseTenantService {
         await this.validateTenantAccess(userId, tenantId);
 
         const db = this.getDb();
-        let query = 'SELECT * FROM tasks WHERE companyId = ?';
-        const params: any[] = [tenantId];
+        const { query: baseQuery, params: baseParams } = this.scopeQueryByTenant(
+            'SELECT * FROM tasks',
+            tenantId,
+            't'
+        );
+
+        let query = baseQuery;
+        const params: any[] = [...baseParams];
 
         if (projectId) {
             // Validate project belongs to tenant
             await this.validateResourceTenant('projects', projectId, tenantId);
-            query += ' AND projectId = ?';
+            query += ' AND t.projectId = ?';
             params.push(projectId);
         }
 
@@ -46,10 +52,13 @@ export class TaskService extends BaseTenantService {
         await this.validateResourceTenant('tasks', taskId, tenantId);
 
         const db = this.getDb();
-        const task = await db.get(
-            'SELECT * FROM tasks WHERE id = ? AND companyId = ?',
-            [taskId, tenantId]
+        const { query, params } = this.scopeQueryByTenant(
+            'SELECT * FROM tasks WHERE id = ?',
+            tenantId,
+            't'
         );
+
+        const task = await db.get(query, [taskId, ...params]);
 
         if (!task) {
             throw new AppError('Task not found', 404);
@@ -104,6 +113,31 @@ export class TaskService extends BaseTenantService {
     }
 
     /**
+     * Validate dependencies
+     * Returns true if all dependencies are completed
+     */
+    async validateDependencies(tenantId: string, dependencyIds: string[]): Promise<boolean> {
+        if (!dependencyIds || dependencyIds.length === 0) {
+            return true;
+        }
+
+        const db = this.getDb();
+        const placeholders = dependencyIds.map(() => '?').join(',');
+
+        // Count non-completed dependencies
+        const query = `
+            SELECT COUNT(*) as count 
+            FROM tasks 
+            WHERE companyId = ? 
+            AND id IN (${placeholders}) 
+            AND status != 'completed'
+        `;
+
+        const result = await db.get(query, [tenantId, ...dependencyIds]);
+        return result.count === 0;
+    }
+
+    /**
      * Update a task
      */
     async updateTask(userId: string, tenantId: string, taskId: string, updates: any) {
@@ -113,6 +147,32 @@ export class TaskService extends BaseTenantService {
         // If changing project, validate new project belongs to tenant
         if (updates.projectId) {
             await this.validateResourceTenant('projects', updates.projectId, tenantId);
+        }
+
+        // Dependency Validation Logic
+        if (updates.status && ['in_progress', 'completed'].includes(updates.status)) {
+            let dependenciesToCheck = updates.dependencies;
+
+            // If dependencies not in update, fetch existing
+            if (!dependenciesToCheck) {
+                const currentTask = await this.getTask(userId, tenantId, taskId);
+                dependenciesToCheck = currentTask.dependencies;
+            }
+
+            // Ensure we have an array
+            if (typeof dependenciesToCheck === 'string') {
+                try {
+                    dependenciesToCheck = JSON.parse(dependenciesToCheck);
+                } catch (e) {
+                    dependenciesToCheck = [];
+                }
+            }
+
+            const areDependenciesMet = await this.validateDependencies(tenantId, dependenciesToCheck || []);
+
+            if (!areDependenciesMet) {
+                throw new AppError('Cannot start task: Waiting for unresolved dependencies', 400);
+            }
         }
 
         const db = this.getDb();

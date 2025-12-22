@@ -486,15 +486,35 @@ async function initSchema(db: IDatabase) {
       updatedAt TEXT
     );
 
-    CREATE TABLE IF NOT EXISTS user_roles (
+    CREATE TABLE IF NOT EXISTS memberships (
       id TEXT PRIMARY KEY,
       userId TEXT NOT NULL,
       companyId TEXT NOT NULL,
-      roleId TEXT NOT NULL,
-      assignedBy TEXT,
-      assignedAt TEXT,
+      role TEXT NOT NULL,
+      permissions TEXT, -- JSON array
+      status TEXT DEFAULT 'active',
+      joinedAt TEXT,
+      invitedBy TEXT,
+      createdAt TEXT,
+      updatedAt TEXT,
       FOREIGN KEY (companyId) REFERENCES companies(id),
-      FOREIGN KEY (roleId) REFERENCES roles(id)
+      UNIQUE(userId, companyId)
+    );
+
+    CREATE TABLE IF NOT EXISTS permissions (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      resource TEXT NOT NULL,
+      action TEXT NOT NULL,
+      description TEXT,
+      createdAt TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      roleId TEXT NOT NULL,
+      permissionId TEXT NOT NULL,
+      PRIMARY KEY (roleId, permissionId),
+      FOREIGN KEY (permissionId) REFERENCES permissions(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS tenant_usage_logs (
@@ -507,8 +527,8 @@ async function initSchema(db: IDatabase) {
       FOREIGN KEY (companyId) REFERENCES companies(id)
     );
 
-    CREATE INDEX IF NOT EXISTS idx_user_roles_user ON user_roles(userId);
-    CREATE INDEX IF NOT EXISTS idx_user_roles_company ON user_roles(companyId);
+    CREATE INDEX IF NOT EXISTS idx_memberships_user ON memberships(userId);
+    CREATE INDEX IF NOT EXISTS idx_memberships_company ON memberships(companyId);
     CREATE INDEX IF NOT EXISTS idx_usage_logs_company ON tenant_usage_logs(companyId);
     CREATE INDEX IF NOT EXISTS idx_usage_logs_type ON tenant_usage_logs(resourceType);
     CREATE INDEX IF NOT EXISTS idx_audit_logs_company ON audit_logs(companyId);

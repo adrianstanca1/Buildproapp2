@@ -1,7 +1,14 @@
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/buildpro-app', '.']
+    args: [
+      'build', 
+      '-t', 'gcr.io/$PROJECT_ID/buildpro-app', 
+      '--build-arg', 'VITE_SUPABASE_URL=$_VITE_SUPABASE_URL',
+      '--build-arg', 'VITE_SUPABASE_ANON_KEY=$_VITE_SUPABASE_ANON_KEY',
+      '--build-arg', 'GEMINI_API_KEY=$_GEMINI_API_KEY',
+      '.'
+    ]
   
   # Push the container image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
@@ -23,5 +30,7 @@ steps:
     - '--allow-unauthenticated'
     - '--memory'
     - '2Gi'
+    - '--set-env-vars'
+    - 'VITE_SUPABASE_URL=$_VITE_SUPABASE_URL,VITE_SUPABASE_ANON_KEY=$_VITE_SUPABASE_ANON_KEY,GEMINI_API_KEY=$_GEMINI_API_KEY,NODE_ENV=production'
 images:
   - 'gcr.io/$PROJECT_ID/buildpro-app'

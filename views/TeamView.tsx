@@ -14,6 +14,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { AlertCircle } from 'lucide-react';
 import AddMemberModal from '@/components/AddMemberModal';
 import EditMemberModal from '@/components/EditMemberModal';
+import { Can } from '@/components/Can';
 
 interface TeamViewProps {
     projectId?: string;
@@ -336,22 +337,24 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                             <ListIcon size={18} />
                         </button>
                     </div>
-                    <button
-                        onClick={() => {
-                            if (!canAddResource('users')) {
-                                addToast(`Team member limit reached for ${currentTenant?.plan} plan.`, 'error');
-                                return;
-                            }
-                            setShowAddModal(true);
-                        }}
-                        disabled={!canAddResource('users')}
-                        className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('users')
-                            ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
-                            : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
-                            }`}
-                    >
-                        <Plus size={18} /> Add Member
-                    </button>
+                    <Can permission="users.manage">
+                        <button
+                            onClick={() => {
+                                if (!canAddResource('users')) {
+                                    addToast(`Team member limit reached for ${currentTenant?.plan} plan.`, 'error');
+                                    return;
+                                }
+                                setShowAddModal(true);
+                            }}
+                            disabled={!canAddResource('users')}
+                            className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium shadow-sm transition-all ${canAddResource('users')
+                                ? 'bg-[#0f5c82] text-white hover:bg-[#0c4a6e]'
+                                : 'bg-zinc-200 text-zinc-500 cursor-not-allowed opacity-70'
+                                }`}
+                        >
+                            <Plus size={18} /> Add Member
+                        </button>
+                    </Can>
                 </div>
             </div>
 
@@ -500,7 +503,9 @@ const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
                                     <div className="flex gap-3 mb-1">
                                         <button className="p-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 text-zinc-600" title="Call"><Phone size={18} /></button>
                                         <button className="p-2 border border-zinc-200 rounded-lg hover:bg-zinc-50 text-zinc-600" title="Email"><Mail size={18} /></button>
-                                        <button className="px-4 py-2 bg-[#0f5c82] text-white rounded-lg font-medium text-sm hover:bg-[#0c4a6e] shadow-sm">Edit Profile</button>
+                                        <Can permission="users.manage">
+                                            <button className="px-4 py-2 bg-[#0f5c82] text-white rounded-lg font-medium text-sm hover:bg-[#0c4a6e] shadow-sm">Edit Profile</button>
+                                        </Can>
                                     </div>
                                 </div>
 

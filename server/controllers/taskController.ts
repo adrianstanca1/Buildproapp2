@@ -28,7 +28,7 @@ const updateTaskSchema = createTaskSchema.partial();
  */
 export const getTasks = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { projectId } = req.query;
 
         if (!tenantId) {
@@ -52,7 +52,7 @@ export const getTasks = async (req: Request, res: Response, next: NextFunction) 
  */
 export const getTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { id } = req.params;
 
         if (!tenantId) {
@@ -76,8 +76,7 @@ export const getTask = async (req: Request, res: Response, next: NextFunction) =
  */
 export const createTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
 
         if (!tenantId || !userId) {
             throw new AppError('Authentication required', 401);
@@ -114,8 +113,7 @@ export const createTask = async (req: Request, res: Response, next: NextFunction
  */
 export const updateTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
         const { id } = req.params;
 
         if (!tenantId || !userId) {
@@ -153,8 +151,7 @@ export const updateTask = async (req: Request, res: Response, next: NextFunction
  */
 export const deleteTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
         const { id } = req.params;
 
         if (!tenantId || !userId) {
@@ -175,8 +172,7 @@ export const deleteTask = async (req: Request, res: Response, next: NextFunction
  */
 export const assignTask = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
         const { id } = req.params;
         const { assignedTo } = req.body;
 
@@ -212,8 +208,7 @@ export const assignTask = async (req: Request, res: Response, next: NextFunction
  */
 export const updateTaskStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
         const { id } = req.params;
         const { status } = req.body;
 

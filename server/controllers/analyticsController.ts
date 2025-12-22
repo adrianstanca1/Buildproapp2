@@ -12,7 +12,7 @@ import { AppError } from '../utils/AppError.js';
  */
 export const recordMetric = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { metricName, value, dimensions } = req.body;
 
         if (!tenantId) {
@@ -36,7 +36,7 @@ export const recordMetric = async (req: Request, res: Response, next: NextFuncti
  */
 export const queryMetrics = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { metricName, startDate, endDate, groupBy } = req.query;
 
         if (!tenantId) {
@@ -68,7 +68,7 @@ export const queryMetrics = async (req: Request, res: Response, next: NextFuncti
  */
 export const getStatistics = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { metricName, startDate, endDate } = req.query;
 
         if (!tenantId) {
@@ -99,7 +99,7 @@ export const getStatistics = async (req: Request, res: Response, next: NextFunct
  */
 export const getDashboardMetrics = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
 
         if (!tenantId) {
             throw new AppError('Tenant ID required', 401);

@@ -419,6 +419,14 @@ class DatabaseService {
     return Array.isArray(data) ? data : [];
   }
 
+  async getContext(): Promise<any> {
+    const res = await fetch(`${API_URL}/me/context`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch user context");
+    return await res.json();
+  }
+
   async getRoles(): Promise<any[]> {
     return this.fetch('roles');
   }

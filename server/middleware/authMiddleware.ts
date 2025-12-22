@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
     console.warn('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Auth middleware will fail.');
@@ -45,8 +45,18 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
         }
 
         req.user = user;
-        req.userId = user.id; // Sync with legacy middleware
-        req.tenantId = user.user_metadata?.companyId || req.headers['x-company-id']; // Trust JWT over header if possible
+        req.userId = user.id;
+
+        // Trust JWT metadata first, fallback to header
+        const jwtTenantId = user.user_metadata?.companyId;
+        const headerTenantId = req.headers['x-company-id'];
+
+        req.tenantId = jwtTenantId || headerTenantId;
+
+        if (!req.tenantId && !process.env.ALLOW_ANONYMOUS_TENANT) {
+            console.warn(`[Auth] No tenant context for user ${user.id}`);
+            // In strict mode, we might throw 403 here, but for now we follow existing permissive patterns
+        }
 
         next();
     } catch (err) {

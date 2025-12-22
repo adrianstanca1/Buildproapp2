@@ -15,8 +15,7 @@ const documentBucket = BucketRegistry.getOrCreate('documents', 'companyId');
  */
 export const uploadDocument = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
 
         if (!tenantId || !userId) {
             throw new AppError('Authentication required', 401);
@@ -67,7 +66,7 @@ export const uploadDocument = async (req: Request, res: Response, next: NextFunc
  */
 export const getDocuments = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { projectId, category } = req.query;
 
         if (!tenantId) {
@@ -94,7 +93,7 @@ export const getDocuments = async (req: Request, res: Response, next: NextFuncti
  */
 export const getDocument = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { id } = req.params;
 
         if (!tenantId) {
@@ -118,7 +117,7 @@ export const getDocument = async (req: Request, res: Response, next: NextFunctio
  */
 export const downloadDocument = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { id } = req.params;
 
         if (!tenantId) {
@@ -152,8 +151,7 @@ export const downloadDocument = async (req: Request, res: Response, next: NextFu
  */
 export const deleteDocument = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
-        const userId = req.user?.id;
+        const { tenantId, userId } = req.context;
         const { id } = req.params;
 
         if (!tenantId || !userId) {
@@ -189,7 +187,7 @@ export const deleteDocument = async (req: Request, res: Response, next: NextFunc
  */
 export const listFiles = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const tenantId = req.user?.companyId;
+        const { tenantId } = req.context;
         const { projectId, category } = req.query;
 
         if (!tenantId) {

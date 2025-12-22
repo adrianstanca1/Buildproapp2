@@ -173,6 +173,52 @@ export async function seedDatabase() {
     );
   }
 
+  // --- Memberships (Demo Users) ---
+  const memberships = [
+    { id: 'm1', userId: 'u1', companyId: 'c1', role: 'SUPERADMIN', status: 'active' },
+    { id: 'm2', userId: 'u2', companyId: 'c1', role: 'COMPANY_ADMIN', status: 'active' }
+  ];
+  for (const m of memberships) {
+    await db.run(
+      `INSERT INTO memberships (id, userId, companyId, role, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [m.id, m.userId, m.companyId, m.role, m.status, new Date().toISOString(), new Date().toISOString()]
+    );
+  }
+
+  // --- Permissions & Role Permissions ---
+  const perms = [
+    { id: 'p1', name: 'projects.read', resource: 'projects', action: 'read' },
+    { id: 'p2', name: 'projects.create', resource: 'projects', action: 'create' },
+    { id: 'p3', name: 'projects.update', resource: 'projects', action: 'update' },
+    { id: 'p4', name: 'projects.delete', resource: 'projects', action: 'delete' },
+    { id: 'p5', name: 'tasks.read', resource: 'tasks', action: 'read' },
+    { id: 'p6', name: 'tasks.create', resource: 'tasks', action: 'create' },
+    { id: 'p7', name: 'tasks.update', resource: 'tasks', action: 'update' },
+    { id: 'p8', name: 'tasks.delete', resource: 'tasks', action: 'delete' },
+    { id: 'p9', name: 'users.read', resource: 'users', action: 'read' },
+    { id: 'p10', name: 'users.manage', resource: 'users', action: 'manage' },
+    { id: 'p11', name: 'companies.read', resource: 'companies', action: 'read' },
+    { id: 'p12', name: 'companies.create', resource: 'companies', action: 'create' },
+    { id: 'p13', name: 'companies.update', resource: 'companies', action: 'update' },
+    { id: 'p14', name: 'companies.delete', resource: 'companies', action: 'delete' },
+    { id: 'p15', name: 'documents.read', resource: 'documents', action: 'read' },
+    { id: 'p16', name: 'documents.create', resource: 'documents', action: 'create' },
+    { id: 'p17', name: 'documents.update', resource: 'documents', action: 'update' },
+    { id: 'p18', name: 'documents.delete', resource: 'documents', action: 'delete' }
+  ];
+  for (const p of perms) {
+    await db.run(
+      `INSERT INTO permissions (id, name, resource, action, createdAt) VALUES (?, ?, ?, ?, ?)`,
+      [p.id, p.name, p.resource, p.action, new Date().toISOString()]
+    );
+    // Grant all to SUPERADMIN
+    await db.run(
+      `INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)`,
+      ['SUPERADMIN', p.id]
+    );
+  }
+
   console.log('Seeding complete');
 
   // --- Team ---
