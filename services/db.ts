@@ -476,7 +476,7 @@ class DatabaseService {
     });
   }
 
-  async updateUserRole(id: string, role: string): Promise<void> {
+  async updatePlatformUserRole(id: string, role: string): Promise<void> {
     await fetch(`${API_URL}/platform/users/${id}/role`, {
       method: 'PUT',
       headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
