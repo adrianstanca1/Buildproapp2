@@ -89,6 +89,10 @@ app.post('/api/companies', requireRole(['super_admin']), companyController.creat
 app.put('/api/companies/:id', requireRole(['super_admin', 'admin']), companyController.updateCompany);
 app.delete('/api/companies/:id', requireRole(['super_admin']), companyController.deleteCompany);
 
+// --- System Settings Routes ---
+import * as systemController from './controllers/systemController.js';
+app.get('/api/system-settings', systemController.getSystemSettings);
+
 // --- Tenant Analytics Routes ---
 import { getTenantUsage } from './services/tenantService.js';
 
