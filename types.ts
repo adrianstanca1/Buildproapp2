@@ -105,7 +105,6 @@ export interface Tenant {
   joinedDate?: string;
   members?: Array<{ id: string; name: string; email: string; role?: string; lastActive?: string; }>;  // Platform view aggregation
 }
-  members?: Array<{
     id: string;
     name: string;
     email: string;

@@ -26,6 +26,14 @@ class SqliteAdapter implements IDatabase {
   async exec(sql: string) { return this.db.exec(sql); }
 }
 
+// PostgreSQL connection pool configuration
+  connectionString: process.env.DATABASE_URL,
+  min: 2,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+};
+
 class PostgresAdapter implements IDatabase {
   private pool: any;
   constructor(connectionString: string) {
@@ -581,4 +589,29 @@ async function initSchema(db: IDatabase) {
   try { await db.exec('ALTER TABLE transactions ADD COLUMN costCodeId TEXT'); } catch (e) { }
   try { await db.exec('ALTER TABLE transactions ADD COLUMN isExported INTEGER DEFAULT 0'); } catch (e) { }
   try { await db.exec('ALTER TABLE transactions ADD COLUMN exportDate TEXT'); } catch (e) { }
+}
+
+/**
+ * Health check for database connection
+ */
+export async function checkDatabaseHealth(): Promise<boolean> {
+  try {
+    const db = getDb();
+    await db.all('SELECT 1');
+    return true;
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    return false;
+  }
+}
+
+/**
+ * Graceful shutdown - close database connections
+ */
+export async function closeDatabaseConnections(): Promise<void> {
+  const adapter = dbInstance;
+  if (adapter && 'pool' in adapter) {
+    await (adapter as any).pool.end();
+    console.log('Database connections closed');
+  }
 }
