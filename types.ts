@@ -53,7 +53,8 @@ export enum Page {
   COMPANY_MANAGEMENT = 'COMPANY_MANAGEMENT',
   PLATFORM_MEMBERS = 'PLATFORM_MEMBERS',
   ACCESS_CONTROL = 'ACCESS_CONTROL',
-  SYSTEM_LOGS = 'SYSTEM_LOGS',}
+  SYSTEM_LOGS = 'SYSTEM_LOGS',
+}
 
 export enum UserRole {
   SUPER_ADMIN = 'super_admin',
@@ -105,6 +106,18 @@ export interface Tenant {
     primaryColor?: string;
     accentColor?: string;
   };
+  subscription: TenantSubscription;
+  createdAt: string;
+  updatedAt: string;
+  maxUsers?: number;
+  maxProjects?: number;
+  features?: TenantFeature[];
+  // Enhanced stats types
+  users?: number;
+  projects?: number;
+  mrr?: number;
+  joinedDate?: string;
+  members?: Array<{ id: string; name: string; email: string; role?: string; lastActive?: string; }>;
 }
 export interface TenantSubscription {
   id: string;
