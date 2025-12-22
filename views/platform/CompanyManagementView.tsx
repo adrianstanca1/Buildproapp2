@@ -42,7 +42,17 @@ const CompanyManagementView: React.FC = () => {
             projects: 0,
             mrr: getPlanMRR(newCompany.plan),
             joinedDate: new Date().toISOString(),
-            settings: { timezone: 'UTC', language: 'en', currency: 'USD' },
+            settings: {
+                timezone: 'UTC',
+                language: 'en',
+                dateFormat: 'MM/DD/YYYY',
+                currency: 'USD',
+                emailNotifications: true,
+                dataRetention: 365,
+                twoFactorAuth: false,
+                sso: false,
+                customBranding: false
+            },
             subscription: {
                 planId: newCompany.plan,
                 status: 'active',
