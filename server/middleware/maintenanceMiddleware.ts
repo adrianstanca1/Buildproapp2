@@ -1,0 +1,43 @@
+
+import { Request, Response, NextFunction } from 'express';
+import { getDb } from '../database.js';
+import { UserRole } from '../../types.js';
+import { AuthenticatedRequest } from '../types/express.js';
+
+export const maintenanceMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const maintenanceSetting = await db.get('SELECT value FROM system_settings WHERE key = ?', ['maintenance_mode']);
+
+        // If maintenance is OFF, proceed
+        if (!maintenanceSetting || maintenanceSetting.value !== 'true') {
+            return next();
+        }
+
+        // Allow authentication routes so admins can log in
+        if (req.path.startsWith('/api/auth') || req.path.startsWith('/api/system-settings')) {
+            return next();
+        }
+
+        // Check user role from request (set by authenticateToken middleware)
+        // Constraint: This middleware must be placed AFTER authenticateToken
+        const userRole = (req as AuthenticatedRequest).user?.role;
+
+        if (userRole === UserRole.SUPERADMIN) {
+            return next();
+        }
+
+        // Block everyone else
+        return res.status(503).json({
+            error: 'Service Unavailable',
+            message: 'System is currently under maintenance. Please try again later.',
+            code: 'MAINTENANCE_MODE'
+        });
+
+    } catch (error) {
+        console.error('Maintenance check failed:', error);
+        // Fail open or closed? Safe to fail open if DB is down, likely means main app is down anyway.
+        // But to be safe, let's proceed and let other errors catch it if DB is truly broken.
+        next();
+    }
+};

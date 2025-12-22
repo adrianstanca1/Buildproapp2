@@ -557,6 +557,25 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // System Settings (Global Config)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      updatedBy TEXT
+    )
+  `);
+
+  // Initialize default maintenance mode (OFF) if not exists
+  const maintenanceSetting = await db.get('SELECT key FROM system_settings WHERE key = ?', ['maintenance_mode']);
+  if (!maintenanceSetting) {
+    await db.run(
+      `INSERT INTO system_settings (key, value, updatedAt, updatedBy) VALUES (?, ?, ?, ?)`,
+      ['maintenance_mode', 'false', new Date().toISOString(), 'system']
+    );
+  }
+
   logger.info('Database schema initialized successfully');
 }
 

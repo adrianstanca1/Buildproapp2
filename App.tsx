@@ -71,6 +71,7 @@ const ResourceOptimizationView = lazyWithReload(() => import('@/views/ResourceOp
 const DailyLogsView = lazyWithReload(() => import('@/views/DailyLogsView'));
 const RFIView = lazyWithReload(() => import('@/views/RFIView'));
 const ClientPortalView = lazyWithReload(() => import('@/views/ClientPortalView'));
+const MaintenanceView = lazyWithReload(() => import('@/views/MaintenanceView'));
 
 // Platform/Superadmin Views
 const PlatformDashboardView = lazyWithReload(() => import('@/views/platform/PlatformDashboardView'));
@@ -104,22 +105,16 @@ const AuthenticatedApp: React.FC = () => {
   }, []);
 
   // Maintenance Mode Check (Super Admins Bypass)
-  if (systemSettings.maintenance && user?.role !== UserRole.SUPERADMIN) {
+  // If user is logged in AND is Super Admin, they bypass.
+  // If user is NOT logged in or NOT Super Admin, they see Maintenance View.
+  const isMaintenanceActive = systemSettings.maintenance;
+  const isSuperAdmin = user?.role === UserRole.SUPERADMIN;
+
+  if (isMaintenanceActive && !isSuperAdmin) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-zinc-900 text-white p-8">
-        <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mb-6 animate-pulse">
-          <ShieldAlert size={48} className="text-red-500" />
-        </div>
-        <h1 className="text-3xl font-bold mb-3">System Under Maintenance</h1>
-        <p className="text-zinc-400 text-center max-w-lg mb-8">
-          BuildPro is currently undergoing scheduled maintenance to improve performance and stability.
-          Please check back shortly.
-        </p>
-        <div className="text-xs font-mono text-zinc-600">ERROR_CODE: MAINTENANCE_MODE_ACTIVE</div>
-        <button onClick={() => window.location.reload()} className="mt-8 px-6 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors">
-          Refresh Status
-        </button>
-      </div>
+      <Suspense fallback={<div className="bg-zinc-900 h-screen" />}>
+        <MaintenanceView onAdminLogin={() => window.location.reload()} />
+      </Suspense>
     );
   }
 

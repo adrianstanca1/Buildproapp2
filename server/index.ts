@@ -70,9 +70,10 @@ const logAction = async (req: any, action: string, resource: string, resourceId:
 
 import { authenticateToken } from './middleware/authMiddleware.js';
 import { contextMiddleware } from './middleware/contextMiddleware.js';
+import { maintenanceMiddleware } from './middleware/maintenanceMiddleware.js';
 
 // app.use(tenantMiddleware); // Legacy
-app.use('/api', authenticateToken, contextMiddleware); // Protect and contextualize all API routes
+app.use('/api', authenticateToken, contextMiddleware, maintenanceMiddleware); // Protect, contextualize, and enforce maintenance
 
 import aiRoutes from './routes/ai.js';
 app.use('/api/ai', aiRoutes);
@@ -95,6 +96,7 @@ app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyCont
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
 app.get('/api/system-settings', systemController.getSystemSettings);
+app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), systemController.updateSystemSetting);
 
 // --- Platform / SuperAdmin Routes ---
 import * as platformController from './controllers/platformController.js';

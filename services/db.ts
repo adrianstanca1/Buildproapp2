@@ -503,7 +503,11 @@ class DatabaseService {
       return mockDb.updateSystemSettings(settings);
     }
     try {
-      await this.put('system-settings', 'global', settings);
+      // API expects { key, value } per request
+      const updates = Object.entries(settings).map(async ([key, value]) => {
+        await this.post('system-settings', { key, value });
+      });
+      await Promise.all(updates);
     } catch (e) {
       console.warn("API update failed, updating local mock", e);
       mockDb.updateSystemSettings(settings); // Optimistic fallback
