@@ -170,6 +170,14 @@ class DatabaseService {
   async updateTask(id: string, t: Partial<Task>) {
     await this.put('tasks', id, t);
   }
+  async getCriticalPath(projectId: string): Promise<any[]> {
+    const res = await fetch(`${API_URL}/tasks/critical-path/${projectId}`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch critical path");
+    const data = await res.json();
+    return data.data || [];
+  }
 
   // --- Team ---
   async getTeam(): Promise<TeamMember[]> {

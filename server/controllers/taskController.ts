@@ -5,7 +5,9 @@ import { z } from 'zod';
 import { AppError } from '../utils/AppError.js';
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
-import { createTaskSchema, updateTaskSchema } from '../validation/schemas.js';
+import { createTaskSchema as globalCreateTaskSchema, updateTaskSchema as globalUpdateTaskSchema } from '../validation/schemas.js';
+
+import { calculateCriticalPath } from '../services/cpmService.js';
 
 /**
  * Task Controller
@@ -14,8 +16,9 @@ import { createTaskSchema, updateTaskSchema } from '../validation/schemas.js';
 
 const taskBucket = BucketRegistry.getOrCreate('tasks', 'companyId');
 
-// Validation schemas
-const createTaskSchema = z.object({
+// Use locally defined schemas or global ones based on preference
+// For now, we prefer the local ones for backward compatibility if they differ
+const localCreateTaskSchema = z.object({
     projectId: z.string().min(1),
     title: z.string().min(1).max(200),
     description: z.string().optional(),
@@ -30,7 +33,7 @@ const createTaskSchema = z.object({
     color: z.string().optional(),
 });
 
-const updateTaskSchema = createTaskSchema.partial();
+const localUpdateTaskSchema = localCreateTaskSchema.partial();
 
 /**
  * Get all tasks for tenant (optionally filtered by project)
@@ -92,7 +95,7 @@ export const createTask = async (req: AuthenticatedRequest, res: Response, next:
         }
 
         // Validate request body
-        const validatedData = createTaskSchema.parse(req.body);
+        const validatedData = localCreateTaskSchema.parse(req.body);
 
         // Create task with tenant scoping
         const task = await taskBucket.create(
@@ -130,7 +133,7 @@ export const updateTask = async (req: AuthenticatedRequest, res: Response, next:
         }
 
         // Validate request body
-        const validatedData = updateTaskSchema.parse(req.body);
+        const validatedData = localUpdateTaskSchema.parse(req.body);
 
         // Update task (validates ownership)
         await taskBucket.update(
@@ -244,6 +247,25 @@ export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response,
         const updatedTask = await taskBucket.getById(tenantId, id);
 
         res.json({ success: true, data: updatedTask });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get critical path for a project
+ */
+export const getCriticalPath = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const { tenantId } = req.context;
+        const { projectId } = req.params;
+
+        if (!tenantId) {
+            throw new AppError('Tenant ID required', 401);
+        }
+
+        const criticalPath = await calculateCriticalPath(projectId, tenantId);
+        res.json({ success: true, data: criticalPath });
     } catch (error) {
         next(error);
     }

@@ -45,6 +45,7 @@ interface ProjectContextType {
   // Task CRUD
   addTask: (task: Task) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
+  getCriticalPath: (projectId: string) => Promise<any[]>;
 
   // Document CRUD
   addDocument: (doc: ProjectDocument) => void;
@@ -434,6 +435,10 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.updateTask(id, updates);
   };
 
+  const getCriticalPath = async (projectId: string) => {
+    return await db.getCriticalPath(projectId);
+  };
+
   // --- Inventory Methods ---
   const addInventoryItem = async (item: InventoryItem) => {
     const itemWithTenant = { ...item, companyId: user?.companyId || 'c1' };
@@ -687,6 +692,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addZone,
       addTask,
       updateTask,
+      getCriticalPath,
       addDocument,
       updateDocument,
       addInventoryItem,

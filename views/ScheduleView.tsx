@@ -14,11 +14,13 @@ interface ScheduleViewProps {
 }
 
 const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
-    const { tasks, documents, projects, addTask, updateTask } = useProjects();
+    const { tasks, documents, projects, addTask, updateTask, getCriticalPath } = useProjects();
     const [viewMode, setViewMode] = useState<'GANTT' | 'LIST' | 'CALENDAR'>('GANTT');
     const [showAIOptimizer, setShowAIOptimizer] = useState(false);
     const [optimizing, setOptimizing] = useState(false);
     const [optimizationResult, setOptimizationResult] = useState<any>(null);
+    const [criticalPathIds, setCriticalPathIds] = useState<Set<string>>(new Set());
+    const [analyzingCPM, setAnalyzingCPM] = useState(false);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [showTaskModal, setShowTaskModal] = useState(false);
     const [editingTask, setEditingTask] = useState<any>(null);
@@ -131,6 +133,20 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
             console.error("Optimization failed", e);
         } finally {
             setOptimizing(false);
+        }
+    };
+
+    const runCPMAnalysis = async () => {
+        if (!projectId) return;
+        setAnalyzingCPM(true);
+        try {
+            const result = await getCriticalPath(projectId);
+            const criticalIds = new Set(result.filter((t: any) => t.isCritical).map((t: any) => t.id));
+            setCriticalPathIds(criticalIds);
+        } catch (e) {
+            console.error("CPM analysis failed", e);
+        } finally {
+            setAnalyzingCPM(false);
         }
     };
 
@@ -258,6 +274,17 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                             }`}
                     >
                         <Zap size={16} className={showAIOptimizer ? 'fill-purple-700' : ''} /> AI Optimizer
+                    </button>
+                    <button
+                        onClick={runCPMAnalysis}
+                        disabled={analyzingCPM || !projectId}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all border ${criticalPathIds.size > 0
+                            ? 'bg-red-50 border-red-200 text-red-700 shadow-inner'
+                            : 'bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50'
+                            }`}
+                    >
+                        {analyzingCPM ? <Loader2 size={16} className="animate-spin" /> : <Clock size={16} />}
+                        {criticalPathIds.size > 0 ? 'Critical Path Active' : 'Analyze Critical Path'}
                     </button>
                     <button
                         onClick={() => {
@@ -477,7 +504,7 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                                         setShowTaskModal(true);
                                                     }}
                                                     className={`absolute top-1/2 -translate-y-1/2 rounded-md shadow-sm border border-white/20 flex items-center px-2 overflow-hidden transition-all hover:shadow-md cursor-pointer hover:scale-[1.02] active:scale-[0.98] ${task.type === 'milestone' ? 'bg-amber-500 w-6 h-6 rotate-45 rounded-sm' :
-                                                        'bg-[#0f5c82] h-7'
+                                                        criticalPathIds.has(task.id) ? 'bg-red-600 h-7 ring-2 ring-red-200 ring-offset-1' : 'bg-[#0f5c82] h-7'
                                                         }`}
                                                     style={{
                                                         left: (task.start - 1) * dayWidth,
@@ -645,7 +672,9 @@ const ScheduleView: React.FC<ScheduleViewProps> = ({ projectId }) => {
                                                             startDate: task.startDate || new Date().toISOString().split('T')[0],
                                                             duration: task.duration,
                                                             dueDate: task.dueDate,
-                                                            projectId: projectId || 'p1'
+                                                            projectId: projectId || 'p1',
+                                                            progress: task.progress || 0,
+                                                            color: task.color || '#3b82f6'
                                                         });
                                                         setShowTaskModal(true);
                                                     }}

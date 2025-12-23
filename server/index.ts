@@ -16,6 +16,9 @@ import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tena
 import { logger } from './utils/logger.js'; // This line might be wrong based on previous edit?
 import { AppError } from './utils/AppError.js';
 import { UserRole } from '../types.js'; // Importing UserRole to fix Enum type errors
+import { ApolloServer } from 'apollo-server-express';
+import { typeDefs } from './graphql/schema.js';
+import { resolvers } from './graphql/resolvers.js';
 
 const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
@@ -229,6 +232,7 @@ import * as taskController from './controllers/taskController.js';
 
 app.get('/api/tasks', requirePermission('tasks', 'read'), taskController.getTasks);
 app.get('/api/tasks/:id', requirePermission('tasks', 'read'), taskController.getTask);
+app.get('/api/tasks/critical-path/:projectId', requirePermission('tasks', 'read'), taskController.getCriticalPath);
 app.post('/api/tasks', requirePermission('tasks', 'create'), taskController.createTask);
 app.put('/api/tasks/:id', requirePermission('tasks', 'update'), taskController.updateTask);
 app.delete('/api/tasks/:id', requirePermission('tasks', 'delete'), taskController.deleteTask);
@@ -257,14 +261,14 @@ app.put('/api/safety_incidents/:id', authenticateToken, requirePermission('safet
 
 // Safety Hazards
 app.get('/api/safety_hazards', authenticateToken, safetyController.getSafetyHazards);
-app.post('/api/safety-hazards', requirePermission('safety', 'write'), safetyController.createSafetyHazard);
-app.put('/api/safety-hazards/:id', requirePermission('safety', 'write'), safetyController.updateSafetyHazard);
+app.post('/api/safety-hazards', requirePermission('safety', 'create'), safetyController.createSafetyHazard);
+app.put('/api/safety-hazards/:id', requirePermission('safety', 'update'), safetyController.updateSafetyHazard);
 
 // --- Comments Routes ---
 import * as commentController from './controllers/commentController.js';
 
 app.get('/api/comments', authenticateToken, contextMiddleware, commentController.getComments);
-app.post('/api/comments', authenticateToken, contextMiddleware, apiLimiter, commentController.createComment);
+app.post('/api/comments', authenticateToken, contextMiddleware, apiLimiter as any, commentController.createComment);
 app.put('/api/comments/:id', authenticateToken, contextMiddleware, commentController.updateComment);
 app.delete('/api/comments/:id', authenticateToken, contextMiddleware, commentController.deleteComment);
 
@@ -283,6 +287,14 @@ app.get('/api/analytics/cost-variance', authenticateToken, contextMiddleware, an
 app.get('/api/analytics/resource-utilization', authenticateToken, contextMiddleware, analyticsController.getResourceUtilization);
 app.get('/api/analytics/safety-metrics', authenticateToken, contextMiddleware, analyticsController.getSafetyMetrics);
 app.get('/api/analytics/project-health/:projectId', authenticateToken, contextMiddleware, analyticsController.getProjectHealth);
+app.get('/api/analytics/custom-report', authenticateToken, contextMiddleware, analyticsController.getCustomReport);
+
+// --- Integrations Routes ---
+import * as integrationController from './controllers/integrationController.js';
+
+app.get('/api/integrations/:type', authenticateToken, contextMiddleware, integrationController.getStatus);
+app.post('/api/integrations/connect', authenticateToken, contextMiddleware, integrationController.connect);
+app.post('/api/integrations/sync', authenticateToken, contextMiddleware, integrationController.sync);
 
 // --- Phase 4: Financial & Supply Chain ---
 // Vendors
@@ -485,6 +497,23 @@ try {
 } catch (e) {
     logger.error('DEBUG: WebSocket Setup Failed:', e);
 }
+
+// Setup GraphQL
+const startApolloServer = async () => {
+    const server = new ApolloServer({
+        typeDefs,
+        resolvers,
+        context: ({ req }: any) => {
+            // Use the context already populated by our middlewares
+            return req.context || {};
+        },
+        introspection: process.env.NODE_ENV !== 'production',
+    });
+    await server.start();
+    server.applyMiddleware({ app, path: '/api/graphql' });
+    logger.info(`GraphQL server ready at /api/graphql`);
+};
+startApolloServer();
 
 // Start server immediately to satisfy Cloud Run health checks
 const startServer = async () => {

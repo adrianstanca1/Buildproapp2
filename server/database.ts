@@ -221,12 +221,24 @@ async function initializeSchema(db: IDatabase) {
       priority TEXT NOT NULL,
       assignedTo TEXT,
       dueDate TEXT,
+      startDate TEXT,
+      duration INTEGER,
+      dependencies TEXT,
+      progress INTEGER DEFAULT 0,
+      color TEXT,
       createdBy TEXT,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
     )
   `);
+
+  // Tasks Schema Migration (Safe Add)
+  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS startDate TEXT;`);
+  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS duration INTEGER;`);
+  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS dependencies TEXT;`);
+  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;`);
+  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS color TEXT;`);
 
   // Team
   await db.exec(`
@@ -726,6 +738,21 @@ async function initializeSchema(db: IDatabase) {
       email_comments BOOLEAN DEFAULT 1,
       email_digest_frequency TEXT DEFAULT 'daily',
       push_enabled BOOLEAN DEFAULT 0
+    )
+  `);
+
+  // External Integrations table (Phase 13)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS integrations (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      accessToken TEXT,
+      refreshToken TEXT,
+      lastSyncedAt TEXT,
+      settings TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
