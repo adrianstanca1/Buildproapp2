@@ -2,13 +2,13 @@ steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: [
     'build',
-    '-t', 'gcr.io/$PROJECT_ID/buildpro-app',
+    '-t', 'gcr.io/$PROJECT_ID/buildpro:latest',
     '--build-arg', 'VITE_SUPABASE_URL=$_VITE_SUPABASE_URL',
     '--build-arg', 'VITE_SUPABASE_ANON_KEY=$_VITE_SUPABASE_ANON_KEY',
     '.'
   ]
 images:
-- 'gcr.io/$PROJECT_ID/buildpro-app'
+- 'gcr.io/$PROJECT_ID/buildpro:latest'
 substitutions:
   _VITE_SUPABASE_URL: ''
   _VITE_SUPABASE_ANON_KEY: ''
