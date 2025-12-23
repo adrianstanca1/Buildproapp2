@@ -4,6 +4,8 @@ import { getDb } from '../database.js';
 import { logger } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
 import { sendNotification } from '../services/notificationService.js';
+import { WorkflowService } from '../services/workflowService.js';
+import { AppError } from '../utils/AppError.js';
 
 export const getRFIs = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
@@ -22,7 +24,7 @@ export const getRFIs = async (req: AuthenticatedRequest, res: Response): Promise
 
         const db = getDb();
         const rfis = await db.all(sql, params);
-        res.json(rfis);
+        res.json({ success: true, data: rfis });
     } catch (error) {
         logger.error('Error fetching RFIs:', error);
         res.status(500).json({ error: 'Failed to fetch RFIs' });
@@ -67,7 +69,12 @@ export const createRFI = async (req: AuthenticatedRequest, res: Response): Promi
             );
         }
 
-        res.status(201).json({ id, number: rfiNumber, status: 'Open' });
+        const newRfi = await db.get('SELECT * FROM rfis WHERE id = ?', [id]);
+
+        // Trigger Workflow Automation (Phase 14)
+        await WorkflowService.trigger(tenantId, 'rfi_created', { rfiId: id, rfi: newRfi });
+
+        res.status(201).json({ success: true, data: { id, number: rfiNumber, status: 'Open' } });
     } catch (error) {
         logger.error('Error creating RFI:', error);
         res.status(500).json({ error: 'Failed to create RFI' });
@@ -110,7 +117,12 @@ export const updateRFI = async (req: AuthenticatedRequest, res: Response): Promi
             await db.run(`UPDATE rfis SET ${setClause} WHERE id = ?`, values);
         }
 
-        res.json({ message: 'RFI updated' });
+        const updatedRfi = await db.get('SELECT * FROM rfis WHERE id = ?', [id]);
+
+        // Trigger Workflow Automation (Phase 14)
+        await WorkflowService.trigger(tenantId, 'rfi_status_changed', { rfiId: id, rfi: updatedRfi });
+
+        res.json({ success: true, data: updatedRfi });
     } catch (error) {
         logger.error('Error updating RFI:', error);
         res.status(500).json({ error: 'Failed to update RFI' });

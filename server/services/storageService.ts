@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -113,4 +114,44 @@ export const deleteFile = async (bucket: string, path: string) => {
         throw error;
     }
     return data;
+};
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+export const extractDocumentData = async (
+    fileBuffer: Buffer,
+    mimeType: string,
+    promptType: 'invoice' | 'rfi' | 'general' = 'general'
+) => {
+    if (!process.env.GEMINI_API_KEY) {
+        throw new Error('Gemini API key missing for OCR');
+    }
+
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const part = {
+            inlineData: {
+                data: fileBuffer.toString('base64'),
+                mimeType
+            }
+        };
+
+        const prompts = {
+            invoice: 'Extract data from this invoice: vendor name, invoice date, amount due, and line items. Return JSON.',
+            rfi: 'Extract data from this RFI document: subject, question, assigned to, and due date. Return JSON.',
+            general: 'Extract the most important structured data from this construction document. Return JSON.'
+        };
+
+        const result = await model.generateContent([prompts[promptType], part]);
+        const response = await result.response;
+        const text = response.text();
+
+        // Extract JSON
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : { text };
+    } catch (error) {
+        logger.error('OCR Extraction Error:', error);
+        throw error;
+    }
 };

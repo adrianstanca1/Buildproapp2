@@ -179,6 +179,56 @@ class DatabaseService {
     return data.data || [];
   }
 
+  // --- Automations (Phase 14) ---
+  async getAutomations(): Promise<any[]> {
+    const res = await fetch(`${API_URL}/automations`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch automations");
+    const data = await res.json();
+    return data.data || [];
+  }
+
+  async createAutomation(a: any): Promise<any> {
+    const res = await fetch(`${API_URL}/automations`, {
+      method: "POST",
+      headers: await this.getHeaders(),
+      body: JSON.stringify(a)
+    });
+    if (!res.ok) throw new Error("Failed to create automation");
+    const data = await res.json();
+    return data.data;
+  }
+
+  // --- Predictive Intelligence (Phase 14) ---
+  async getPredictiveAnalysis(projectId: string): Promise<any> {
+    const res = await fetch(`${API_URL}/predictive/analysis/${projectId}`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to fetch predictive analysis");
+    const data = await res.json();
+    return data.data;
+  }
+
+  // --- OCR (Phase 14) ---
+  async extractOcrData(file: File, type: string = 'general'): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('type', type);
+
+    const headers = await this.getHeaders();
+    delete headers['Content-Type']; // Multipart handled by browser
+
+    const res = await fetch(`${API_URL}/ocr/extract`, {
+      method: "POST",
+      headers,
+      body: formData
+    });
+    if (!res.ok) throw new Error("Failed to extract OCR data");
+    const data = await res.json();
+    return data.data;
+  }
+
   // --- Team ---
   async getTeam(): Promise<TeamMember[]> {
     return this.fetch<TeamMember>('team');

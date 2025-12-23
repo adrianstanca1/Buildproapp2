@@ -296,6 +296,24 @@ app.get('/api/integrations/:type', authenticateToken, contextMiddleware, integra
 app.post('/api/integrations/connect', authenticateToken, contextMiddleware, integrationController.connect);
 app.post('/api/integrations/sync', authenticateToken, contextMiddleware, integrationController.sync);
 
+// --- Automations Routes (Phase 14) ---
+import * as automationController from './controllers/automationController.js';
+
+app.get('/api/automations', authenticateToken, contextMiddleware, automationController.getAutomations);
+app.post('/api/automations', authenticateToken, contextMiddleware, automationController.createAutomation);
+app.put('/api/automations/:id', authenticateToken, contextMiddleware, automationController.updateAutomation);
+app.delete('/api/automations/:id', authenticateToken, contextMiddleware, automationController.deleteAutomation);
+
+// --- Predictive Intelligence Routes (Phase 14) ---
+import * as predictiveController from './controllers/predictiveController.js';
+
+app.get('/api/predictive/analysis/:projectId', authenticateToken, contextMiddleware, predictiveController.getProjectAnalysis);
+
+// --- OCR Routes (Phase 14) ---
+import * as ocrController from './controllers/ocrController.js';
+
+app.post('/api/ocr/extract', authenticateToken, contextMiddleware, ocrController.extractData);
+
 // --- Phase 4: Financial & Supply Chain ---
 // Vendors
 app.get('/api/vendors', authenticateToken, getVendors);

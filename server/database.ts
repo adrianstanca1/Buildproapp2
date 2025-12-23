@@ -771,6 +771,22 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Automations Table (Phase 14)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS automations (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      triggerType TEXT NOT NULL, -- e.g., 'task_completed', 'safety_incident_high', 'rfi_created'
+      actionType TEXT NOT NULL,  -- e.g., 'send_notification', 'update_status', 'email_pm'
+      configuration TEXT,        -- JSON string of settings
+      enabled BOOLEAN DEFAULT 1,
+      createdAt TEXT,
+      updatedAt TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
   // Initialize default maintenance mode (OFF) if not exists
   const maintenanceSetting = await db.get('SELECT key FROM system_settings WHERE key = ?', ['maintenance_mode']);
   if (!maintenanceSetting) {

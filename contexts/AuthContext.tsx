@@ -12,6 +12,7 @@ interface AuthContextType {
   addProjectId: (id: string) => void;
   refreshPermissions: () => Promise<void>;
   isSupabaseConnected: boolean;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -26,6 +27,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const [isFetchingPermissions, setIsFetchingPermissions] = useState(false);
 
@@ -57,9 +59,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
           if (session?.user) {
             mapSupabaseUser(session.user);
+            setToken(session.access_token);
           } else {
             // Session expired or logged out
             setUser(null);
+            setToken(null);
           }
         });
 
@@ -131,6 +135,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Update state immediately (optimistic)
       setUser(newUser);
 
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) setToken(session.access_token);
+
       // Return fresh user directly to caller
       return { user: newUser, error: null };
     } catch (e: any) {
@@ -185,7 +192,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasPermission, addProjectId, refreshPermissions, isSupabaseConnected }}>
+    <AuthContext.Provider value={{ user, login, logout, hasPermission, addProjectId, refreshPermissions, isSupabaseConnected, token }}>
       {children}
     </AuthContext.Provider>
   );

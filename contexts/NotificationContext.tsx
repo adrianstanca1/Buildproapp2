@@ -18,6 +18,7 @@ interface NotificationContextType {
     unreadCount: number;
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
+    addNotification: (n: Omit<Notification, 'id' | 'isRead' | 'createdAt'>) => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -118,8 +119,19 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
     };
 
+    const addNotification = (n: Omit<Notification, 'id' | 'isRead' | 'createdAt'>) => {
+        const newNote: Notification = {
+            ...n,
+            id: Math.random().toString(36).substr(2, 9),
+            isRead: false,
+            createdAt: new Date().toISOString()
+        };
+        setNotifications(prev => [newNote, ...prev]);
+        addToast(n.title, n.type === 'error' ? 'error' : n.type === 'success' ? 'success' : 'info');
+    };
+
     return (
-        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead }}>
+        <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead, addNotification }}>
             {children}
         </NotificationContext.Provider>
     );

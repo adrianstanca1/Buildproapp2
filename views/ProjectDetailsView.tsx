@@ -25,6 +25,8 @@ import { ProjectActionModals } from '@/components/ProjectActionModals';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
 import FileUploadZone from '@/components/FileUploadZone';
 import ShareProjectModal from '@/components/ShareProjectModal';
+import AIOcrExtractor from '@/components/AIOcrExtractor';
+import AutomationRulesManager from '@/components/AutomationRulesManager';
 
 interface ProjectDetailsViewProps {
     projectId: string | null;
@@ -838,6 +840,14 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
                 </div>
 
                 <div className="space-y-8">
+                    {/* AI Document Intelligence (Phase 14) */}
+                    <AIOcrExtractor projectId={project.id} />
+
+                    {/* Workflow Automation (Phase 14) */}
+                    <AutomationRulesManager projectId={project.id} />
+
+                    <ForecastingWidget projectId={project.id} />
+
                     {/* Key Details Card */}
                     <div className="bg-white border border-zinc-200 rounded-2xl shadow-sm p-6">
                         <h3 className="font-bold text-zinc-900 mb-6 flex items-center gap-2"><Info size={18} /> Key Details</h3>

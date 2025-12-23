@@ -18,6 +18,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { TenantUsageWidget } from '@/components/TenantUsageWidget';
 import { db } from '@/services/db';
 import { AddTenantModal } from '@/components/AddTenantModal';
+import PredictiveInsights from '@/components/PredictiveInsights';
 
 interface DashboardViewProps {
     setPage: (page: Page) => void;
@@ -663,20 +664,15 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
 
             <AIDailyBriefing role={UserRole.COMPANY_ADMIN} />
 
-            {/* Quick Actions - Enhanced */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
                     <QuickActionsGrid setPage={setPage} />
                 </div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-1 border-l border-zinc-100 pl-4 space-y-6">
+                    {projects.length > 0 && (
+                        <PredictiveInsights projectId={projects[0].id} />
+                    )}
                     <TenantUsageWidget />
-                    <button
-                        onClick={() => setPage(Page.TENANT_ANALYTICS)}
-                        className="w-full mt-4 p-4 bg-white border border-dashed border-blue-300 rounded-xl text-blue-600 font-bold text-sm flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
-                    >
-                        <PieChart size={18} />
-                        View Full Tenant Intelligence
-                    </button>
                 </div>
             </div>
 
@@ -823,6 +819,7 @@ const FieldCard = ({ title, icon: Icon, onClick, addAction }: any) => (
 // --- 3. SUPERVISOR DASHBOARD (FIELD VIEW) ---
 const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
     const { user } = useAuth();
+    const { projects } = useProjects();
 
 
     return (
@@ -845,6 +842,13 @@ const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
             </div>
 
             <AIDailyBriefing role={UserRole.SUPERVISOR} />
+
+            {/* Predictive Intelligence (Phase 14) */}
+            {projects.length > 0 && (
+                <div className="w-full">
+                    <PredictiveInsights projectId={projects[0].id} />
+                </div>
+            )}
 
             {/* HERO: LIVE FIELD MODE */}
             <div

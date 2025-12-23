@@ -6,8 +6,8 @@ import { AppError } from '../utils/AppError.js';
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
 import { createTaskSchema as globalCreateTaskSchema, updateTaskSchema as globalUpdateTaskSchema } from '../validation/schemas.js';
-
 import { calculateCriticalPath } from '../services/cpmService.js';
+import { WorkflowService } from '../services/workflowService.js';
 
 /**
  * Task Controller
@@ -148,6 +148,11 @@ export const updateTask = async (req: AuthenticatedRequest, res: Response, next:
 
         const updatedTask = await taskBucket.getById(tenantId, id);
 
+        // Trigger Workflow Automation (Phase 14)
+        if (updatedTask.status === 'completed' || updatedTask.status === 'Done') {
+            await WorkflowService.trigger(tenantId, 'task_completed', { taskId: id, task: updatedTask });
+        }
+
         res.json({ success: true, data: updatedTask });
     } catch (error) {
         if (error instanceof z.ZodError) {
@@ -245,6 +250,11 @@ export const updateTaskStatus = async (req: AuthenticatedRequest, res: Response,
         );
 
         const updatedTask = await taskBucket.getById(tenantId, id);
+
+        // Trigger Workflow Automation (Phase 14)
+        if (status === 'completed' || status === 'Done') {
+            await WorkflowService.trigger(tenantId, 'task_completed', { taskId: id, task: updatedTask });
+        }
 
         res.json({ success: true, data: updatedTask });
     } catch (error) {

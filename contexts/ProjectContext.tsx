@@ -46,6 +46,10 @@ interface ProjectContextType {
   addTask: (task: Task) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   getCriticalPath: (projectId: string) => Promise<any[]>;
+  getPredictiveAnalysis: (projectId: string) => Promise<any>;
+  extractOcrData: (file: File, type?: string) => Promise<any>;
+  getAutomations: () => Promise<any[]>;
+  createAutomation: (a: any) => Promise<any>;
 
   // Document CRUD
   addDocument: (doc: ProjectDocument) => void;
@@ -439,6 +443,22 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     return await db.getCriticalPath(projectId);
   };
 
+  const getPredictiveAnalysis = async (projectId: string) => {
+    return await db.getPredictiveAnalysis(projectId);
+  };
+
+  const extractOcrData = async (file: File, type: string = 'general') => {
+    return await db.extractOcrData(file, type);
+  };
+
+  const getAutomations = async () => {
+    return await db.getAutomations();
+  };
+
+  const createAutomation = async (a: any) => {
+    return await db.createAutomation(a);
+  };
+
   // --- Inventory Methods ---
   const addInventoryItem = async (item: InventoryItem) => {
     const itemWithTenant = { ...item, companyId: user?.companyId || 'c1' };
@@ -693,6 +713,10 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       addTask,
       updateTask,
       getCriticalPath,
+      getPredictiveAnalysis,
+      extractOcrData,
+      getAutomations,
+      createAutomation,
       addDocument,
       updateDocument,
       addInventoryItem,

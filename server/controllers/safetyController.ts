@@ -1,20 +1,20 @@
-
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../types/express.js';
 import { getDb } from '../database.js';
 import { logger } from '../utils/logger.js';
 import { randomUUID } from 'crypto';
-import { sendNotification } from '../services/notificationService.js';
+import { AppError } from '../utils/AppError.js';
+import { WorkflowService } from '../services/workflowService.js';
 
 // --- Safety Incidents ---
 
-export const getSafetyIncidents = async (req: AuthenticatedRequest, res: Response) => {
+export const getSafetyIncidents = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { projectId } = req.query;
-        const companyId = req.user!.companyId;
+        const { tenantId } = req.context;
 
         let query = 'SELECT * FROM safety_incidents WHERE companyId = ?';
-        const params: any[] = [companyId];
+        const params: any[] = [tenantId];
 
         if (projectId) {
             query += ' AND projectId = ?';
@@ -25,89 +25,91 @@ export const getSafetyIncidents = async (req: AuthenticatedRequest, res: Respons
 
         const db = getDb();
         const incidents = await db.all(query, params);
-        res.json(incidents);
+        res.json({ success: true, data: incidents });
     } catch (error) {
-        logger.error('Error fetching safety incidents:', error);
-        res.status(500).json({ error: 'Failed to fetch safety incidents' });
+        next(error);
     }
 };
 
-export const createSafetyIncident = async (req: AuthenticatedRequest, res: Response) => {
+export const createSafetyIncident = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const {
             id, projectId, type, title, severity, date, location,
             description, personInvolved, actionTaken, status
         } = req.body;
-        const companyId = req.user!.companyId;
-
+        const { tenantId } = req.context;
         const db = getDb();
+
+        const incidentId = id || randomUUID();
+
         await db.run(
             `INSERT INTO safety_incidents (
-        id, companyId, projectId, type, title, severity, date,
-        location, description, personInvolved, actionTaken, status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
                 id, companyId, projectId, type, title, severity, date,
+                location, description, personInvolved, actionTaken, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                incidentId, tenantId, projectId, type, title, severity, date,
                 location, description, personInvolved, actionTaken || '', status || 'Open'
             ]
         );
 
-        res.status(201).json({ message: 'Safety incident created successfully' });
+        const newIncident = await db.get('SELECT * FROM safety_incidents WHERE id = ?', [incidentId]);
+
+        // Trigger Workflow Automation (Phase 14)
+        if (severity >= 3) {
+            await WorkflowService.trigger(tenantId, 'safety_incident_high', { incidentId, incident: newIncident });
+        }
+
+        res.status(201).json({ success: true, data: newIncident });
     } catch (error) {
-        logger.error('Error creating safety incident:', error);
-        res.status(500).json({ error: 'Failed to create safety incident' });
+        next(error);
     }
 };
 
-export const updateSafetyIncident = async (req: AuthenticatedRequest, res: Response) => {
+export const updateSafetyIncident = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        const companyId = req.user!.companyId;
-
+        const { tenantId } = req.context;
         const db = getDb();
-        // Security check: Ensure incident belongs to user's company
-        const existing = await db.get('SELECT id FROM safety_incidents WHERE id = ? AND companyId = ?', [id, companyId]);
+
+        const existing = await db.get('SELECT id FROM safety_incidents WHERE id = ? AND companyId = ?', [id, tenantId]);
         if (!existing) {
-            return res.status(404).json({ error: 'Incident not found' });
+            throw new AppError('Incident not found', 404);
         }
 
         const fields: string[] = [];
         const values: any[] = [];
 
         Object.keys(updates).forEach(key => {
-            // Allowlist fields to prevent SQL injection or overwriting immutable fields
             if (['type', 'title', 'severity', 'date', 'location', 'description', 'personInvolved', 'actionTaken', 'status'].includes(key)) {
                 fields.push(`${key} = ?`);
                 values.push(updates[key]);
             }
         });
 
-        if (fields.length === 0) {
-            return res.json({ message: 'No updates provided' });
+        if (fields.length > 0) {
+            values.push(id);
+            values.push(tenantId);
+            await db.run(`UPDATE safety_incidents SET ${fields.join(', ')} WHERE id = ? AND companyId = ?`, values);
         }
 
-        values.push(id);
-        values.push(companyId);
-
-        await db.run(`UPDATE safety_incidents SET ${fields.join(', ')} WHERE id = ? AND companyId = ?`, values);
-
-        res.json({ message: 'Safety incident updated successfully' });
+        const updatedIncident = await db.get('SELECT * FROM safety_incidents WHERE id = ?', [id]);
+        res.json({ success: true, data: updatedIncident });
     } catch (error) {
-        logger.error('Error updating safety incident:', error);
-        res.status(500).json({ error: 'Failed to update safety incident' });
+        next(error);
     }
 };
 
 // --- Safety Hazards (AI Detected or Manual) ---
 
-export const getSafetyHazards = async (req: AuthenticatedRequest, res: Response) => {
+export const getSafetyHazards = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { projectId } = req.query;
-        const companyId = req.user!.companyId;
+        const { tenantId } = req.context;
 
         let query = 'SELECT * FROM safety_hazards WHERE companyId = ?';
-        const params: any[] = [companyId];
+        const params: any[] = [tenantId];
 
         if (projectId) {
             query += ' AND projectId = ?';
@@ -124,52 +126,53 @@ export const getSafetyHazards = async (req: AuthenticatedRequest, res: Response)
             box_2d: h.box_2d ? JSON.parse(h.box_2d) : undefined
         }));
 
-        res.json(parsedHazards);
+        res.json({ success: true, data: parsedHazards });
     } catch (error) {
-        logger.error('Error fetching safety hazards:', error);
-        res.status(500).json({ error: 'Failed to fetch safety hazards' });
+        next(error);
     }
 };
 
-export const createSafetyHazard = async (req: AuthenticatedRequest, res: Response) => {
+export const createSafetyHazard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const {
             id, projectId, type, severity, riskScore, description,
             recommendation, regulation, box_2d, timestamp
         } = req.body;
-        const companyId = req.user!.companyId;
-
+        const { tenantId } = req.context;
         const db = getDb();
+
+        const hazardId = id || randomUUID();
+
         await db.run(
             `INSERT INTO safety_hazards (
-        id, companyId, projectId, type, severity, riskScore,
-        description, recommendation, regulation, box_2d, timestamp
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
                 id, companyId, projectId, type, severity, riskScore,
+                description, recommendation, regulation, box_2d, timestamp
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                hazardId, tenantId, projectId, type, severity, riskScore,
                 description, recommendation, regulation,
-                JSON.stringify(box_2d), // Store complex object as JSON string
+                JSON.stringify(box_2d),
                 timestamp
             ]
         );
 
-        res.status(201).json({ message: 'Safety hazard created successfully' });
+        const newHazard = await db.get('SELECT * FROM safety_hazards WHERE id = ?', [hazardId]);
+        res.status(201).json({ success: true, data: newHazard });
     } catch (error) {
-        logger.error('Error creating safety hazard:', error);
-        res.status(500).json({ error: 'Failed to create safety hazard' });
+        next(error);
     }
 };
 
-export const updateSafetyHazard = async (req: AuthenticatedRequest, res: Response) => {
+export const updateSafetyHazard = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     try {
         const { id } = req.params;
         const updates = req.body;
-        const companyId = req.user!.companyId;
-
+        const { tenantId } = req.context;
         const db = getDb();
-        const existing = await db.get('SELECT id FROM safety_hazards WHERE id = ? AND companyId = ?', [id, companyId]);
+
+        const existing = await db.get('SELECT id FROM safety_hazards WHERE id = ? AND companyId = ?', [id, tenantId]);
         if (!existing) {
-            return res.status(404).json({ error: 'Hazard not found' });
+            throw new AppError('Hazard not found', 404);
         }
 
         const fields: string[] = [];
@@ -182,18 +185,15 @@ export const updateSafetyHazard = async (req: AuthenticatedRequest, res: Respons
             }
         });
 
-        if (fields.length === 0) {
-            return res.json({ message: 'No updates provided' });
+        if (fields.length > 0) {
+            values.push(id);
+            values.push(tenantId);
+            await db.run(`UPDATE safety_hazards SET ${fields.join(', ')} WHERE id = ? AND companyId = ?`, values);
         }
 
-        values.push(id);
-        values.push(companyId);
-
-        await db.run(`UPDATE safety_hazards SET ${fields.join(', ')} WHERE id = ? AND companyId = ?`, values);
-
-        res.json({ message: 'Safety hazard updated successfully' });
+        const updatedHazard = await db.get('SELECT * FROM safety_hazards WHERE id = ?', [id]);
+        res.json({ success: true, data: updatedHazard });
     } catch (error) {
-        logger.error('Error updating safety hazard:', error);
-        res.status(500).json({ error: 'Failed to update safety hazard' });
+        next(error);
     }
 };
