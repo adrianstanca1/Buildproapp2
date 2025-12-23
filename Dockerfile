@@ -1,27 +1,40 @@
-# BuildPro - Cloud Run Dockerfile
-FROM node:18-alpine
+# Build Stage
+FROM node:20-alpine AS build
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including devDependencies like Vite)
+RUN npm install
 
 # Copy application code
 COPY . .
 
-# Build the application
+# Build the frontend application
 RUN npm run build
+
+# Runtime Stage
+FROM node:20-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=8080
+
+# Copy everything from build stage to ensure all TS files are present
+COPY --from=build /app ./
+
+
+# Install only production dependencies
+# Note: tsx is needed if running server in TS mode
+RUN npm ci --only=production
 
 # Expose port
 EXPOSE 8080
 
-# Set environment to production
-ENV NODE_ENV=production
-ENV PORT=8080
-
 # Start the server
-CMD ["npm", "start"]
+# Note: Using tsx directly if it's in dependencies/node_modules
+CMD ["npx", "tsx", "server/index.ts"]
+

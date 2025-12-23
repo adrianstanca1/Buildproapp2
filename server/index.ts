@@ -1,13 +1,12 @@
 
 
 
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-import path from 'path';
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import { resolve, dirname, join } from 'path';
+import { fileURLToPath } from 'url';
 import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimit.js';
 import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
@@ -47,7 +46,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Middleware to ensure DB is initialized before handling requests (removed)
 
 // Serve local uploads
-app.use('/uploads', express.static(path.resolve('uploads')));
+app.use('/uploads', express.static(resolve('uploads')));
 
 
 // --- Middleware ---
@@ -454,13 +453,11 @@ createCrudRoutes('project_risks', ['factors', 'recommendations']);
 
 
 // Serve static files from the React app
-const path = require('path');
-const { fileURLToPath } = require('url');
 // Handle __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = dirname(__filename);
 
-app.use(express.static(path.join(__dirname, '../dist')));
+app.use(express.static(join(__dirname, '../dist')));
 
 // Handle unknown API routes
 app.all('/api/*', (req, res, next) => {
@@ -470,7 +467,7 @@ app.all('/api/*', (req, res, next) => {
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.sendFile(join(__dirname, '../dist/index.html'));
 });
 
 // Initialize and Start

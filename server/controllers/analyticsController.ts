@@ -127,3 +127,79 @@ export const getFinancialTrends = async (req: AuthenticatedRequest, res: Respons
         next(error);
     }
 };
+
+/**
+ * Get Executive KPIs
+ */
+export const getExecutiveKPIs = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        const { tenantId } = req.context;
+        // Placeholder implementation
+        res.json({
+            success: true,
+            data: {
+                activeProjects: 12,
+                budgetHealth: 94,
+                safetyScore: 98,
+                teamVelocity: 85
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get Project Progress
+ */
+export const getProjectProgress = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        res.json({ success: true, data: [] });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get Cost Variance Trend
+ */
+export const getCostVarianceTrend = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        res.json({ success: true, data: [] });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get Resource Utilization
+ */
+export const getResourceUtilization = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        res.json({ success: true, data: [] });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get Safety Metrics
+ */
+export const getSafetyMetrics = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        res.json({ success: true, data: [] });
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get Project Health
+ */
+export const getProjectHealth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+    try {
+        res.json({ success: true, data: { status: 'Healthy', score: 95 } });
+    } catch (error) {
+        next(error);
+    }
+};

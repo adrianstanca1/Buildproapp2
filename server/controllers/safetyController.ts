@@ -159,3 +159,41 @@ export const createSafetyHazard = async (req: AuthenticatedRequest, res: Respons
         res.status(500).json({ error: 'Failed to create safety hazard' });
     }
 };
+
+export const updateSafetyHazard = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const companyId = req.user!.companyId;
+
+        const db = getDb();
+        const existing = await db.get('SELECT id FROM safety_hazards WHERE id = ? AND companyId = ?', [id, companyId]);
+        if (!existing) {
+            return res.status(404).json({ error: 'Hazard not found' });
+        }
+
+        const fields: string[] = [];
+        const values: any[] = [];
+
+        Object.keys(updates).forEach(key => {
+            if (['type', 'severity', 'riskScore', 'description', 'recommendation', 'regulation', 'box_2d', 'status'].includes(key)) {
+                fields.push(`${key} = ?`);
+                values.push(key === 'box_2d' ? JSON.stringify(updates[key]) : updates[key]);
+            }
+        });
+
+        if (fields.length === 0) {
+            return res.json({ message: 'No updates provided' });
+        }
+
+        values.push(id);
+        values.push(companyId);
+
+        await db.run(`UPDATE safety_hazards SET ${fields.join(', ')} WHERE id = ? AND companyId = ?`, values);
+
+        res.json({ message: 'Safety hazard updated successfully' });
+    } catch (error) {
+        logger.error('Error updating safety hazard:', error);
+        res.status(500).json({ error: 'Failed to update safety hazard' });
+    }
+};

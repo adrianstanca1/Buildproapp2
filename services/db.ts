@@ -3,7 +3,19 @@ import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI,
 import { db as mockDb } from './mockDb';
 import { supabase } from './supabaseClient';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const getEnv = (key: string) => {
+  if (typeof process !== 'undefined' && process.env && process.env[key]) {
+    return process.env[key];
+  }
+  // @ts-ignore
+  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+    // @ts-ignore
+    return import.meta.env[key];
+  }
+  return undefined;
+};
+
+const API_URL = getEnv('VITE_API_URL') || '/api';
 
 class DatabaseService {
   private useMock = false;
