@@ -159,6 +159,59 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Memberships table (RBAC)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS memberships (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      companyId TEXT NOT NULL,
+      role TEXT NOT NULL,
+      permissions TEXT,
+      status TEXT DEFAULT 'active',
+      joinedAt TEXT,
+      invitedBy TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Permissions table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS permissions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      resource TEXT NOT NULL,
+      action TEXT NOT NULL,
+      createdAt TEXT,
+      updatedAt TEXT
+    )
+  `);
+
+  // Roles table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS roles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      permissions TEXT,
+      createdAt TEXT,
+      updatedAt TEXT
+    )
+  `);
+
+  // Role Permissions table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      roleId TEXT NOT NULL,
+      permissionId TEXT NOT NULL,
+      PRIMARY KEY (roleId, permissionId),
+      FOREIGN KEY (permissionId) REFERENCES permissions(id) ON DELETE CASCADE
+    )
+  `);
+
   // Projects table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS projects (

@@ -16,7 +16,10 @@ export const contextMiddleware = async (req: any, res: Response, next: NextFunct
 
         if (!tenantId || !userId || userId === 'anonymous' || userId === 'demo-user') {
             // STRICT MODE: Only allow implicit demo context in development
-            if (process.env.NODE_ENV === 'development') {
+            // Check environment (default to development if missing/undefined in local)
+            const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV || process.env.ENABLE_DEMO_AUTH === 'true';
+
+            if (isDev) {
                 req.context = {
                     tenantId: tenantId || 'c1',
                     userId: userId || 'demo-user',

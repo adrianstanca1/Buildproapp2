@@ -216,7 +216,8 @@ export async function seedDatabase() {
   // --- Memberships (Demo Users) ---
   const memberships = [
     { id: 'm1', userId: 'u1', companyId: 'c1', role: 'SUPERADMIN', status: 'active' },
-    { id: 'm2', userId: 'u2', companyId: 'c1', role: 'COMPANY_ADMIN', status: 'active' }
+    { id: 'm2', userId: 'u2', companyId: 'c1', role: 'COMPANY_ADMIN', status: 'active' },
+    { id: 'm3', userId: 'demo-user', companyId: 'c1', role: 'SUPERADMIN', status: 'active' }
   ];
   for (const m of memberships) {
     await db.run(

@@ -17,28 +17,32 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     }
 
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    let token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    // Handle string "null" or "undefined" from frontend
+    if (token === 'null' || token === 'undefined') token = undefined;
+
+    // Check environment (default to development if missing/undefined in local)
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV || process.env.ENABLE_DEMO_AUTH === 'true';
 
     if (!token) {
-        // STRICT MODE: Only allow demo fallback in development
-        // DISABLED FOR PRODUCTION-LIKE REAL AUTH
-        // if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DEMO_AUTH === 'true') {
-        //     console.log('[Auth] No token provided - using demo mode (DEV ONLY)');
-        //     req.user = {
-        //         id: 'demo-user',
-        //         email: 'demo@buildpro.app',
-        //         role: 'admin'
-        //     };
-        //     req.userId = 'demo-user';
-        //     req.tenantId = req.headers['x-company-id'] || 'c1';
-        //     // Setup req.context for RBAC middleware
-        //     req.context = {
-        //         userId: req.userId,
-        //         tenantId: req.tenantId,
-        //         role: 'admin'
-        //     };
-        //     return next();
-        // }
+        if (isDev) {
+            console.log('[Auth] No token provided - using demo mode (DEV ONLY)');
+            req.user = {
+                id: 'demo-user',
+                email: 'demo@buildpro.app',
+                role: 'admin'
+            };
+            req.userId = 'demo-user';
+            req.tenantId = req.headers['x-company-id'] || 'c1';
+            // Setup req.context for RBAC middleware
+            req.context = {
+                userId: req.userId,
+                tenantId: req.tenantId,
+                role: 'admin'
+            };
+            return next();
+        }
 
         return res.status(401).json({ error: 'Authentication required' });
     }
@@ -49,8 +53,11 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
         if (error || !user) {
             console.error('Auth Error:', error);
 
-            // STRICT MODE
-            if (process.env.NODE_ENV === 'development') {
+            // STRICT MODE but allow Dev Fallback
+            // Re-calculate isDev here just in case, or assume variable scope
+            const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV || process.env.ENABLE_DEMO_AUTH === 'true';
+
+            if (isDev) {
                 console.log('[Auth] Invalid token - falling back to demo mode (DEV ONLY)');
                 req.user = { id: 'demo-user', email: 'demo@buildpro.app', role: 'admin' };
                 req.userId = 'demo-user';

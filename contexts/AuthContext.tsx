@@ -142,6 +142,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { user: newUser, error: null };
     } catch (e: any) {
       console.error("Login exception:", e);
+      console.log("Dev Fallback Check:", { isDev: import.meta.env.DEV, email, passwordMatches: password === 'password' });
+
+      // DEV FALLBACK: If Supabase fails (e.g., user not in Auth), allow demo user
+      if (import.meta.env.DEV && email === 'demo@buildpro.app' && password === 'password') {
+        console.warn("Using DEV fallback for Demo User");
+        const demoUser: UserProfile = {
+          id: 'demo-user',
+          name: 'Demo User',
+          email: 'demo@buildpro.app',
+          phone: '',
+          role: UserRole.SUPERADMIN,
+          permissions: ['*'],
+          memberships: [],
+          avatarInitials: 'D',
+          companyId: 'c1',
+          projectIds: []
+        };
+        setUser(demoUser);
+        return { user: demoUser, error: null };
+      }
+
       return { user: null, error: e };
     }
   };

@@ -44,9 +44,12 @@ const AutomationRulesManager: React.FC<{ projectId?: string }> = ({ projectId })
     const handleAddRule = async () => {
         try {
             await createAutomation({
+                name: `Rule: ${newRule.triggerType} -> ${newRule.action}`,
                 triggerType: newRule.triggerType,
-                condition: newRule.condition,
-                action: newRule.action,
+                actionType: newRule.action,
+                configuration: {
+                    condition: newRule.condition
+                },
                 enabled: true
             });
             addToast("Automation rule created!", "success");
