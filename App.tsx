@@ -30,7 +30,9 @@ const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
 
 // Lazily loaded view components
 const LoginView = lazyWithReload(() => import('@/views/LoginView'));
+const RegisterView = lazyWithReload(() => import('@/views/RegisterView'));
 const ProfileView = lazyWithReload(() => import('@/views/ProfileView'));
+
 const AIToolsView = lazyWithReload(() => import('@/views/AIToolsView'));
 const ReportsView = lazyWithReload(() => import('@/views/ReportsView'));
 const ScheduleView = lazyWithReload(() => import('@/views/ScheduleView'));
@@ -146,8 +148,12 @@ const AuthenticatedApp: React.FC = () => {
 
   // If not authenticated, show Login unless it's a public route
   if (!user && !isPublicRoute) {
+    if (page === Page.REGISTER) {
+      return <RegisterView setPage={setPage} />;
+    }
     return <LoginView setPage={setPage} />;
   }
+
 
   // If public route and not logged in, force Client Portal page
   if (!user && isPublicRoute && page !== Page.CLIENT_PORTAL) {

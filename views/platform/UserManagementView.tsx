@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MoreVertical, Shield, Lock, UserX, UserCheck } from 'lucide-react';
+import { Search, Filter, MoreVertical, Shield, Lock, UserX, UserCheck, Eye } from 'lucide-react';
 import { db } from '@/services/db';
+import { useAuth } from '@/contexts/AuthContext';
 
 const UserManagementView: React.FC = () => {
     const [users, setUsers] = useState<any[]>([]);
@@ -9,6 +10,7 @@ const UserManagementView: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [inviteForm, setInviteForm] = useState({ email: '', role: 'COMPANY_ADMIN', companyId: '' });
+    const { impersonateUser } = useAuth();
 
     useEffect(() => {
         loadUsers();
@@ -72,6 +74,19 @@ const UserManagementView: React.FC = () => {
         } catch (e) {
             console.error('Failed to invite user', e);
             alert('Failed to invite user');
+        }
+    };
+
+    const handleImpersonate = async (userId: string) => {
+        if (!confirm('Are you sure you want to impersonate this user?')) return;
+        try {
+            await impersonateUser(userId);
+            // Redirect to dashboard or show success. 
+            // Since AuthContext updates state, the app might re-render, but a redirect ensures we land in the right place.
+            window.location.href = '/dashboard';
+        } catch (e) {
+            console.error('Impersonation failed', e);
+            alert('Failed to impersonate user');
         }
     };
 
@@ -181,6 +196,13 @@ const UserManagementView: React.FC = () => {
                                                     <UserCheck size={16} />
                                                 </button>
                                             )}
+                                            <button
+                                                onClick={() => handleImpersonate(user.id)}
+                                                title="Impersonate User"
+                                                className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded text-purple-500"
+                                            >
+                                                <Eye size={16} />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -189,6 +211,7 @@ const UserManagementView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
             {/* Invite Modal */}
             {showInviteModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">

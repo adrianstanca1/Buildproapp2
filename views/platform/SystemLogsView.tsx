@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Download, Filter, Calendar, User, Building2, AlertCircle } from 'lucide-react';
+import { db } from '@/services/db';
 
 interface AuditLog {
     id: string;
@@ -26,70 +27,38 @@ const SystemLogsView: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
 
     // Mock audit logs
-    // Mock audit logs
-    const [mockLogs] = useState<AuditLog[]>(() => {
-        const now = Date.now();
-        return [
-            {
-                id: '1',
-                timestamp: new Date(now).toISOString(),
-                userId: 'u1',
-                userName: 'John Admin',
-                companyId: 'c1',
-                companyName: 'Acme Construction',
-                action: 'project.create',
-                resource: 'projects',
-                resourceId: 'p123',
-                metadata: { name: 'New Office Building' },
-                ipAddress: '192.168.1.1',
-                severity: 'info',
-            },
-            {
-                id: '2',
-                timestamp: new Date(now - 3600000).toISOString(),
-                userId: 'u2',
-                userName: 'Jane Manager',
-                companyId: 'c2',
-                companyName: 'BuildCo Ltd',
-                action: 'user.delete',
-                resource: 'users',
-                resourceId: 'u456',
-                metadata: { email: 'removed@example.com' },
-                ipAddress: '192.168.1.2',
-                severity: 'warning',
-            },
-            {
-                id: '3',
-                timestamp: new Date(now - 7200000).toISOString(),
-                userId: 'u3',
-                userName: 'Bob Finance',
-                companyId: 'c1',
-                companyName: 'Acme Construction',
-                action: 'finance.export',
-                resource: 'transactions',
-                resourceId: 'all',
-                metadata: { format: 'CSV', count: 1250 },
-                ipAddress: '192.168.1.3',
-                severity: 'info',
-            },
-            {
-                id: '4',
-                timestamp: new Date(now - 10800000).toISOString(),
-                userId: 'superadmin',
-                userName: 'System Admin',
-                companyId: 'platform',
-                companyName: 'Platform',
-                action: 'company.suspend',
-                resource: 'companies',
-                resourceId: 'c5',
-                metadata: { reason: 'Payment failure' },
-                ipAddress: '10.0.0.1',
-                severity: 'error',
-            },
-        ];
-    });
+    const [logs, setLogs] = useState<AuditLog[]>([]);
 
-    const filteredLogs = mockLogs.filter(log => {
+    useEffect(() => {
+        const fetchLogs = async () => {
+            // Map TenantAuditLog (from db) to local AuditLog interface if there's a mismatch, 
+            // but basically they are similar. 
+            // Our local interface is defined at top of file.
+            try {
+                const data = await db.getGlobalAuditLogs();
+                // Adapt to view model
+                const viewLogs = data.map(l => ({
+                    id: l.id,
+                    timestamp: l.timestamp || new Date().toISOString(),
+                    userId: l.userId,
+                    userName: l.userName || 'Unknown',
+                    companyId: l.tenantId,
+                    companyName: 'Tenant ' + l.tenantId, // Ideally fetch company name map
+                    action: l.action,
+                    resource: l.resource,
+                    resourceId: l.resourceId,
+                    severity: (l.status === 'failure' ? 'error' : 'info') as 'info' | 'warning' | 'error',
+                    ipAddress: '127.0.0.1'
+                }));
+                setLogs(viewLogs);
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        fetchLogs();
+    }, []);
+
+    const filteredLogs = logs.filter(log => {
         const matchesAction = filterAction === 'all' || log.action.includes(filterAction);
         const matchesSeverity = filterSeverity === 'all' || log.severity === filterSeverity;
         const matchesSearch =
@@ -160,7 +129,7 @@ const SystemLogsView: React.FC = () => {
                         <div>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">Total Logs</p>
                             <p className="text-2xl font-bold text-zinc-900 dark:text-white mt-1">
-                                {mockLogs.length}
+                                {logs.length}
                             </p>
                         </div>
                         <FileText className="w-8 h-8 text-blue-600" />
@@ -171,7 +140,7 @@ const SystemLogsView: React.FC = () => {
                         <div>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">Info</p>
                             <p className="text-2xl font-bold text-blue-600 mt-1">
-                                {mockLogs.filter(l => l.severity === 'info').length}
+                                {logs.filter(l => l.severity === 'info').length}
                             </p>
                         </div>
                         <AlertCircle className="w-8 h-8 text-blue-600" />
@@ -182,7 +151,7 @@ const SystemLogsView: React.FC = () => {
                         <div>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">Warnings</p>
                             <p className="text-2xl font-bold text-yellow-600 mt-1">
-                                {mockLogs.filter(l => l.severity === 'warning').length}
+                                {logs.filter(l => l.severity === 'warning').length}
                             </p>
                         </div>
                         <AlertCircle className="w-8 h-8 text-yellow-600" />
@@ -193,7 +162,7 @@ const SystemLogsView: React.FC = () => {
                         <div>
                             <p className="text-sm text-zinc-600 dark:text-zinc-400">Errors</p>
                             <p className="text-2xl font-bold text-red-600 mt-1">
-                                {mockLogs.filter(l => l.severity === 'error').length}
+                                {logs.filter(l => l.severity === 'error').length}
                             </p>
                         </div>
                         <AlertCircle className="w-8 h-8 text-red-600" />

@@ -72,6 +72,7 @@ export enum Page {
   PLATFORM_MEMBERS = 'PLATFORM_MEMBERS',
   ACCESS_CONTROL = 'ACCESS_CONTROL',
   SYSTEM_LOGS = 'SYSTEM_LOGS',
+  REGISTER = 'REGISTER',
 }
 
 export enum UserRole {
@@ -174,7 +175,7 @@ export interface Tenant {
 export interface TenantSubscription {
   id: string;
   planId: string;
-  status: 'active' | 'cancelled' | 'suspended' | 'past_due';
+  status: 'active' | 'cancelled' | 'suspended' | 'past_due' | 'trialing';
   currentPeriodStart: string;
   currentPeriodEnd: string;
   canceledAt?: string;

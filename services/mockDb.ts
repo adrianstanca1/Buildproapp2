@@ -1,5 +1,5 @@
 
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk, Invoice, ExpenseClaim, Transaction } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, Tenant, Defect, ProjectRisk, Invoice, ExpenseClaim, Transaction, TenantAuditLog } from '@/types';
 
 // --- Initial Data Seeds (Moved from ProjectContext) ---
 
@@ -519,6 +519,16 @@ class MockDatabase {
     await delay(100);
     const items = this.getItems<Transaction>(DB_KEYS.TRANSACTIONS);
     this.setItems(DB_KEYS.TRANSACTIONS, items.map(i => i.id === id ? { ...i, ...updates } : i));
+  }
+
+  // --- Audit Logs ---
+  async getSystemLogs(): Promise<TenantAuditLog[]> {
+    // Simulate system-wide audit logs
+    const logs = [
+      { id: '1', timestamp: new Date().toISOString(), userId: 'sys', userName: 'System', tenantId: 'p', action: 'system.start', resource: 'platform', resourceId: '0', status: 'success' },
+      ...this.getItems<TenantAuditLog>(DB_KEYS.ACCESS_LOGS)
+    ];
+    return logs;
   }
 }
 

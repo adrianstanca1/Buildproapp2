@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { getDb } from '../database.js';
+import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/AppError.js';
@@ -7,18 +8,6 @@ import { permissionService } from '../services/permissionService.js';
 import { membershipService } from '../services/membershipService.js';
 import { tenantService, getTenantUsage } from '../services/tenantService.js';
 import { UserRole } from '../types/rbac.js';
-
-// Helper for audit logging (duplicating temporarily until AuditService is created, or importing if I extracted it)
-// Ideally Audit Log should be a service. For now, I'll inline a simple version or just rely on DB run.
-// Wait, `logAction` is internal to index.ts. I should probably move it to a service first?
-// `server/services/auditService.ts`.
-
-// Let's assume I can't easily move logAction right now without expanding scope.
-// I'll re-implement the simplified log insertion here or skip it for this specific refactor step?
-// No, logging is important. I will create a minimal `auditService.ts` first.
-
-// Wait, I can't create `auditService.ts` in this same step safely. 
-// I'll inline the DB call for now to keep it safe.
 
 export const getRoles = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -157,10 +146,6 @@ export const getCurrentUserPermissions = async (req: Request, res: Response, nex
     }
 };
 
-/**
- * Get comprehensive context for the current user and tenant
- * Aggregates permissions, usage, and tenant details
- */
 export const getCurrentUserContext = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const context = (req as any).context;
@@ -200,11 +185,6 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
 
         const db = getDb();
 
-        // Check if inviter has permission
-        // 1. Get Inviter's membership for the target company
-        // If inviter is SUPERADMIN (global), they can invite to any company.
-        // Otherwise, they must be a COMPANY_ADMIN or have 'users:invite' permission for that company.
-
         const inviterGlobalRole = await permissionService.getUserGlobalRole(inviterId);
 
         if (inviterGlobalRole !== 'SUPERADMIN') {
@@ -215,9 +195,6 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
 
             // Check for specific permission or role
             if (membership.role !== 'COMPANY_ADMIN' && membership.role !== 'SUPERADMIN') {
-                // Granular check if we had fine-grained permissions wired up
-                // const hasPerm = await permissionService.checkPermission(inviterId, companyId, 'users', 'invite');
-                // if (!hasPerm) throw new AppError(...);
                 throw new AppError('Only Company Admins can invite users', 403);
             }
         }
@@ -235,7 +212,6 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
         }
 
         // 2. If user does NOT exist, create specific "Invite" record or Placeholder User
-        // For this MVP, we create a placeholder user with status 'invited'
         const newUserId = uuidv4();
         const now = new Date().toISOString();
 
@@ -261,4 +237,101 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
     } catch (e) {
         next(e);
     }
+};
+
+export const impersonateUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { userId } = req.body;
+        const adminId = (req as any).userId;
+
+        if (!userId) throw new AppError('Target userId is required', 400);
+
+        // Security Check: Only Global SUPERADMIN can impersonate
+        const inviterGlobalRole = await permissionService.getUserGlobalRole(adminId);
+        if (inviterGlobalRole !== 'SUPERADMIN') {
+            throw new AppError('Only Super Admins can impersonate users', 403);
+        }
+
+        const db = getDb();
+        const targetUser = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
+        if (!targetUser) throw new AppError('Target user not found', 404);
+
+        // Generate Signed Token
+        // Format: imp_v1:{userId}:{timestamp}:{signature}
+        const timestamp = Date.now();
+        const payload = `imp_v1:${userId}:${timestamp}`;
+        const signature = signToken(payload);
+        const token = `${payload}:${signature}`;
+
+        res.json({
+            user: {
+                id: targetUser.id,
+                email: targetUser.email,
+                name: targetUser.name,
+                role: targetUser.role || 'OPERATIVE',
+                permissions: [],
+                avatarInitials: targetUser.name ? targetUser.name[0] : '?',
+                companyId: targetUser.companyId || 'c1'
+            },
+            token
+        });
+
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { userId, email, name, companyName } = req.body;
+
+        if (!userId || !email || !companyName) {
+            throw new AppError('userId, email, and companyName are required', 400);
+        }
+
+        const db = getDb();
+        const now = new Date().toISOString();
+
+        // 1. Create Company
+        const companyId = companyName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + uuidv4().slice(0, 8);
+        await db.run(
+            `INSERT INTO companies (id, name, status, plan, maxUsers, createdAt, updatedAt, settings, subscription)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [companyId, companyName, 'active', 'free', 5, now, now, '{}', JSON.stringify({ status: 'active', plan: 'free' })]
+        );
+
+        // 2. Create User (if not exists)
+        const existingUser = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
+        if (!existingUser) {
+            await db.run(
+                `INSERT INTO users (id, email, name, status, createdAt, updatedAt)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [userId, email, name || email.split('@')[0], 'active', now, now]
+            );
+        } else {
+            await db.run(
+                `UPDATE users SET name = ?, status = 'active', updatedAt = ? WHERE id = ?`,
+                [name || existingUser.name, now, userId]
+            );
+        }
+
+        // 3. Add Membership (COMPANY_ADMIN)
+        await membershipService.addMember({
+            userId,
+            companyId,
+            role: UserRole.COMPANY_ADMIN
+        });
+
+        res.status(201).json({ message: 'User and Company registered successfully', companyId });
+
+    } catch (e) {
+        next(e);
+    }
+};
+
+const signToken = (payload: string): string => {
+    const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dev-fallback-secret';
+    return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 };

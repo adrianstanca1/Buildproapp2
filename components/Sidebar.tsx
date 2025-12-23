@@ -5,7 +5,7 @@ import {
   Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
   ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
   HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-  BrainCircuit, Building2, X, Settings as SettingsIcon
+  BrainCircuit, Building2, X, Settings as SettingsIcon, Eye
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -19,7 +19,7 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false, onClose }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, stopImpersonating, isImpersonating } = useAuth();
   const { systemSettings } = useTenant();
 
   const betaPages = [Page.IMAGINE, Page.ML_INSIGHTS, Page.RESOURCE_OPTIMIZATION, Page.AI_TOOLS];
@@ -121,6 +121,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
           <span className="text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 px-2 py-1 rounded border border-zinc-200 tracking-wider">
             {user.role.replace('_', ' ')}
           </span>
+        </div>
+      )}
+
+      {/* Impersonation Warning */}
+      {isImpersonating && (
+        <div className="px-6 pb-2">
+          <button
+            onClick={stopImpersonating}
+            className="w-full bg-purple-100 text-purple-900 border border-purple-200 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-purple-200 transition-colors shadow-sm"
+          >
+            <Eye size={14} />
+            Stop Impersonating
+          </button>
         </div>
       )}
 

@@ -485,6 +485,8 @@ createCrudRoutes('transactions');
 createCrudRoutes('purchase_orders', ['items', 'approvers']);
 createCrudRoutes('defects', ['box_2d']);
 createCrudRoutes('project_risks', ['factors', 'recommendations']);
+createCrudRoutes('invoices', ['items']);
+createCrudRoutes('expense_claims', ['receipts', 'items']);
 
 
 // Serve static files from the React app

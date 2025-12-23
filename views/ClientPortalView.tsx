@@ -1,74 +1,139 @@
-import React, { useState } from 'react';
-import { Page } from '@/types';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProjects } from '@/contexts/ProjectContext';
-import { useTenant } from '@/contexts/TenantContext'; // Import useTenant
+import React, { useState, useEffect } from 'react';
+import { Page, Project, ProjectDocument } from '@/types';
+import { db } from '@/services/db';
 import {
     Building2, Calendar, FileText, CheckCircle2, Clock,
-    ArrowRight, Download, MessageSquare, AlertCircle, Menu, X, Bell
+    ArrowRight, Download, MessageSquare, AlertCircle, Menu, X, Bell, Lock
 } from 'lucide-react';
+import { useToast } from '@/contexts/ToastContext';
 
 interface ClientPortalViewProps {
-    setPage: (page: Page) => void;
+    setPage?: (page: Page) => void;
 }
 
 const ClientPortalView: React.FC<ClientPortalViewProps> = ({ setPage }) => {
-    const { user, logout } = useAuth(); // Destructure logout
-    const { projects } = useProjects();
-    const { currentTenant } = useTenant(); // Get Tenant Info
+    const { addToast } = useToast();
+    const [isLoading, setIsLoading] = useState(true);
+    const [project, setProject] = useState<Project | null>(null);
+    const [documents, setDocuments] = useState<ProjectDocument[]>([]);
     const [activeTab, setActiveTab] = useState<'overview' | 'documents' | 'financials'>('overview');
+    const [password, setPassword] = useState('');
+    const [isPasswordRequired, setIsPasswordRequired] = useState(false);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Mock: Select the first project for demo purposes since clients are "assigned" to projects
-    // In a real app, strict filtering would happen here based on user.id
-    const assignedProject = projects[0];
+    // Extract token from URL
+    const token = window.location.pathname.split('/').pop();
 
-    if (!assignedProject) {
+    useEffect(() => {
+        if (token) {
+            validateToken();
+        } else {
+            setIsLoading(false);
+        }
+    }, [token]);
+
+    const validateToken = async (pwd?: string) => {
+        setIsLoading(true);
+        try {
+            // 1. Validate Token (Post to validation endpoint)
+            await db.validateShareToken(token!, pwd);
+
+            // 2. Fetch Project Data
+            const projectData = await db.getSharedProject(token!);
+            const docsData = await db.getSharedDocuments(token!);
+
+            setProject(projectData);
+            setDocuments(docsData);
+            setIsAuthenticated(true);
+            setIsPasswordRequired(false);
+        } catch (error: any) {
+            console.error(error);
+            if (error.message === 'PASSWORD_REQUIRED') {
+                setIsPasswordRequired(true);
+            } else {
+                addToast(error.message || 'Invalid or expired link', 'error');
+            }
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handlePasswordSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        validateToken(password);
+    };
+
+    if (isLoading) {
         return (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-zinc-50">
+            <div className="flex items-center justify-center h-screen bg-zinc-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0f5c82]"></div>
+            </div>
+        );
+    }
+
+    if (isPasswordRequired && !isAuthenticated) {
+        return (
+            <div className="flex items-center justify-center h-screen bg-zinc-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full border border-zinc-200">
+                    <div className="text-center mb-6">
+                        <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-[#0f5c82]">
+                            <Lock size={32} />
+                        </div>
+                        <h2 className="text-2xl font-bold text-zinc-900">Protected Project</h2>
+                        <p className="text-zinc-500 mt-2">This shared project is password protected.</p>
+                    </div>
+                    <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                        <input
+                            type="password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Enter password"
+                            className="w-full px-4 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-[#0f5c82] outline-none"
+                            autoFocus
+                        />
+                        <button
+                            type="submit"
+                            disabled={!password}
+                            className="w-full bg-[#0f5c82] text-white py-3 rounded-xl font-bold hover:bg-[#0c4a6e] transition-colors disabled:opacity-50"
+                        >
+                            Access Project
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
+
+    if (!project) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen p-8 text-center bg-zinc-50">
                 <Building2 size={64} className="text-zinc-300 mb-4" />
-                <h2 className="text-2xl font-bold text-zinc-800">No Projects Assigned</h2>
-                <p className="text-zinc-500 mt-2">Please contact your project manager to get access.</p>
-                <button onClick={logout} className="mt-6 px-6 py-2 bg-zinc-200 hover:bg-zinc-300 rounded-lg text-sm text-zinc-700 font-medium">
-                    Sign Out
-                </button>
+                <h2 className="text-2xl font-bold text-zinc-800">Project Not Found</h2>
+                <p className="text-zinc-500 mt-2">The link may be invalid or expired.</p>
             </div>
         );
     }
 
     return (
-        <div className="flex-1 bg-zinc-50 h-full overflow-y-auto flex flex-col">
+        <div className="flex-1 bg-zinc-50 h-screen overflow-y-auto flex flex-col">
             {/* Client Header */}
             <header className="bg-white border-b border-zinc-200 px-6 lg:px-8 py-4 sticky top-0 z-20 shadow-sm flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="w-10 h-10 bg-[#0f5c82] rounded-lg flex items-center justify-center text-white font-bold shadow-md shadow-blue-200">
-                        {currentTenant?.name?.[0] || 'B'}
+                        {project.name.charAt(0)}
                     </div>
                     <div>
-                        <h1 className="text-lg font-bold text-zinc-900 leading-tight">{assignedProject.name}</h1>
+                        <h1 className="text-lg font-bold text-zinc-900 leading-tight">{project.name}</h1>
                         <p className="text-zinc-500 text-xs flex items-center gap-1">
-                            <Building2 size={10} /> {assignedProject.location}
+                            <Building2 size={10} /> {project.location || 'Site Location'}
                         </p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button className="p-2 text-zinc-400 hover:text-[#0f5c82] hover:bg-blue-50 rounded-full transition-all relative">
-                        <Bell size={20} />
-                        <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white" />
-                    </button>
-                    <div className="h-8 w-px bg-zinc-100 hidden sm:block" />
-                    <div className="flex items-center gap-3">
-                        <div className="text-right hidden sm:block">
-                            <div className="text-sm font-bold text-zinc-900">{user?.name}</div>
-                            <div className="text-xs text-zinc-400">Client Account</div>
-                        </div>
-                        <button
-                            onClick={logout}
-                            className="w-9 h-9 bg-zinc-100 rounded-full flex items-center justify-center text-zinc-500 hover:bg-red-50 hover:text-red-500 transition-colors"
-                            title="Sign Out"
-                        >
-                            <X size={16} />
-                        </button>
+                    <div className="text-xs text-zinc-400 bg-zinc-100 px-3 py-1.5 rounded-full font-medium flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        Client View
                     </div>
                 </div>
             </header>
@@ -82,16 +147,8 @@ const ClientPortalView: React.FC<ClientPortalViewProps> = ({ setPage }) => {
                         <div>
                             <h2 className="text-2xl font-bold mb-2">Project Overview</h2>
                             <p className="text-blue-100 max-w-lg">
-                                Welcome to your dedicated client portal. Track real-time progress, review documents, and stay connected with the project team.
+                                Use this portal to track real-time progress, review documents, and stay up to date.
                             </p>
-                        </div>
-                        <div className="flex gap-3">
-                            <button className="bg-white text-[#0f5c82] hover:bg-blue-50 px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg">
-                                View Latest Report
-                            </button>
-                            <button className="bg-[#0f5c82] border border-white/30 hover:bg-[#0c4a6e] px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                                <MessageSquare size={16} /> Contact Manager
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -100,27 +157,22 @@ const ClientPortalView: React.FC<ClientPortalViewProps> = ({ setPage }) => {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm">
                         <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Completion</div>
-                        <div className="text-3xl font-black text-zinc-900">{assignedProject.progress}%</div>
+                        <div className="text-3xl font-black text-zinc-900">{project.progress || 0}%</div>
                         <div className="w-full bg-zinc-100 h-1.5 rounded-full mt-3 overflow-hidden">
-                            <div className="bg-green-500 h-full" style={{ width: `${assignedProject.progress}%` }} />
+                            <div className="bg-green-500 h-full" style={{ width: `${project.progress || 0}%` }} />
                         </div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm">
-                        <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Active Tasks</div>
-                        <div className="text-3xl font-black text-[#0f5c82]">12</div>
-                        <div className="text-xs text-green-600 font-bold mt-2 flex items-center gap-1">
-                            <CheckCircle2 size={12} /> 4 completed this week
-                        </div>
+                        <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Status</div>
+                        <div className="text-xl font-black text-[#0f5c82]">{project.status}</div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm">
-                        <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Pending RFI</div>
-                        <div className="text-3xl font-black text-orange-500">2</div>
-                        <div className="text-xs text-zinc-400 font-bold mt-2">Requires attention</div>
+                        <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Start Date</div>
+                        <div className="text-lg font-bold text-zinc-700">{project.startDate || 'TBD'}</div>
                     </div>
                     <div className="bg-white p-5 rounded-2xl border border-zinc-100 shadow-sm">
-                        <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">Project Health</div>
-                        <div className="text-3xl font-black text-green-600">Good</div>
-                        <div className="text-xs text-zinc-400 font-bold mt-2">On Schedule, On Budget</div>
+                        <div className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-2">End Date</div>
+                        <div className="text-lg font-bold text-zinc-700">{project.endDate || 'TBD'}</div>
                     </div>
                 </div>
 
@@ -128,125 +180,59 @@ const ClientPortalView: React.FC<ClientPortalViewProps> = ({ setPage }) => {
                     {/* Main Feed */}
                     <div className="lg:col-span-2 space-y-6">
 
-                        {/* Visual Timeline */}
+                        {/* Recent Photos */}
                         <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
                             <h3 className="font-bold text-zinc-900 mb-6 flex items-center gap-2">
-                                <Calendar size={20} className="text-[#0f5c82]" /> Phase Progress
+                                <CheckCircle2 size={20} className="text-[#0f5c82]" /> Project Imagery
                             </h3>
-                            <div className="space-y-6">
-                                <div className="relative pl-8 border-l-2 border-green-500 pb-6">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-green-500 border-2 border-white shadow-sm" />
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold text-zinc-900">Foundation & Structure</span>
-                                        <span className="text-green-600 text-xs font-bold bg-green-50 px-2 py-1 rounded-full">COMPLETED</span>
-                                    </div>
-                                    <p className="text-sm text-zinc-500">All concrete pouring and curing completed. Structural integrity inspection passed.</p>
-                                </div>
-                                <div className="relative pl-8 border-l-2 border-[#0f5c82] pb-6">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-[#0f5c82] border-2 border-white shadow-sm animate-pulse" />
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold text-zinc-900">MEP Rough-in</span>
-                                        <span className="text-[#0f5c82] text-xs font-bold bg-blue-50 px-2 py-1 rounded-full">IN PROGRESS (85%)</span>
-                                    </div>
-                                    <p className="text-sm text-zinc-500">HVAC ductwork 90% complete. Electrical wiring ongoing in Sector B.</p>
-                                </div>
-                                <div className="relative pl-8 border-l-2 border-zinc-200">
-                                    <div className="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-zinc-200 border-2 border-white" />
-                                    <div className="flex justify-between items-start mb-2">
-                                        <span className="font-bold text-zinc-400">Interior Finishes</span>
-                                        <span className="text-zinc-400 text-xs font-bold bg-zinc-50 px-2 py-1 rounded-full">UPCOMING</span>
-                                    </div>
-                                    <p className="text-sm text-zinc-400">Expected start date: Oct 15th, 2025.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Recent Updates */}
-                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="font-bold text-zinc-900 flex items-center gap-2">
-                                    <AlertCircle size={20} className="text-[#0f5c82]" /> Site Feed
-                                </h3>
-                                <button className="text-xs font-bold text-[#0f5c82] hover:underline">View All</button>
-                            </div>
-                            <div className="space-y-4">
-                                {[1, 2, 3].map((i) => (
-                                    <div key={i} className="flex gap-4 p-4 hover:bg-zinc-50 rounded-xl transition-colors border border-zinc-100 hover:border-zinc-200 group cursor-pointer">
-                                        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0 text-[#0f5c82] group-hover:scale-105 transition-transform">
-                                            <FileText size={20} />
+                            {documents.filter(d => d.type === 'Image').length > 0 ? (
+                                <div className="grid grid-cols-3 gap-4">
+                                    {documents.filter(d => d.type === 'Image').slice(0, 6).map((photo) => (
+                                        <div key={photo.id} className="aspect-square rounded-lg bg-zinc-100 border border-zinc-200 overflow-hidden relative group">
+                                            {photo.url ? (
+                                                <img src={photo.url} alt={photo.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-zinc-300">No Img</div>
+                                            )}
                                         </div>
-                                        <div>
-                                            <div className="flex items-baseline gap-2 mb-1">
-                                                <span className="font-bold text-zinc-900 text-sm">Daily Log Report #{20240900 + i}</span>
-                                                <span className="text-xs text-zinc-400">• 2h ago</span>
-                                            </div>
-                                            <p className="text-sm text-zinc-600 line-clamp-2 mb-2">
-                                                Structure completed for level 3. HVAC rough-in ongoing in sector B. No safety incidents reported.
-                                            </p>
-                                            <div className="flex items-center gap-2">
-                                                <span className="px-2 py-0.5 bg-zinc-100 text-zinc-500 text-[10px] font-bold uppercase rounded">Daily Log</span>
-                                                <span className="px-2 py-0.5 bg-green-50 text-green-600 text-[10px] font-bold uppercase rounded">Verified</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-zinc-500 text-sm">No photos available.</p>
+                            )}
                         </div>
-
                     </div>
 
                     {/* Sidebar Widgets */}
                     <div className="space-y-6">
-
                         {/* Documents */}
                         <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
                             <h3 className="font-bold text-zinc-900 mb-4 flex items-center gap-2">
                                 <Download size={18} className="text-zinc-400" /> Shared Documents
                             </h3>
                             <div className="space-y-3">
-                                {['Contract_v2_Signed.pdf', 'Floor_Plans_May2024.pdf', 'Insurance_Cert.pdf', 'Change_Order_004.pdf'].map((doc) => (
-                                    <div key={doc} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg text-sm group cursor-pointer hover:bg-zinc-100 hover:shadow-sm border border-transparent hover:border-zinc-200 transition-all">
-                                        <div className="flex items-center gap-3 overflow-hidden">
-                                            <div className="p-1.5 bg-white rounded border border-zinc-200 text-red-500">
-                                                <FileText size={12} />
+                                {documents.filter(d => d.type !== 'Image').length > 0 ? (
+                                    documents.filter(d => d.type !== 'Image').map((doc) => (
+                                        <div key={doc.id} className="flex items-center justify-between p-3 bg-zinc-50 rounded-lg text-sm group cursor-pointer hover:bg-zinc-100 hover:shadow-sm border border-transparent hover:border-zinc-200 transition-all">
+                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                <div className="p-1.5 bg-white rounded border border-zinc-200 text-red-500">
+                                                    <FileText size={12} />
+                                                </div>
+                                                <div className="truncate">
+                                                    <span className="block truncate text-zinc-700 group-hover:text-zinc-900 font-medium">{doc.name}</span>
+                                                    <span className="text-[10px] text-zinc-400">{doc.date}</span>
+                                                </div>
                                             </div>
-                                            <span className="truncate text-zinc-700 group-hover:text-zinc-900 font-medium">{doc}</span>
+                                            <a href={doc.url} download className="p-1 text-zinc-300 group-hover:text-[#0f5c82]">
+                                                <Download size={14} />
+                                            </a>
                                         </div>
-                                        <Download size={14} className="text-zinc-300 group-hover:text-[#0f5c82]" />
-                                    </div>
-                                ))}
-                            </div>
-                            <button className="w-full mt-4 py-2.5 text-xs font-bold text-zinc-500 border border-zinc-200 rounded-lg hover:bg-zinc-50 hover:text-zinc-900 transition-colors">
-                                View All Documents
-                            </button>
-                        </div>
-
-                        {/* Financial Summary */}
-                        <div className="bg-white p-6 rounded-2xl border border-zinc-200 shadow-sm">
-                            <h3 className="font-bold text-zinc-900 mb-4 flex items-center gap-2">
-                                <Clock size={18} className="text-zinc-400" /> Financial Snapshot
-                            </h3>
-                            <div className="space-y-4">
-                                <div className="p-4 bg-green-50/50 rounded-xl border border-green-100">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div className="text-xs text-green-600 font-bold uppercase">Total Paid</div>
-                                        <CheckCircle2 size={12} className="text-green-600" />
-                                    </div>
-                                    <div className="text-2xl font-black text-green-700">£1.2M</div>
-                                </div>
-                                <div className="p-4 bg-orange-50/50 rounded-xl border border-orange-100">
-                                    <div className="flex justify-between items-center mb-1">
-                                        <div className="text-xs text-orange-600 font-bold uppercase">Pending Invoices</div>
-                                        <Clock size={12} className="text-orange-500" />
-                                    </div>
-                                    <div className="text-2xl font-black text-orange-700">£45k</div>
-                                    <div className="mt-2 text-[10px] font-medium text-orange-600 bg-white/50 px-2 py-1 rounded inline-block">
-                                        Due in 5 days
-                                    </div>
-                                </div>
+                                    ))
+                                ) : (
+                                    <p className="text-zinc-500 text-sm italic">No documents shared.</p>
+                                )}
                             </div>
                         </div>
-
                     </div>
                 </div>
             </main>

@@ -7,12 +7,17 @@ import { useTenant } from '@/contexts/TenantContext';
 interface AuthContextType {
   user: UserProfile | null;
   login: (email: string, password: string) => Promise<{ user: UserProfile | null; error: Error | null }>;
+  signup: (email: string, password: string, name: string, companyName: string) => Promise<{ user: UserProfile | null; error: Error | null }>;
   logout: () => void;
+
   hasPermission: (permission: string) => boolean;
   addProjectId: (id: string) => void;
   refreshPermissions: () => Promise<void>;
   isSupabaseConnected: boolean;
   token: string | null;
+  impersonateUser: (userId: string) => Promise<void>;
+  stopImpersonating: () => void;
+  isImpersonating: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,6 +35,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [token, setToken] = useState<string | null>(null);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState(false);
   const [isFetchingPermissions, setIsFetchingPermissions] = useState(false);
+
+  const [originalSession, setOriginalSession] = useState<{ user: UserProfile; token: string } | null>(null);
 
   const { tenant } = useTenant();
 
@@ -141,29 +148,101 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Return fresh user directly to caller
       return { user: newUser, error: null };
     } catch (e: any) {
-      console.error("Login exception:", e);
-      console.log("Dev Fallback Check:", { isDev: import.meta.env.DEV, email, passwordMatches: password === 'password' });
+      return { user: null, error: e };
+    }
+  };
 
-      // DEV FALLBACK: If Supabase fails (e.g., user not in Auth), allow demo user
-      if (import.meta.env.DEV && email === 'demo@buildpro.app' && password === 'password') {
-        console.warn("Using DEV fallback for Demo User");
-        const demoUser: UserProfile = {
-          id: 'demo-user',
-          name: 'Demo User',
-          email: 'demo@buildpro.app',
-          phone: '',
-          role: UserRole.SUPERADMIN,
-          permissions: ['*'],
-          memberships: [],
-          avatarInitials: 'D',
-          companyId: 'c1',
-          projectIds: []
-        };
-        setUser(demoUser);
-        return { user: demoUser, error: null };
+  const signup = async (email: string, password: string, name: string, companyName: string) => {
+    try {
+      // 1. Supabase Sign Up
+      const { data: { user: authUser, session }, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            company_name: companyName,
+            role: UserRole.COMPANY_ADMIN // Initial user is admin of their company
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (!authUser) throw new Error("No user returned from Supabase SignUp");
+
+      // 2. Sync with Backend
+      if (session) {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`
+          },
+          body: JSON.stringify({
+            userId: authUser.id,
+            email,
+            name,
+            companyName
+          })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Backend registration failed');
+        }
+        setToken(session.access_token);
+      } else {
+        console.log("User registered but no session (confirm email?).");
+        return { user: null, error: new Error("Please check your email to confirm your account.") };
       }
 
+      // 3. Map User
+      const newUser: UserProfile = {
+        id: authUser.id,
+        name: name,
+        email: email,
+        phone: '',
+        role: UserRole.COMPANY_ADMIN,
+        permissions: [],
+        memberships: [],
+        avatarInitials: name[0].toUpperCase(),
+        companyId: 'pending',
+        projectIds: []
+      };
+
+      setUser(newUser);
+      return { user: newUser, error: null };
+
+    } catch (e: any) {
+      console.error("Signup exception:", e);
       return { user: null, error: e };
+    }
+  };
+
+  const impersonateUser = async (userId: string) => {
+    if (!user || user.role !== UserRole.SUPERADMIN) throw new Error("Unauthorized");
+
+    try {
+      const { user: impersonatedUser, token: newToken } = await db.impersonateUser(userId);
+      // Save original session
+      if (!originalSession) {
+        setOriginalSession({ user, token: token || '' });
+      }
+
+      setUser(impersonatedUser);
+      setToken(newToken);
+      // Note: We don't update Supabase session here to avoid side effects, strictly local state override
+    } catch (e) {
+      console.error("Impersonation failed:", e);
+      throw e;
+    }
+  };
+
+  const stopImpersonating = () => {
+    if (originalSession) {
+      setUser(originalSession.user);
+      setToken(originalSession.token);
+      setOriginalSession(null);
     }
   };
 
@@ -175,6 +254,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     // 2. Clear Local State
     setUser(null);
+    setToken(null);
+    setOriginalSession(null);
 
     // 3. Clear Storage (Clean Slate)
     localStorage.removeItem('sb-access-token');
@@ -213,7 +294,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasPermission, addProjectId, refreshPermissions, isSupabaseConnected, token }}>
+    <AuthContext.Provider value={{
+      user,
+      login,
+      signup,
+      logout,
+      hasPermission,
+      addProjectId,
+      refreshPermissions,
+      isSupabaseConnected,
+      token,
+      impersonateUser,
+      stopImpersonating,
+      isImpersonating: !!originalSession
+    }}>
       {children}
     </AuthContext.Provider>
   );
