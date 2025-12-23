@@ -25,17 +25,17 @@ const PlatformMembersView: React.FC = () => {
         member.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const getRoleBadgeColor = (role: string) => {
-        const colors: Record<string, string> = {
-            SUPERADMIN: 'purple',
-            COMPANY_ADMIN: 'blue',
-            PROJECT_MANAGER: 'green',
-            FINANCE: 'yellow',
-            SUPERVISOR: 'orange',
-            OPERATIVE: 'gray',
-            READ_ONLY: 'zinc',
+    const getRoleBadgeStyles = (role: string) => {
+        const styles: Record<string, string> = {
+            SUPERADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+            COMPANY_ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+            PROJECT_MANAGER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+            FINANCE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+            SUPERVISOR: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+            OPERATIVE: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
+            READ_ONLY: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
         };
-        return colors[role] || 'gray';
+        return styles[role] || 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300';
     };
 
     const stats = [
@@ -142,8 +142,6 @@ const PlatformMembersView: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
                             {filteredMembers.map((member, idx) => {
-                                const roleColor = getRoleBadgeColor(member.role || 'READ_ONLY');
-
                                 return (
                                     <tr
                                         key={`${member.companyId}-${member.id || idx}`}
@@ -173,7 +171,7 @@ const PlatformMembersView: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-medium bg-${roleColor}-100 dark:bg-${roleColor}-900/30 text-${roleColor}-800 dark:text-${roleColor}-300 rounded-full`}>
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getRoleBadgeStyles(member.role || 'READ_ONLY')}`}>
                                                 {member.role || 'READ_ONLY'}
                                             </span>
                                         </td>

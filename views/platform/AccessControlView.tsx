@@ -81,7 +81,7 @@ const AccessControlView: React.FC = () => {
         if (!selectedRole) return;
         try {
             const payload = rolePermissions.map(p => {
-                const [resource, action] = p.split(':');
+                const [resource, action] = p.split('.');
                 return { id: p, resource, action };
             });
 

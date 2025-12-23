@@ -105,13 +105,13 @@ const SystemLogsView: React.FC = () => {
     // Get unique actions for filter dropdown
     const uniqueActions = ['ALL', ...Array.from(new Set(logs.map(log => log.action)))];
 
-    const getSeverityColor = (severity: string) => {
-        const colors: Record<string, string> = {
-            info: 'blue',
-            warning: 'yellow',
-            error: 'red',
+    const getSeverityStyles = (severity: string) => {
+        const styles: Record<string, string> = {
+            info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+            warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+            error: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
         };
-        return colors[severity] || 'gray';
+        return styles[severity] || 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300';
     };
 
     const handleExport = () => {
@@ -284,7 +284,6 @@ const SystemLogsView: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
                             {displayedLogs.map((log) => {
-                                const severityColor = getSeverityColor(log.severity);
                                 return (
                                     <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
@@ -299,6 +298,11 @@ const SystemLogsView: React.FC = () => {
                                                     {log.userId || 'System'}
                                                 </span>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getSeverityStyles(log.severity)}`}>
+                                                {log.severity}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action.includes('DELETE') || log.action.includes('SUSPEND') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
@@ -365,8 +369,8 @@ const SystemLogsView: React.FC = () => {
                         <div className="bg-zinc-900 p-4 text-white flex justify-between items-center">
                             <div className="flex items-center gap-3">
                                 <div className={`p-2 rounded-lg ${selectedLog.severity === 'error' ? 'bg-red-500/20 text-red-400' :
-                                        selectedLog.severity === 'warning' ? 'bg-amber-500/20 text-amber-400' :
-                                            'bg-blue-500/20 text-blue-400'
+                                    selectedLog.severity === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                                        'bg-blue-500/20 text-blue-400'
                                     }`}>
                                     <FileJson className="w-5 h-5" />
                                 </div>
@@ -396,8 +400,8 @@ const SystemLogsView: React.FC = () => {
                                 <div>
                                     <label className="text-[10px] font-bold text-zinc-400 uppercase">Severity</label>
                                     <p className={`text-sm font-bold uppercase ${selectedLog.severity === 'error' ? 'text-red-500' :
-                                            selectedLog.severity === 'warning' ? 'text-amber-500' :
-                                                'text-blue-500'
+                                        selectedLog.severity === 'warning' ? 'text-amber-500' :
+                                            'text-blue-500'
                                         }`}>{selectedLog.severity}</p>
                                 </div>
                             </div>

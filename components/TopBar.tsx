@@ -227,10 +227,6 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
             <TenantSelector />
           </div>
 
-          <div className="hidden lg:block">
-            <TenantSelector />
-          </div>
-
           <NotificationBell />
 
           <button
