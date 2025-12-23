@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, DollarSign, AlertTriangle, CheckCircle, Users } from 'lucide-react';
-import api from '@/services/api';
+import { db } from '@/services/db';
 
 interface ExecutiveKPIs {
     activeProjects: number;
@@ -28,8 +28,8 @@ export const ExecutiveDashboard: React.FC = () => {
 
     const loadKPIs = async () => {
         try {
-            const response = await api.get('/analytics/kpis');
-            setKpis(response.data);
+            const data = await db.getKPIs();
+            setKpis(data);
         } catch (error) {
             console.error('Failed to load KPIs:', error);
         } finally {

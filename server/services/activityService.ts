@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import { Request, Response } from 'express';
 import { getDb } from '../database.js';
 
@@ -24,12 +25,12 @@ export const logActivity = async (
         const { v4: uuidv4 } = await import('uuid');
         const id = uuidv4();
 
-        db.prepare(`
+        await db.run(`
       INSERT INTO activity_feed (
         id, company_id, project_id, user_id, user_name,
         action, entity_type, entity_id, metadata, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `, [
             id,
             companyId,
             projectId,
@@ -40,7 +41,7 @@ export const logActivity = async (
             entityId,
             metadata ? JSON.stringify(metadata) : null,
             new Date().toISOString()
-        );
+        ]);
     } catch (error: any) {
         console.error('Failed to log activity:', error.message);
     }
@@ -63,18 +64,18 @@ export const getActivityFeed = async (req: Request, res: Response) => {
 
         if (projectId) {
             query += ' AND project_id = ?';
-            params.push(projectId);
+            params.push(projectId as string);
         }
 
         if (entityType) {
             query += ' AND entity_type = ?';
-            params.push(entityType);
+            params.push(entityType as string);
         }
 
         query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
         params.push(Number(limit), Number(offset));
 
-        const activities = db.prepare(query).all(...params);
+        const activities = await db.all(query, params);
 
         // Parse metadata
         const parsedActivities = activities.map((activity: any) => ({
@@ -97,12 +98,12 @@ export const getEntityActivity = async (req: Request, res: Response) => {
         const companyId = req.tenantId;
         const { entityType, entityId } = req.params;
 
-        const activities = db.prepare(`
+        const activities = await db.all(`
       SELECT * FROM activity_feed
       WHERE company_id = ? AND entity_type = ? AND entity_id = ?
       ORDER BY created_at DESC
       LIMIT 100
-    `).all(companyId, entityType, entityId);
+    `, [companyId, entityType, entityId]);
 
         // Parse metadata
         const parsedActivities = activities.map((activity: any) => ({

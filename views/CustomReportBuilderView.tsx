@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Download, Calendar, DollarSign, Users, TrendingUp, Filter, X } from 'lucide-react';
-import api from '@/services/api';
+import { db } from '@/services/db';
 
 interface ReportConfig {
     name: string;
@@ -44,10 +44,8 @@ export const CustomReportBuilder: React.FC = () => {
         setGenerating(true);
         try {
             // In a real implementation, this would call the analytics API
-            const response = await api.get('/analytics/custom-report', {
-                params: reportConfig,
-            });
-            setPreview(response.data);
+            const data = await db.getCustomReport(reportConfig);
+            setPreview(data);
         } catch (error) {
             console.error('Failed to generate report:', error);
             // Generate mock data for demonstration
@@ -107,8 +105,8 @@ export const CustomReportBuilder: React.FC = () => {
                                     key={type.value}
                                     onClick={() => setReportConfig({ ...reportConfig, type: type.value as any, metrics: [] })}
                                     className={`p-4 rounded-lg border-2 transition ${reportConfig.type === type.value
-                                            ? 'border-blue-500 bg-blue-50'
-                                            : 'border-zinc-200 hover:border-zinc-300'
+                                        ? 'border-blue-500 bg-blue-50'
+                                        : 'border-zinc-200 hover:border-zinc-300'
                                         }`}
                                 >
                                     <type.icon className={`w-6 h-6 mx-auto mb-2 ${reportConfig.type === type.value ? 'text-blue-600' : 'text-zinc-600'

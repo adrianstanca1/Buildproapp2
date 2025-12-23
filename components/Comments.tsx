@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, Trash2, Edit3, X, AtSign } from 'lucide-react';
-import api from '@/services/api';
+import { db } from '@/services/db';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Comment {
@@ -35,10 +35,8 @@ export const Comments: React.FC<CommentsProps> = ({ entityType, entityId, onComm
 
     const loadComments = async () => {
         try {
-            const response = await api.get('/comments', {
-                params: { entityType, entityId }
-            });
-            setComments(response.data || []);
+            const data = await db.getComments(entityType, entityId);
+            setComments(data);
         } catch (error) {
             console.error('Failed to load comments:', error);
         }
@@ -53,7 +51,7 @@ export const Comments: React.FC<CommentsProps> = ({ entityType, entityId, onComm
             // Extract @mentions from content
             const mentions = extractMentions(newComment);
 
-            await api.post('/comments', {
+            await db.addComment({
                 entityType,
                 entityId,
                 content: newComment,
@@ -74,9 +72,7 @@ export const Comments: React.FC<CommentsProps> = ({ entityType, entityId, onComm
         if (!editContent.trim()) return;
 
         try {
-            await api.put(`/comments/${commentId}`, {
-                content: editContent,
-            });
+            await db.updateComment(commentId, editContent);
 
             setEditingId(null);
             setEditContent('');
@@ -90,7 +86,7 @@ export const Comments: React.FC<CommentsProps> = ({ entityType, entityId, onComm
         if (!confirm('Delete this comment?')) return;
 
         try {
-            await api.delete(`/comments/${commentId}`);
+            await db.deleteComment(commentId);
             await loadComments();
         } catch (error) {
             console.error('Failed to delete comment:', error);

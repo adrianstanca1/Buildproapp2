@@ -1,8 +1,8 @@
-
+/// <reference path="../types/express.d.ts" />
 import { Request, Response } from 'express';
 import { getDb } from '../database.js';
 
-export const getCostCodes = (req: Request, res: Response) => {
+export const getCostCodes = async (req: Request, res: Response) => {
     try {
         const { projectId } = req.query;
 
@@ -21,7 +21,7 @@ export const getCostCodes = (req: Request, res: Response) => {
         }
 
         const db = getDb();
-        const codes = db.prepare(query).all(...params);
+        const codes = await db.all(query, params);
 
         const mapped = codes.map((c: any) => ({
             id: c.id,
@@ -40,19 +40,17 @@ export const getCostCodes = (req: Request, res: Response) => {
     }
 };
 
-export const createCostCode = (req: Request, res: Response) => {
+export const createCostCode = async (req: Request, res: Response) => {
     try {
         const { projectId, code, description, budget, spent } = req.body;
         const id = req.body.id || `cc-${Date.now()}`;
         const companyId = req.user?.companyId || 'c1';
 
         const db = getDb();
-        const stmt = db.prepare(`
+        await db.run(`
       INSERT INTO cost_codes (id, project_id, company_id, code, description, budget, spent)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-
-        stmt.run(id, projectId, companyId, code, description, budget, spent || 0);
+    `, [id, projectId, companyId, code, description, budget, spent || 0]);
 
         res.json({
             id, projectId, companyId, code, description, budget, spent: spent || 0
@@ -63,7 +61,7 @@ export const createCostCode = (req: Request, res: Response) => {
     }
 };
 
-export const updateCostCode = (req: Request, res: Response) => {
+export const updateCostCode = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updates = req.body;
@@ -81,8 +79,8 @@ export const updateCostCode = (req: Request, res: Response) => {
         if (setParts.length === 0) return res.json({ success: true });
 
         const db = getDb();
-        const stmt = db.prepare(`UPDATE cost_codes SET ${setParts.join(', ')} WHERE id = ?`);
-        stmt.run(...values, id);
+        values.push(id);
+        await db.run(`UPDATE cost_codes SET ${setParts.join(', ')} WHERE id = ?`, values);
 
         res.json({ success: true });
     } catch (error) {

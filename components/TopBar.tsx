@@ -28,7 +28,7 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { projects, tasks, teamMembers, defects, safetyIncidents } = useProjects();
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   // Search State
   const [searchQuery, setSearchQuery] = useState('');

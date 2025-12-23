@@ -1,17 +1,17 @@
-
+/// <reference path="../types/express.d.ts" />
 import { Request, Response } from 'express';
 import { getDb } from '../database.js';
 
-export const getVendors = (req: Request, res: Response) => {
+export const getVendors = async (req: Request, res: Response) => {
     try {
         const filters: any = {};
         if (req.query.companyId) filters.company_id = req.query.companyId;
 
         const db = getDb();
-        const vendors = db.prepare(`
+        const vendors = await db.all(`
       SELECT * FROM vendors
-      WHERE company_id = @companyId OR company_id IS NULL
-    `).all({ companyId: req.user?.companyId || 'c1' });
+      WHERE company_id = ? OR company_id IS NULL
+    `, [req.user?.companyId || 'c1']);
 
         // Map snake_case to camelCase
         const mapped = vendors.map((v: any) => ({
@@ -33,7 +33,7 @@ export const getVendors = (req: Request, res: Response) => {
     }
 };
 
-export const createVendor = (req: Request, res: Response) => {
+export const createVendor = async (req: Request, res: Response) => {
     try {
         const { name, category, contact, email, phone, rating, status, companyId } = req.body;
         const id = req.body.id || `v-${Date.now()}`;
@@ -42,12 +42,10 @@ export const createVendor = (req: Request, res: Response) => {
         const userCompanyId = companyId || req.user?.companyId || 'c1';
 
         const db = getDb();
-        const stmt = db.prepare(`
+        await db.run(`
       INSERT INTO vendors (id, name, category, contact, email, phone, rating, status, company_id)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-        stmt.run(id, name, category, contact, email, phone, rating, status, userCompanyId);
+    `, [id, name, category, contact, email, phone, rating, status, userCompanyId]);
 
         res.json({
             id, name, category, contact, email, phone, rating, status, companyId: userCompanyId
@@ -58,7 +56,7 @@ export const createVendor = (req: Request, res: Response) => {
     }
 };
 
-export const updateVendor = (req: Request, res: Response) => {
+export const updateVendor = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         const updates = req.body;
@@ -67,19 +65,19 @@ export const updateVendor = (req: Request, res: Response) => {
         const fields = Object.keys(updates).filter(key => key !== 'id' && key !== 'companyId');
         if (fields.length === 0) return res.json({ success: true });
 
-        // Rename camelCase to snake_case for specific fields if needed, mostly consistent here
-        // companyId -> company_id
+        // Rename camelCase to snake_case for specific fields if needed
         if (updates.companyId) {
             fields.push('company_id');
             updates.company_id = updates.companyId;
+            // Remove 'companyId' from fields if present (it was filtered out above but logic check)
         }
 
         const setClause = fields.map(field => `${field} = ?`).join(', ');
-        const values = fields.map(field => updates[field]); // Use original or mapped keys
+        const values = fields.map(field => updates[field]);
 
         const db = getDb();
-        const stmt = db.prepare(`UPDATE vendors SET ${setClause} WHERE id = ?`);
-        stmt.run(...values, id);
+        values.push(id);
+        await db.run(`UPDATE vendors SET ${setClause} WHERE id = ?`, values);
 
         res.json({ success: true });
     } catch (error) {

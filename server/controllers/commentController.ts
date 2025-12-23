@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import { Request, Response } from 'express';
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,11 +18,11 @@ export const getComments = async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'entityType and entityId are required' });
         }
 
-        const comments = db.prepare(`
+        const comments = await db.all(`
       SELECT * FROM comments
       WHERE company_id = ? AND entity_type = ? AND entity_id = ?
       ORDER BY created_at ASC
-    `).all(companyId, entityType, entityId);
+    `, [companyId, entityType, entityId]);
 
         // Parse JSON fields
         const parsedComments = comments.map((comment: any) => ({
@@ -50,12 +51,12 @@ export const createComment = async (req: Request, res: Response) => {
         const userName = req.userName;
         const id = uuidv4();
 
-        db.prepare(`
+        await db.run(`
       INSERT INTO comments (
         id, company_id, entity_type, entity_id, user_id, user_name,
         parent_id, content, mentions, attachments, created_at
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `, [
             id,
             companyId,
             validatedData.entityType,
@@ -67,7 +68,7 @@ export const createComment = async (req: Request, res: Response) => {
             validatedData.mentions ? JSON.stringify(validatedData.mentions) : null,
             validatedData.attachments ? JSON.stringify(validatedData.attachments) : null,
             new Date().toISOString()
-        );
+        ]);
 
         // Send notifications to mentioned users
         if (validatedData.mentions && validatedData.mentions.length > 0) {
@@ -75,18 +76,15 @@ export const createComment = async (req: Request, res: Response) => {
                 await sendNotification(
                     companyId,
                     mentionedUserId,
-                    'mention',
+                    'info',
+                    'New Mention',
                     `${userName} mentioned you in a comment`,
-                    {
-                        entityType: validatedData.entityType,
-                        entityId: validatedData.entityId,
-                        commentId: id,
-                    }
+                    `/${validatedData.entityType}s/${validatedData.entityId}`
                 );
             }
         }
 
-        const comment = db.prepare('SELECT * FROM comments WHERE id = ?').get(id);
+        const comment = await db.get('SELECT * FROM comments WHERE id = ?', [id]);
         res.json(comment);
     } catch (error: any) {
         if (error.name === 'ZodError') {
@@ -108,21 +106,21 @@ export const updateComment = async (req: Request, res: Response) => {
         const { content } = req.body;
 
         // Verify the comment belongs to the user
-        const existingComment = db.prepare(`
+        const existingComment = await db.get(`
       SELECT * FROM comments WHERE id = ? AND company_id = ? AND user_id = ?
-    `).get(id, companyId, userId);
+    `, [id, companyId, userId]);
 
         if (!existingComment) {
             return res.status(404).json({ error: 'Comment not found or unauthorized' });
         }
 
-        db.prepare(`
+        await db.run(`
       UPDATE comments
       SET content = ?, updated_at = ?
       WHERE id = ?
-    `).run(content, new Date().toISOString(), id);
+    `, [content, new Date().toISOString(), id]);
 
-        const updatedComment = db.prepare('SELECT * FROM comments WHERE id = ?').get(id);
+        const updatedComment = await db.get('SELECT * FROM comments WHERE id = ?', [id]);
         res.json(updatedComment);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -140,15 +138,15 @@ export const deleteComment = async (req: Request, res: Response) => {
         const { id } = req.params;
 
         // Verify the comment belongs to the user
-        const existingComment = db.prepare(`
+        const existingComment = await db.get(`
       SELECT * FROM comments WHERE id = ? AND company_id = ? AND user_id = ?
-    `).get(id, companyId, userId);
+    `, [id, companyId, userId]);
 
         if (!existingComment) {
             return res.status(404).json({ error: 'Comment not found or unauthorized' });
         }
 
-        db.prepare('DELETE FROM comments WHERE id = ?').run(id);
+        await db.run('DELETE FROM comments WHERE id = ?', [id]);
         res.json({ message: 'Comment deleted successfully' });
     } catch (error: any) {
         res.status(500).json({ error: error.message });

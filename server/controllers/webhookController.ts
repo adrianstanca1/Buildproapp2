@@ -1,3 +1,4 @@
+/// <reference path="../types/express.d.ts" />
 import { Request, Response } from 'express';
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,12 +14,12 @@ export const getWebhooks = async (req: Request, res: Response) => {
         const db = getDb();
         const companyId = req.tenantId;
 
-        const webhooks = db.prepare(`
+        const webhooks = await db.all(`
       SELECT id, name, url, events, active, last_triggered
       FROM webhooks
       WHERE company_id = ?
       ORDER BY created_at DESC
-    `).all(companyId);
+    `, [companyId]);
 
         res.json(webhooks.map((w: any) => ({
             ...w,
@@ -39,10 +40,10 @@ export const createWebhook = async (req: Request, res: Response) => {
         const id = uuidv4();
         const secret = crypto.randomBytes(32).toString('hex');
 
-        db.prepare(`
+        await db.run(`
       INSERT INTO webhooks (id, company_id, name, url, events, secret, active, created_at)
       VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-    `).run(
+    `, [
             id,
             companyId,
             name,
@@ -50,9 +51,9 @@ export const createWebhook = async (req: Request, res: Response) => {
             JSON.stringify(events),
             secret,
             new Date().toISOString()
-        );
+        ]);
 
-        const webhook = db.prepare('SELECT * FROM webhooks WHERE id = ?').get(id);
+        const webhook = await db.get('SELECT * FROM webhooks WHERE id = ?', [id]);
         res.json(webhook);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -65,7 +66,7 @@ export const deleteWebhook = async (req: Request, res: Response) => {
         const companyId = req.tenantId;
         const { id } = req.params;
 
-        db.prepare('DELETE FROM webhooks WHERE id = ? AND company_id = ?').run(id, companyId);
+        await db.run('DELETE FROM webhooks WHERE id = ? AND company_id = ?', [id, companyId]);
         res.json({ message: 'Webhook deleted' });
     } catch (error: any) {
         res.status(500).json({ error: error.message });

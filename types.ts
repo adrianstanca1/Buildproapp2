@@ -401,6 +401,9 @@ export interface ProjectDocument {
   id: string;
   name: string;
   type: 'PDF' | 'Spreadsheet' | 'Document' | 'Image' | 'CAD' | 'Other';
+  externalId?: string;
+  number?: string;
+  version?: string;
   projectId: string;
   projectName?: string;
   size: string;

@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import api from '@/services/api';
+import { db } from '@/services/db';
 
 // ============================================================================
 // Procore Integration
@@ -86,7 +86,7 @@ export const useProcoreIntegration = (config: ProcoreConfig) => {
 
             // Sync to BuildPro
             for (const project of procoreProjects) {
-                await api.post('/projects', {
+                await db.syncProject({
                     name: project.name,
                     externalId: `procore_${project.id}`,
                     client: project.project_number,
@@ -217,11 +217,11 @@ export const usePlanGridIntegration = (config: PlanGridConfig) => {
 
             // Sync to BuildPro as documents
             for (const sheet of sheets.filter(s => !s.deleted)) {
-                await api.post('/documents', {
+                await db.addDocument({
                     name: sheet.name,
-                    type: 'Drawing',
+                    type: 'Other',
                     externalId: `plangrid_${sheet.uid}`,
-                    version: sheet.version_number,
+                    version: String(sheet.version_number),
                     number: sheet.number,
                 });
             }
@@ -293,9 +293,9 @@ export const useWebhookIntegration = () => {
         secret?: string;
     }) => {
         try {
-            const response = await api.post('/webhooks', config);
-            setWebhooks(prev => [...prev, response.data]);
-            return { success: true, webhook: response.data };
+            const webhook = await db.registerWebhook(config);
+            setWebhooks(prev => [...prev, webhook]);
+            return { success: true, webhook };
         } catch (error) {
             return { success: false, error: String(error) };
         }
@@ -306,7 +306,7 @@ export const useWebhookIntegration = () => {
      */
     const triggerWebhook = useCallback(async (webhookId: string, payload: any) => {
         try {
-            await api.post(`/webhooks/${webhookId}/trigger`, payload);
+            await db.triggerWebhook(webhookId, payload);
             return { success: true };
         } catch (error) {
             return { success: false, error: String(error) };

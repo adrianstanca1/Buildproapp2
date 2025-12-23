@@ -1,4 +1,3 @@
-```
 import React, { useMemo, useState, useEffect } from 'react';
 import {
     ArrowRight, AlertCircle, Sparkles, MapPin, Clock,
@@ -77,21 +76,21 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
                 date: new Date().toLocaleDateString()
             };
 
-            const prompt = `
-Act as a Chief of Staff AI for a Construction Executive. 
-                Generate a personalized "Daily Briefing" for ${ user?.name } in the role of ${ role }.
-                
-                Data context: ${ JSON.stringify(context) }
-                
-                Return JSON:
-{
-    "greeting": "Personalized morning greeting",
-        "agenda": ["Item 1", "Item 2", "Item 3"],
-            "risks": ["Risk 1", "Risk 2"],
-                "wins": ["Recent win or positive trend"],
-                    "quote": "Motivational construction/leadership quote"
-}
-`;
+            const userName = user?.name || 'User';
+            const userRole = role || 'Admin';
+            const contextStr = JSON.stringify(context);
+            const prompt = "Act as a Chief of Staff AI for a Construction Executive.\n" +
+                "Generate a personalized 'Daily Briefing' for " + userName + " in the role of " + userRole + ".\n\n" +
+                "Data context: " + contextStr + "\n\n" +
+                "Return JSON:\n" +
+                "{\n" +
+                '  "greeting": "Personalized morning greeting",\n' +
+                '  "agenda": ["Item 1", "Item 2", "Item 3"],\n' +
+                '  "risks": ["Risk 1", "Risk 2"],\n' +
+                '  "wins": ["Recent win or positive trend"],\n' +
+                '  "quote": "Motivational construction/leadership quote"\n' +
+                "}";
+
 
             const res = await runRawPrompt(prompt, {
                 model: 'gemini-3-pro-preview',
@@ -201,7 +200,7 @@ const QuickActionCard: React.FC<QuickActionProps> = ({ icon: Icon, title, desc, 
         onClick={onClick}
         className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm hover:shadow-md hover:border-[#0f5c82] transition-all cursor-pointer flex flex-col items-center text-center group w-full h-full"
     >
-        <div className={`p - 3 rounded - lg bg - zinc - 50 group - hover: bg - blue - 50 transition - colors mb - 3 ${ color } `}>
+        <div className={"p-3 rounded-lg bg-zinc-50 group-hover:bg-blue-50 transition-colors mb-3 " + color}>
             <Icon size={28} strokeWidth={1.5} />
         </div>
         <h3 className="font-bold text-zinc-900 text-sm mb-1 group-hover:text-[#0f5c82] transition-colors">{title}</h3>
@@ -320,7 +319,7 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
                     </h3>
                     <div className="flex items-center justify-center h-40 relative">
                         <div className="text-center">
-                            <div className={`text - 3xl font - bold ${ healthPercentage >= 70 ? 'text-green-600' : 'text-orange-600' } `}>{healthPercentage}%</div>
+                            <div className={"text-3xl font-bold " + (healthPercentage >= 70 ? 'text-green-600' : 'text-orange-600')}>{healthPercentage}%</div>
                             <div className="text-xs text-zinc-500 font-bold uppercase tracking-tighter">On Track</div>
                         </div>
                         <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
@@ -396,11 +395,11 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
                                 <td className="px-6 py-4 text-zinc-600">£{(p.budget / 1000000).toFixed(1)}M</td>
                                 <td className="px-6 py-4">
                                     <div className="w-24 bg-zinc-200 h-1.5 rounded-full">
-                                        <div className={`h - full rounded - full ${ (p.health || '').toLowerCase() === 'good' ? 'bg-green-500' : 'bg-orange-500' } `} style={{ width: `${ p.progress }% ` }}></div>
+                                        <div className={"h-full rounded-full " + ((p.health || '').toLowerCase() === 'good' ? 'bg-green-500' : 'bg-orange-500')} style={{ width: p.progress + '%' }}></div>
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`px - 2 py - 1 rounded text - xs font - bold ${ (p.health || '').toLowerCase() === 'good' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700' } `}>{p.health || 'Neutral'}</span>
+                                    <span className={"px-2 py-1 rounded text-xs font-bold " + ((p.health || '').toLowerCase() === 'good' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700')}>{p.health || 'Neutral'}</span>
                                 </td>
                             </tr>
                         )) : (
@@ -595,12 +594,12 @@ const OperativeDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPa
                                             </span>
                                         )}
                                     </div>
-                                    <span className={`px - 2 py - 0.5 rounded text - [10px] font - bold uppercase ${
-    task.status === 'Blocked' ? 'bg-red-100 text-red-600' :
-    task.status === 'In Progress' ? 'bg-blue-100 text-blue-600' :
-        task.status === 'Done' ? 'bg-green-100 text-green-600' :
-            'bg-zinc-100 text-zinc-500'
-} `}>
+                                    <span className={"px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (
+                                        task.status === 'Blocked' ? 'bg-red-100 text-red-600' :
+                                            task.status === 'In Progress' ? 'bg-blue-100 text-blue-600' :
+                                                task.status === 'Done' ? 'bg-green-100 text-green-600' :
+                                                    'bg-zinc-100 text-zinc-500'
+                                    )}>
                                         {task.status}
                                     </span>
                                 </div>
@@ -634,14 +633,14 @@ const OperativeDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPa
 const StatCard = ({ icon: Icon, label, value, trend, color }: any) => (
     <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm">
         <div className="flex items-start justify-between mb-4">
-            <div className={`p - 2 rounded - lg bg - ${ color } -50 text - ${ color } -600`}>
+            <div className={"p-2 rounded-lg bg-" + color + "-50 text-" + color + "-600"}>
                 <Icon size={20} />
             </div>
         </div>
         <div className="text-2xl font-bold text-zinc-900 mb-1">{value}</div>
         <div className="flex items-center justify-between">
             <div className="text-sm text-zinc-500">{label}</div>
-            <div className={`text - [10px] font - bold bg - ${ color } -50 text - ${ color } -700 px - 2 py - 0.5 rounded`}>{trend}</div>
+            <div className={"text-[10px] font-bold bg-" + color + "-50 text-" + color + "-700 px-2 py-0.5 rounded"}>{trend}</div>
         </div>
     </div>
 );

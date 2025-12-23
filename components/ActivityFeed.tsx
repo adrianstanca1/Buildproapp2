@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, Clock, User, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import api from '@/services/api';
+import { db } from '@/services/db';
 
 interface ActivityItem {
     id: string;
@@ -38,14 +38,8 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({
 
     const loadActivities = async () => {
         try {
-            let url = '/activity';
-            const params: any = { limit };
-
-            if (projectId) params.projectId = projectId;
-            if (entityType) params.entityType = entityType;
-
-            const response = await api.get(url, { params });
-            setActivities(response.data || []);
+            const data = await db.getActivities({ limit, projectId, entityType });
+            setActivities(data);
         } catch (error) {
             console.error('Failed to load activities:', error);
         } finally {

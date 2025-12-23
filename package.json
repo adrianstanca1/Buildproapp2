@@ -8,6 +8,7 @@
         "build": "vite build",
         "preview": "vite preview",
         "start": "NODE_ENV=development npx tsx server/index.ts",
+        "server": "NODE_ENV=development npx tsx server/index.ts",
         "migrate": "npx tsx server/scripts/migrate.ts",
         "migrate:status": "npx tsx server/scripts/migrate.ts status",
         "lint": "eslint \"**/*.{ts,tsx}\"",

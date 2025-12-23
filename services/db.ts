@@ -1,19 +1,7 @@
 /// <reference types="vite/client" />
 import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder, Invoice, ExpenseClaim, CostCode } from '@/types';
-import { db as mockDb } from './mockDb';
 import { supabase } from './supabaseClient';
 
-const getEnv = (key: string) => {
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key];
-  }
-  // @ts-ignore
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    // @ts-ignore
-    return import.meta.env[key];
-  }
-  return undefined;
-};
 
 const API_URL = import.meta.env?.VITE_API_URL || process.env?.VITE_API_URL || '/api';
 
@@ -42,6 +30,7 @@ class DatabaseService {
   }
 
 
+
   private async getHeaders(extra: Record<string, string> = {}): Promise<Record<string, string>> {
     const headers: Record<string, string> = { ...extra };
     if (this.tenantId) headers['x-company-id'] = this.tenantId;
@@ -57,29 +46,8 @@ class DatabaseService {
 
   // --- Generic Helpers ---
   private async fetch<T>(endpoint: string): Promise<T[]> {
-    // Use Mock Data if configured
     if (this.useMock) {
       console.log(`[MockDB] Fetching ${endpoint}`);
-      // return (mockDb as any)[endpoint] || [];
-      /*
-      if (endpoint === 'projects') return mockDb.getProjects(this.tenantId || undefined) as any;
-      if (endpoint === 'tasks') return mockDb.getTasks(this.tenantId || undefined) as any;
-      if (endpoint === 'team') return mockDb.getTeam() as any;
-      if (endpoint === 'rfis') return mockDb.getRFIs() as any;
-      if (endpoint === 'daily_logs') return mockDb.getDailyLogs() as any;
-      if (endpoint === 'punch_items') return mockDb.getPunchItems() as any;
-      if (endpoint === 'dayworks') return mockDb.getDayworks() as any;
-      if (endpoint === 'companies') return mockDb.getCompanies() as any;
-      if (endpoint === 'documents') return mockDb.getDocuments(this.tenantId || undefined) as any;
-      if (endpoint === 'inventory') return mockDb.getInventory() as any;
-      if (endpoint === 'documents') return mockDb.getDocuments(this.tenantId || undefined) as any;
-      if (endpoint === 'inventory') return mockDb.getInventory() as any;
-      if (endpoint === 'clients') return mockDb.getClients() as any;
-      if (endpoint === 'invoices') return mockDb.getInvoices() as any;
-      if (endpoint === 'expense_claims') return mockDb.getExpenseClaims() as any;
-      */
-
-      // Default fallback
       return [];
     }
 
@@ -254,7 +222,7 @@ class DatabaseService {
   async getDocuments(): Promise<ProjectDocument[]> {
     return this.fetch<ProjectDocument>('documents');
   }
-  async addDocument(d: ProjectDocument) {
+  async addDocument(d: Partial<ProjectDocument>) {
     await this.post('documents', d);
   }
   async updateDocument(id: string, d: Partial<ProjectDocument>) {
@@ -557,7 +525,21 @@ class DatabaseService {
   // --- System Settings (Admin) ---
   async getSystemSettings(): Promise<any> {
     const res = await fetch(`${API_URL}/system-settings/settings`, { headers: await this.getHeaders() });
-    if (!res.ok) return mockDb.getSystemSettings();
+    if (!res.ok) return {}; // Fallback to empty on error
+    return await res.json();
+  }
+
+  // --- Analytics ---
+  async getKPIs(): Promise<any> {
+    const res = await fetch(`${API_URL}/analytics/kpis`, { headers: await this.getHeaders() });
+    if (!res.ok) throw new Error("Failed to fetch KPIs");
+    return await res.json();
+  }
+
+  async getCustomReport(params: any): Promise<any> {
+    const query = new URLSearchParams(params as any).toString();
+    const res = await fetch(`${API_URL}/analytics/custom-report?${query}`, { headers: await this.getHeaders() });
+    if (!res.ok) throw new Error("Failed to generate report");
     return await res.json();
   }
 
@@ -657,14 +639,22 @@ class DatabaseService {
     return this.fetch<CostCode>('cost_codes');
   }
   async addCostCode(item: CostCode) {
-    /*
-    if (this.useMock) {
-      await (mockDb as any).addCostCode(item);
-      return;
-    }
-    */
     await this.post('cost_codes', item);
   }
+
+  // --- Integrations ---
+  async syncProject(data: any): Promise<void> {
+    await this.post('projects', data);
+  }
+
+  async registerWebhook(config: any): Promise<any> {
+    return await this.post('webhooks', config);
+  }
+
+  async triggerWebhook(id: string, payload: any): Promise<void> {
+    await this.post(`webhooks/${id}/trigger`, payload);
+  }
+
   async updateCostCode(id: string, u: Partial<CostCode>) {
     /*
     if (this.useMock) {
@@ -759,6 +749,44 @@ class DatabaseService {
     if (!res.ok) throw new Error("Failed to fetch shared photos");
     const data = await res.json();
     return data.data;
+  }
+
+  // --- Activities ---
+  async getActivities(params: { limit?: number; projectId?: string; entityType?: string } = {}): Promise<any[]> {
+    const query = new URLSearchParams();
+    if (params.limit) query.append('limit', params.limit.toString());
+    if (params.projectId) query.append('projectId', params.projectId);
+    if (params.entityType) query.append('entityType', params.entityType);
+
+    const res = await fetch(`${API_URL}/activity?${query.toString()}`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data || [];
+  }
+
+  // --- Comments ---
+  async getComments(entityType: string, entityId: string): Promise<any[]> {
+    const query = new URLSearchParams({ entityType, entityId });
+    const res = await fetch(`${API_URL}/comments?${query.toString()}`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data || [];
+  }
+
+  async addComment(data: { entityType: string; entityId: string; content: string; mentions?: string[]; parentId?: string }) {
+    await this.post('comments', data);
+  }
+
+  async updateComment(id: string, content: string) {
+    await this.put('comments', id, { content });
+  }
+
+  async deleteComment(id: string) {
+    await this.delete('comments', id);
   }
 }
 
