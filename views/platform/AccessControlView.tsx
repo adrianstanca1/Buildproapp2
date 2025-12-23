@@ -73,6 +73,26 @@ const AccessControlView: React.FC = () => {
         );
     }
 
+
+    const handleSavePermissions = async () => {
+        if (!selectedRole) return;
+        try {
+            // Convert set of "resource:action" back to objects if needed, or just send IDs
+            // The controller expects list of { id, resource, action }
+            // modifying rolePermissions (strings) to objects
+            const payload = rolePermissions.map(p => {
+                const [resource, action] = p.split(':');
+                return { id: p, resource, action };
+            });
+
+            await db.updateRolePermissions(selectedRole, payload);
+            alert('Permissions saved successfully');
+        } catch (error) {
+            console.error('Failed to save permissions', error);
+            alert('Failed to save changes');
+        }
+    };
+
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-6">
             {/* Header */}
@@ -84,6 +104,23 @@ const AccessControlView: React.FC = () => {
                     <p className="text-zinc-600 dark:text-zinc-400 mt-1">
                         Manage roles, permissions, and access levels
                     </p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => alert("Create Role Not Implemented in UI yet")}
+                        className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 rounded-lg transition-colors"
+                    >
+                        <Settings className="w-5 h-5" />
+                        Manage Custom Roles
+                    </button>
+                    <button
+                        onClick={handleSavePermissions}
+                        disabled={!selectedRole}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <Shield className="w-5 h-5" />
+                        Save Changes
+                    </button>
                 </div>
             </div>
 

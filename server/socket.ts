@@ -157,3 +157,15 @@ export const broadcastToUser = (userId: string, message: any) => {
         }
     });
 };
+
+// Helper: Broadcast to ALL connected clients (System Alerts)
+export const broadcastToAll = (message: any) => {
+    const wss = (global as any).wss as WebSocketServer;
+    if (!wss) return;
+
+    wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send(JSON.stringify(message));
+        }
+    });
+};

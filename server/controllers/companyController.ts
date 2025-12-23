@@ -8,9 +8,6 @@ import { logger } from '../utils/logger.js';
 export const getCompanies = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const db = getDb();
-        // In a real multi-tenant system, this might be restricted to "platform admins" likely.
-        // Or if it's "my companies", filtered by user.
-        // For now, mirroring existing logic: return all.
         const companies = await db.all('SELECT * FROM companies');
 
         const parsed = companies.map(c => ({
@@ -21,6 +18,37 @@ export const getCompanies = async (req: Request, res: Response, next: NextFuncti
         }));
 
         res.json(parsed);
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const getCompanyDetails = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const { id } = req.params;
+
+        const company = await db.get('SELECT * FROM companies WHERE id = ?', [id]);
+        if (!company) throw new AppError('Company not found', 404);
+
+        // Fetch deep stats
+        const projectCount = (await db.get('SELECT COUNT(*) as count FROM projects WHERE companyId = ?', [id])).count;
+        const userCount = (await db.get('SELECT COUNT(*) as count FROM users WHERE companyId = ?', [id])).count;
+        const storageUsed = 0; // Placeholder until storage service integration
+
+        // Return augmented company object
+        res.json({
+            ...company,
+            settings: company.settings ? JSON.parse(company.settings) : {},
+            subscription: company.subscription ? JSON.parse(company.subscription) : {},
+            features: company.features ? JSON.parse(company.features) : [],
+            stats: {
+                projects: projectCount,
+                users: userCount,
+                storage: storageUsed,
+                lastActive: new Date().toISOString() // Placeholder
+            }
+        });
     } catch (e) {
         next(e);
     }

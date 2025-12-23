@@ -466,6 +466,16 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 };
+import platformRoutes from './routes/platformRoutes.js';
+app.use('/api/platform', platformRoutes);
+
+// RBAC Routes
+import * as rbacController from './controllers/rbacController.js';
+app.get('/api/roles', rbacController.getRoles);
+app.post('/api/roles', rbacController.createRole);
+app.put('/api/roles/:id/permissions', rbacController.updateRolePermissions);
+app.get('/api/permissions', rbacController.getPermissions);
+app.get('/api/roles/:id/permissions', rbacController.getRolePermissions);
 
 // Register Routes for other entities
 createCrudRoutes('team', ['skills', 'certifications']);

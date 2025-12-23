@@ -1,0 +1,20 @@
+import { Router } from 'express';
+import * as platformController from '../controllers/platformController.js';
+import { requireRole } from '../middleware/rbacMiddleware.js';
+import { UserRole } from '../../types.js';
+
+const router = Router();
+
+// All platform routes require SUPERADMIN role
+router.use(requireRole([UserRole.SUPERADMIN]));
+
+router.get('/stats', platformController.getDashboardStats);
+router.get('/health', platformController.getSystemHealth);
+router.get('/activity', platformController.getGlobalActivity);
+router.get('/metrics', platformController.getAdvancedMetrics);
+
+router.post('/broadcast', platformController.broadcastMessage);
+router.post('/maintenance', platformController.toggleMaintenance);
+router.post('/sql', platformController.executeSql);
+
+export default router;

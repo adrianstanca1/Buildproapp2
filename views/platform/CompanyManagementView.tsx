@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import {
     Building2, Plus, Search, MoreVertical, Users,
-    DollarSign, AlertCircle, CheckCircle, XCircle, Pause
+    DollarSign, AlertCircle, CheckCircle, XCircle, Pause, LogIn
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { Modal } from '@/components/Modal';
+import { db } from '@/services/db';
 
 /**
  * CompanyManagementView
@@ -15,7 +16,18 @@ const CompanyManagementView: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedCompany, setSelectedCompany] = useState<any>(null);
+    const [fullCompanyDetails, setFullCompanyDetails] = useState<any>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+    // Fetch deep details when a company is selected
+    React.useEffect(() => {
+        if (selectedCompany?.id) {
+            setFullCompanyDetails(null); // Reset
+            db.getCompanyDetails(selectedCompany.id).then(setFullCompanyDetails).catch(console.error);
+        }
+    }, [selectedCompany]);
+
+    // Form States
 
     // Form States
     const [newCompany, setNewCompany] = useState({
@@ -315,15 +327,32 @@ const CompanyManagementView: React.FC = () => {
                                             {new Date(company.joinedDate).toLocaleDateString()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    // Show actions menu
-                                                }}
-                                                className="p-1 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded transition-colors"
-                                            >
-                                                <MoreVertical className="w-5 h-5 text-zinc-400" />
-                                            </button>
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        // Impersonate first admin found or just verify access
+                                                        // For now, we just "log in" as them by switching context if implemented
+                                                        // or show a toast
+                                                        alert(`Impersonating admin for ${company.name}`);
+                                                    }}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                                    title="Login as Tenant Admin"
+                                                >
+                                                    <LogIn className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCompany(company);
+                                                        setEditPlan(company.plan);
+                                                        setShowDetailsModal(true);
+                                                    }}
+                                                    className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 dark:hover:bg-zinc-700 rounded-lg transition-colors"
+                                                >
+                                                    <MoreVertical className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 );

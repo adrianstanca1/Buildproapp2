@@ -76,6 +76,7 @@ const MaintenanceView = lazyWithReload(() => import('@/views/MaintenanceView'));
 
 // Platform/Superadmin Views
 const PlatformDashboardView = lazyWithReload(() => import('@/views/platform/PlatformDashboardView'));
+const DatabaseQueryView = lazyWithReload(() => import('@/views/platform/DatabaseQueryView'));
 const CompanyManagementView = lazyWithReload(() => import('@/views/platform/CompanyManagementView'));
 const UserManagementView = lazyWithReload(() => import('@/views/platform/UserManagementView'));
 const PlatformMembersView = lazyWithReload(() => import('@/views/platform/PlatformMembersView'));
@@ -177,6 +178,7 @@ const AuthenticatedApp: React.FC = () => {
       Page.PLATFORM_MEMBERS,  // UserManagementView route
       Page.ACCESS_CONTROL,
       Page.SYSTEM_LOGS,
+      Page.SQL_CONSOLE,
       // Add other platform-specific pages if they exist in Page enum
     ];
     // Note: In strict mode, we should check against a comprehensive list. 
@@ -325,6 +327,7 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.PLATFORM_MEMBERS && <UserManagementView />}
               {page === Page.ACCESS_CONTROL && <AccessControlView />}
               {page === Page.SYSTEM_LOGS && <SystemLogsView />}
+              {page === Page.SQL_CONSOLE && <DatabaseQueryView />}
             </Suspense>
           </ErrorBoundary>
         </main>

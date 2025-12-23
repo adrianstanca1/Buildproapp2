@@ -26,9 +26,36 @@ const PlatformDashboardView: React.FC = () => {
     // State for real data
     const [statsData, setStatsData] = useState<PlatformStats | null>(null);
     const [healthData, setHealthData] = useState<SystemHealth | null>(null);
+    const [advancedMetrics, setAdvancedMetrics] = useState<any>(null);
     const [activityLogs, setActivityLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [localBroadcastMsg, setLocalBroadcastMsg] = useState('');
+
+    const refreshData = async () => {
+        try {
+            const [stats, health, metrics, activity] = await Promise.all([
+                db.getPlatformStats(),
+                db.getSystemHealth(),
+                db.getAdvancedMetrics(),
+                db.getGlobalActivity()
+            ]);
+            setStatsData(stats);
+            setHealthData(health);
+            setAdvancedMetrics(metrics);
+            setActivityLogs(activity);
+        } catch (error) {
+            console.error('Failed to load platform data', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        refreshData();
+        const interval = setInterval(refreshData, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, []);
 
     const handleToggleSetting = (key: keyof typeof systemSettings) => {
         const newState = !systemSettings[key];

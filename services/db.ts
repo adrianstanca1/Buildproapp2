@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder, Invoice, ExpenseClaim, CostCode } from '@/types';
+import { Project, Task, TeamMember, ProjectDocument, Client, InventoryItem, RFI, PunchItem, DailyLog, Daywork, SafetyIncident, SafetyHazard, Equipment, Timesheet, Tenant, Transaction, TenantUsage, TenantAuditLog, TenantAnalytics, Defect, ProjectRisk, PurchaseOrder, Invoice, ExpenseClaim, CostCode, SystemHealth } from '@/types';
 import { supabase } from './supabaseClient';
 
 
@@ -461,18 +461,6 @@ class DatabaseService {
     return await res.json();
   }
 
-  async getRoles(): Promise<any[]> {
-    return this.fetch('roles');
-  }
-
-  async getRolePermissions(role: string): Promise<string[]> {
-    return this.fetch(`roles/${role}/permissions`);
-  }
-
-  async getPermissions(): Promise<any[]> {
-    return this.fetch('permissions');
-  }
-
   // --- Platform API (Super Admin) ---
   async getPlatformStats(): Promise<any> {
     const res = await fetch(`${API_URL}/platform/stats`, { headers: await this.getHeaders() });
@@ -480,11 +468,6 @@ class DatabaseService {
     return await res.json();
   }
 
-  async getSystemHealth(): Promise<any> {
-    const res = await fetch(`${API_URL}/platform/health`, { headers: await this.getHeaders() });
-    if (!res.ok) return { api: 'unknown', database: 'unknown' };
-    return await res.json();
-  }
 
   async getGlobalActivity(): Promise<any[]> {
     try {
@@ -564,6 +547,12 @@ class DatabaseService {
     await this.post('auth/invite', { email, role, companyId });
   }
 
+  async getCompanyDetails(id: string): Promise<any> {
+    const res = await fetch(`${API_URL}/companies/${id}/details`, { headers: await this.getHeaders() });
+    if (!res.ok) return null;
+    return await res.json();
+  }
+
   async impersonateUser(userId: string): Promise<{ user: any; token: string }> {
     /*
     if (this.useMock) {
@@ -598,6 +587,52 @@ class DatabaseService {
     if (!res.ok) return [];
     return await res.json();
   }
+
+  // --- Platform / Super Admin ---
+  async getSystemHealth(): Promise<SystemHealth> {
+    return this.fetch<SystemHealth>('platform/health') as unknown as Promise<SystemHealth>;
+  }
+  async getAdvancedMetrics(): Promise<any> {
+    return this.fetch<any>('platform/metrics');
+  }
+  async executeSql(query: string): Promise<any> {
+    return this.post('platform/sql', { query });
+  }
+  async toggleMaintenance(enabled: boolean, message?: string): Promise<any> {
+    return this.post('platform/maintenance', { enabled, message });
+  }
+  async broadcastSystemMessage(message: string, level: string = 'info'): Promise<any> {
+    return this.post('platform/broadcast', { message, level });
+  }
+
+  // --- RBAC ---
+  async getRoles(): Promise<any[]> {
+    const res = await fetch(`${API_URL}/roles`, { headers: await this.getHeaders() });
+    return res.ok ? await res.json() : [];
+  }
+  async getPermissions(): Promise<any[]> {
+    const res = await fetch(`${API_URL}/permissions`, { headers: await this.getHeaders() });
+    return res.ok ? await res.json() : [];
+  }
+  async getRolePermissions(roleId: string): Promise<string[]> {
+    const res = await fetch(`${API_URL}/roles/${roleId}/permissions`, { headers: await this.getHeaders() });
+    return res.ok ? await res.json() : [];
+  }
+  async updateRolePermissions(roleId: string, permissions: any[]): Promise<void> {
+    // The endpoint handles the ID in the URL, but our put helper requires an ID arg. 
+    // We pass roleId as the ID, though the URL structure here subsumes it. 
+    // Actually, my put helper constructs URL as `${endpoint}/${id}`.
+    // So if I pass 'roles' as endpoint and roleId as id, I get `roles/123`.
+    // But I need `roles/123/permissions`.
+    // So I should use the direct fetch or a custom post/put.
+    // Let's use direct fetch wrapper to avoid the helper's URL construction if it's rigid.
+    await fetch(`${API_URL}/roles/${roleId}/permissions`, {
+      method: 'PUT',
+      headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
+      body: JSON.stringify({ permissions })
+    });
+  }
+
   async getAccessLogs(): Promise<any[]> {
     /*
     if (this.useMock) {

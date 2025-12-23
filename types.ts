@@ -1,5 +1,23 @@
 import React from 'react';
 
+
+export interface SystemHealth {
+  api: 'healthy' | 'degraded' | 'down';
+  database: 'healthy' | 'degraded' | 'down';
+  databaseLatency?: string;
+  uptime: number;
+  timestamp: string;
+  memoryUsage?: {
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+    external: number;
+  };
+  osLoad?: number[];
+  freeMem?: number;
+  totalMem?: number;
+}
+
 export interface PlatformStats {
   totalCompanies: number;
   totalUsers: number;
@@ -7,14 +25,6 @@ export interface PlatformStats {
   monthlyRevenue: number;
   systemStatus: string;
   environment: string;
-}
-
-export interface SystemHealth {
-  api: string;
-  database: string;
-  databaseLatency: string;
-  timestamp: string;
-  uptime: number;
 }
 
 export interface SystemSettings {
@@ -72,6 +82,7 @@ export enum Page {
   PLATFORM_MEMBERS = 'PLATFORM_MEMBERS',
   ACCESS_CONTROL = 'ACCESS_CONTROL',
   SYSTEM_LOGS = 'SYSTEM_LOGS',
+  SQL_CONSOLE = 'SQL_CONSOLE',
   REGISTER = 'REGISTER',
 }
 
