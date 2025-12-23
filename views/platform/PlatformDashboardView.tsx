@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import {
     LayoutDashboard, Building2, Users, TrendingUp, AlertCircle,
     DollarSign, Activity, Database, Server, Shield, Power, Sparkles,
-    UserCheck, BrainCircuit, RefreshCw, RotateCcw, Megaphone, Settings
+    UserCheck, BrainCircuit, RefreshCw, RotateCcw, Megaphone, Settings, X, Calendar
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -29,8 +29,9 @@ const PlatformDashboardView: React.FC = () => {
     const [advancedMetrics, setAdvancedMetrics] = useState<any>(null);
     const [activityLogs, setActivityLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [localBroadcastMsg, setLocalBroadcastMsg] = useState('');
+    const [showMaintenanceModal, setShowMaintenanceModal] = useState(false);
+    const [maintenanceSchedule, setMaintenanceSchedule] = useState({ startTime: '', duration: 60 });
 
     const refreshData = async () => {
         try {
@@ -276,7 +277,7 @@ const PlatformDashboardView: React.FC = () => {
                     <div className="space-y-4 relative z-10">
                         {/* Control Toggles */}
                         {[
-                            { key: 'maintenance', label: 'Maintenance Mode', icon: Power, onColor: 'bg-red-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-red-600', iconBg: 'bg-red-100 dark:bg-red-900/20' },
+                            { key: 'maintenance', label: 'Maintenance Mode', icon: Power, onColor: 'bg-red-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-red-600', iconBg: 'bg-red-100 dark:bg-red-900/20', isSpecial: true },
                             { key: 'betaFeatures', label: 'Global Beta Access', icon: Sparkles, onColor: 'bg-emerald-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-purple-600', iconBg: 'bg-purple-100 dark:bg-purple-900/20' },
                             { key: 'registrations', label: 'New Registrations', icon: UserCheck, onColor: 'bg-emerald-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-blue-600', iconBg: 'bg-blue-100 dark:bg-blue-900/20' },
                             { key: 'aiEngine', label: 'AI Inference Engine', icon: BrainCircuit, onColor: 'bg-indigo-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-indigo-600', iconBg: 'bg-indigo-100 dark:bg-indigo-900/20' },
@@ -288,12 +289,22 @@ const PlatformDashboardView: React.FC = () => {
                                     </div>
                                     <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{ctrl.label}</div>
                                 </div>
-                                <button
-                                    onClick={() => handleToggleSetting(ctrl.key as any)}
-                                    className={`w-11 h-6 rounded-full transition-colors relative ${systemSettings[ctrl.key as keyof typeof systemSettings] ? ctrl.onColor : ctrl.offColor}`}
-                                >
-                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${systemSettings[ctrl.key as keyof typeof systemSettings] ? 'left-6' : 'left-1'}`}></div>
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    {ctrl.isSpecial && (
+                                        <button
+                                            onClick={() => setShowMaintenanceModal(true)}
+                                            className="text-[10px] font-bold text-zinc-400 hover:text-zinc-600 underline"
+                                        >
+                                            Schedule
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleToggleSetting(ctrl.key as any)}
+                                        className={`w-11 h-6 rounded-full transition-colors relative ${systemSettings[ctrl.key as keyof typeof systemSettings] ? ctrl.onColor : ctrl.offColor}`}
+                                    >
+                                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${systemSettings[ctrl.key as keyof typeof systemSettings] ? 'left-6' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -375,6 +386,58 @@ const PlatformDashboardView: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Maintenance Modal */}
+            {showMaintenanceModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                        <div className="bg-zinc-900 p-4 text-white flex justify-between items-center">
+                            <h3 className="font-bold flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-blue-400" />
+                                Schedule Maintenance
+                            </h3>
+                            <button onClick={() => setShowMaintenanceModal(false)} className="text-white/50 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Start Time</label>
+                                <input
+                                    type="datetime-local"
+                                    className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
+                                    value={maintenanceSchedule.startTime}
+                                    onChange={e => setMaintenanceSchedule(prev => ({ ...prev, startTime: e.target.value }))}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Duration (Minutes)</label>
+                                <input
+                                    type="number"
+                                    className="w-full p-2 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg text-sm"
+                                    value={maintenanceSchedule.duration}
+                                    onChange={e => setMaintenanceSchedule(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
+                                />
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        await db.scheduleMaintenance(maintenanceSchedule.startTime, maintenanceSchedule.duration);
+                                        addToast('Maintenance window scheduled successfully', 'success');
+                                        setShowMaintenanceModal(false);
+                                    } catch (e) {
+                                        addToast('Failed to schedule maintenance', 'error');
+                                    }
+                                }}
+                                disabled={!maintenanceSchedule.startTime}
+                                className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95"
+                            >
+                                Schedule Window
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

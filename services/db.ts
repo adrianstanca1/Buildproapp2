@@ -598,6 +598,26 @@ class DatabaseService {
   async executeSql(query: string): Promise<any> {
     return this.post('platform/sql', { query });
   }
+
+  // Global Search across tenants, users, projects
+  async globalSearch(query: string): Promise<any> {
+    if (this.useMock) {
+      // Mock result
+      return {
+        tenants: [{ id: 'c1', name: 'Acme Corp', type: 'tenant' }],
+        users: [{ id: 'u1', name: 'John Doe', type: 'user', companyName: 'Acme Corp' }],
+        projects: [{ id: 'p1', name: 'St Georges Hospital', type: 'project', companyName: 'Acme Corp' }]
+      };
+    }
+    return this.fetch<any>(`platform/search?q=${encodeURIComponent(query)}`);
+  }
+
+  // Maintenance Window
+  async scheduleMaintenance(startTime: string, durationMinutes: number): Promise<any> {
+    if (this.useMock) return { success: true };
+    return this.post('platform/maintenance/schedule', { startTime, durationMinutes });
+  }
+
   async toggleMaintenance(enabled: boolean, message?: string): Promise<any> {
     return this.post('platform/maintenance', { enabled, message });
   }

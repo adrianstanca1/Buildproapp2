@@ -12,6 +12,8 @@ import { searchService, SearchResult } from '../services/SearchService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import NotificationBell from './NotificationBell';
+import GlobalSearch from './GlobalSearch';
+import { UserRole } from '@/types';
 
 interface TopBarProps {
   setPage: (page: Page) => void;
@@ -115,61 +117,79 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
 
         {/* Search */}
         <div className="relative flex-1 max-w-xl md:w-96" ref={searchRef}>
-          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${isSearching ? 'text-blue-500 animate-pulse' : 'text-zinc-400'}`} size={16} />
-          <input
-            type="text"
-            placeholder="Search projects, tasks, team..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            onFocus={() => searchQuery.length >= 3 && setShowResults(true)}
-            className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-md text-sm text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-400"
-          />
+          {user?.role === UserRole.SUPERADMIN ? (
+            <GlobalSearch
+              onNavigate={(type, id) => {
+                if (type === 'tenant') {
+                  // Logic to view tenant details or manage them
+                  setPage(Page.COMPANY_MANAGEMENT);
+                } else if (type === 'user') {
+                  setPage(Page.PLATFORM_MEMBERS);
+                } else if (type === 'project') {
+                  // Maybe specialized platform project view or just management
+                  setPage(Page.COMPANY_MANAGEMENT);
+                }
+              }}
+            />
+          ) : (
+            <>
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${isSearching ? 'text-blue-500 animate-pulse' : 'text-zinc-400'}`} size={16} />
+              <input
+                type="text"
+                placeholder="Search projects, tasks, team..."
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                onFocus={() => searchQuery.length >= 3 && setShowResults(true)}
+                className="w-full pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-md text-sm text-zinc-700 focus:outline-none focus:ring-1 focus:ring-blue-500 placeholder:text-zinc-400"
+              />
 
-          {/* Search Results Dropdown */}
-          {showResults && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-zinc-200 rounded-xl shadow-xl overflow-hidden z-50 animate-in slide-in-from-top-2">
-              <div className="p-2 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">AI Search Results</span>
-                {isSearching && <Loader2 size={12} className="text-blue-500 animate-spin" />}
-              </div>
-              <div className="max-h-96 overflow-y-auto">
-                {isSearching && searchResults.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
-                    <p className="text-xs text-zinc-500">AI is analyzing project data...</p>
+              {/* Search Results Dropdown */}
+              {showResults && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-zinc-200 rounded-xl shadow-xl overflow-hidden z-50 animate-in slide-in-from-top-2">
+                  <div className="p-2 border-b border-zinc-100 bg-zinc-50/50 flex justify-between items-center">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">AI Search Results</span>
+                    {isSearching && <Loader2 size={12} className="text-blue-500 animate-spin" />}
                   </div>
-                ) : searchResults.length > 0 ? (
-                  <div className="divide-y divide-zinc-50">
-                    {searchResults.map((result, idx) => (
-                      <button
-                        key={`${result.id}-${idx}`}
-                        onClick={() => {
-                          setPage(result.page);
-                          setShowResults(false);
-                          setSearchQuery('');
-                        }}
-                        className="w-full text-left p-3 hover:bg-zinc-50 transition-colors flex items-center justify-between group"
-                      >
-                        <div>
-                          <p className="text-sm font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
-                            {result.title}
-                          </p>
-                          <p className="text-[11px] text-zinc-500">{result.subtitle}</p>
-                          <p className="text-[9px] text-blue-500 mt-0.5 bg-blue-50 w-fit px-1.5 py-0.5 rounded italic">&quot;{result.relevance}&quot;</p>
-                        </div>
-                        <span className="text-[9px] font-black text-zinc-400 uppercase bg-zinc-100 px-1.5 py-0.5 rounded">
-                          {result.type}
-                        </span>
-                      </button>
-                    ))}
+                  <div className="max-h-96 overflow-y-auto">
+                    {isSearching && searchResults.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <div className="w-8 h-8 border-2 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-xs text-zinc-500">AI is analyzing project data...</p>
+                      </div>
+                    ) : searchResults.length > 0 ? (
+                      <div className="divide-y divide-zinc-50">
+                        {searchResults.map((result, idx) => (
+                          <button
+                            key={`${result.id}-${idx}`}
+                            onClick={() => {
+                              setPage(result.page);
+                              setShowResults(false);
+                              setSearchQuery('');
+                            }}
+                            className="w-full text-left p-3 hover:bg-zinc-50 transition-colors flex items-center justify-between group"
+                          >
+                            <div>
+                              <p className="text-sm font-bold text-zinc-900 group-hover:text-blue-600 transition-colors">
+                                {result.title}
+                              </p>
+                              <p className="text-[11px] text-zinc-500">{result.subtitle}</p>
+                              <p className="text-[9px] text-blue-500 mt-0.5 bg-blue-50 w-fit px-1.5 py-0.5 rounded italic">&quot;{result.relevance}&quot;</p>
+                            </div>
+                            <span className="text-[9px] font-black text-zinc-400 uppercase bg-zinc-100 px-1.5 py-0.5 rounded">
+                              {result.type}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center text-zinc-400 text-xs">
+                        No matching results found across projects, tasks, or safety logs.
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="p-8 text-center text-zinc-400 text-xs">
-                    No matching results found across projects, tasks, or safety logs.
-                  </div>
-                )}
-              </div>
-            </div>
+                </div>
+              )}
+            </>
           )}
         </div>
 

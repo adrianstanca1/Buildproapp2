@@ -95,7 +95,7 @@ const PlatformMembersView: React.FC = () => {
                                         {stat.value}
                                     </p>
                                 </div>
-                                <Icon className={`w - 8 h - 8 text - ${stat.color} -600`} />
+                                <Icon className={`w-8 h-8 text-${stat.color}-600`} />
                             </div>
                         </div>
                     );
@@ -146,7 +146,7 @@ const PlatformMembersView: React.FC = () => {
 
                                 return (
                                     <tr
-                                        key={`${member.companyId} -${member.id || idx} `}
+                                        key={`${member.companyId}-${member.id || idx}`}
                                         className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap">
@@ -173,7 +173,7 @@ const PlatformMembersView: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px - 2 py - 1 text - xs font - medium bg - ${roleColor} -100 dark: bg - ${roleColor} -900 / 30 text - ${roleColor} -800 dark: text - ${roleColor} -300 rounded - full`}>
+                                            <span className={`px-2 py-1 text-xs font-medium bg-${roleColor}-100 dark:bg-${roleColor}-900/30 text-${roleColor}-800 dark:text-${roleColor}-300 rounded-full`}>
                                                 {member.role || 'READ_ONLY'}
                                             </span>
                                         </td>

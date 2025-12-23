@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Filter, Calendar, User, Building2, AlertCircle, Search } from 'lucide-react';
+import { FileJson, Download, Filter, Calendar, User, Building2, AlertCircle, Search, Eye, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { db } from '@/services/db';
 
 interface AuditLog {
@@ -32,8 +32,9 @@ const SystemLogsView: React.FC = () => {
     const [filterSeverity, setFilterSeverity] = useState('ALL');
     const [dateRange, setDateRange] = useState('7d'); // 24h, 7d, 30d, ALL
 
-    // Pagination State
+    // Pagination & Detail State
     const [currentPage, setCurrentPage] = useState(1);
+    const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
     const logsPerPage = 10;
 
     useEffect(() => {
@@ -51,6 +52,7 @@ const SystemLogsView: React.FC = () => {
                     action: l.action,
                     resource: l.resource,
                     resourceId: l.resourceId,
+                    metadata: l.metadata,
                     severity: (l.status === 'failure' ? 'error' : 'info') as 'info' | 'warning' | 'error',
                     ipAddress: l.ipAddress || '127.0.0.1',
                     details: l.details || `${l.action} on ${l.resource}/${l.resourceId}`
@@ -72,7 +74,7 @@ const SystemLogsView: React.FC = () => {
             log.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             log.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.details?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
+            log.details?.toLowerCase().includes(searchTerm.toLowerCase());
 
         const matchesAction = filterAction === 'ALL' || log.action === filterAction;
         const matchesSeverity = filterSeverity === 'ALL' || log.severity === filterSeverity;
@@ -166,7 +168,7 @@ const SystemLogsView: React.FC = () => {
                                 {logs.length}
                             </p>
                         </div>
-                        <FileText className="w-8 h-8 text-blue-600" />
+                        <FileJson className="w-8 h-8 text-blue-600" />
                     </div>
                 </div>
                 <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
@@ -233,7 +235,7 @@ const SystemLogsView: React.FC = () => {
                     <select
                         value={filterSeverity}
                         onChange={(e) => setFilterSeverity(e.target.value)}
-                        className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                         <option value="ALL">All Severities</option>
                         <option value="info">Info</option>
@@ -247,8 +249,8 @@ const SystemLogsView: React.FC = () => {
                             key={range}
                             onClick={() => setDateRange(range)}
                             className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${dateRange === range
-                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
                                 }`}
                         >
                             {range}
@@ -275,11 +277,8 @@ const SystemLogsView: React.FC = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Details
                                 </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    IP Address
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Severity
+                                <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                    Actions
                                 </th>
                             </tr>
                         </thead>
@@ -303,8 +302,8 @@ const SystemLogsView: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action.includes('DELETE') || log.action.includes('SUSPEND') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                                                    log.action.includes('UPDATE') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
-                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                log.action.includes('UPDATE') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
+                                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                                                 }`}>
                                                 {log.action}
                                             </span>
@@ -312,20 +311,21 @@ const SystemLogsView: React.FC = () => {
                                         <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
                                             {log.details}
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                                            {log.ipAddress || '—'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-medium bg-${severityColor}-100 dark:bg-${severityColor}-900/30 text-${severityColor}-800 dark:text-${severityColor}-300 rounded-full capitalize`}>
-                                                {log.severity}
-                                            </span>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button
+                                                onClick={() => setSelectedLog(log)}
+                                                className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </button>
                                         </td>
                                     </tr>
                                 )
                             })}
                             {displayedLogs.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
                                         No logs found matching your criteria
                                     </td>
                                 </tr>
@@ -343,20 +343,86 @@ const SystemLogsView: React.FC = () => {
                         <button
                             onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1}
-                            className="px-3 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 disabled:opacity-50"
+                            className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 disabled:opacity-50 flex items-center gap-1"
                         >
-                            Previous
+                            <ChevronLeft className="w-4 h-4" /> Previous
                         </button>
                         <button
                             onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 disabled:opacity-50"
+                            className="px-4 py-2 text-sm border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 disabled:opacity-50 flex items-center gap-1"
                         >
-                            Next
+                            Next <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
                 </div>
             </div>
+
+            {/* Log Detail Modal */}
+            {selectedLog && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                        <div className="bg-zinc-900 p-4 text-white flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg ${selectedLog.severity === 'error' ? 'bg-red-500/20 text-red-400' :
+                                        selectedLog.severity === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                                            'bg-blue-500/20 text-blue-400'
+                                    }`}>
+                                    <FileJson className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold leading-none">{selectedLog.action}</h3>
+                                    <p className="text-[10px] text-zinc-400 uppercase tracking-widest mt-1">Audit Log Details</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedLog(null)} className="text-white/50 hover:text-white transition-colors">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">User ID</label>
+                                    <p className="text-sm font-medium dark:text-white">{selectedLog.userId}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Timestamp</label>
+                                    <p className="text-sm font-medium dark:text-white">{selectedLog.timestamp}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">IP Address</label>
+                                    <p className="text-sm font-medium dark:text-white">{selectedLog.ipAddress || '127.0.0.1'}</p>
+                                </div>
+                                <div>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase">Severity</label>
+                                    <p className={`text-sm font-bold uppercase ${selectedLog.severity === 'error' ? 'text-red-500' :
+                                            selectedLog.severity === 'warning' ? 'text-amber-500' :
+                                                'text-blue-500'
+                                        }`}>{selectedLog.severity}</p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-2">Metadata / Change Diff</label>
+                                <pre className="p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-mono overflow-x-auto dark:text-zinc-300">
+                                    {JSON.stringify(selectedLog.metadata || {
+                                        details: selectedLog.details,
+                                        note: "Full diff metadata would be expanded here for UPDATE actions."
+                                    }, null, 2)}
+                                </pre>
+                            </div>
+                        </div>
+                        <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-end">
+                            <button
+                                onClick={() => setSelectedLog(null)}
+                                className="px-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm font-bold hover:bg-zinc-50 transition-all active:scale-95 text-zinc-700 dark:text-zinc-200"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
