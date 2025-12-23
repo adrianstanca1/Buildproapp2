@@ -14,6 +14,10 @@ const AccessControlView: React.FC = () => {
     const [rolePermissions, setRolePermissions] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    // Create Role State
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [newRole, setNewRole] = useState({ name: '', description: '' });
+
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -73,13 +77,9 @@ const AccessControlView: React.FC = () => {
         );
     }
 
-
     const handleSavePermissions = async () => {
         if (!selectedRole) return;
         try {
-            // Convert set of "resource:action" back to objects if needed, or just send IDs
-            // The controller expects list of { id, resource, action }
-            // modifying rolePermissions (strings) to objects
             const payload = rolePermissions.map(p => {
                 const [resource, action] = p.split(':');
                 return { id: p, resource, action };
@@ -90,6 +90,22 @@ const AccessControlView: React.FC = () => {
         } catch (error) {
             console.error('Failed to save permissions', error);
             alert('Failed to save changes');
+        }
+    };
+
+    const handleCreateRole = async () => {
+        if (!newRole.name) return;
+        try {
+            await db.createRole({ ...newRole, permissions: [] });
+            setShowCreateModal(false);
+            setNewRole({ name: '', description: '' });
+            // Refresh roles
+            const updatedRoles = await db.getRoles();
+            setRoles(updatedRoles);
+            alert('Role created successfully');
+        } catch (error) {
+            console.error('Failed to create role', error);
+            alert('Failed to create role');
         }
     };
 
@@ -107,7 +123,7 @@ const AccessControlView: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                     <button
-                        onClick={() => alert("Create Role Not Implemented in UI yet")}
+                        onClick={() => setShowCreateModal(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 rounded-lg transition-colors"
                     >
                         <Settings className="w-5 h-5" />
@@ -127,10 +143,10 @@ const AccessControlView: React.FC = () => {
             {/* Role Hierarchy */}
             <div className="bg-white dark:bg-zinc-800 rounded-xl p-6 shadow-sm border border-zinc-200 dark:border-zinc-700">
                 <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
-                    Role Hierarchy
+                    <Users className="w-5 h-5" />
+                    System Roles
                 </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                     {roles.map((roleInfo) => (
                         <button
                             key={roleInfo.id}
@@ -142,7 +158,7 @@ const AccessControlView: React.FC = () => {
                         >
                             <div className="flex items-center justify-between mb-2">
                                 <span className={`text-2xl font-bold text-blue-600`}>
-                                    L{roleInfo.level}
+                                    L{roleInfo.level || 0}
                                 </span>
                                 <Users className="w-5 h-5 text-zinc-400" />
                             </div>
@@ -201,7 +217,16 @@ const AccessControlView: React.FC = () => {
                                         const hasPerm = selectedRole && rolePermissions.includes(permissionName);
 
                                         return (
-                                            <td key={action} className="px-4 py-3 text-center">
+                                            <td key={action} className="px-4 py-3 text-center cursor-pointer"
+                                                onClick={() => {
+                                                    if (!isAvailable || !selectedRole) return;
+                                                    setRolePermissions(prev =>
+                                                        prev.includes(permissionName)
+                                                            ? prev.filter(p => p !== permissionName)
+                                                            : [...prev, permissionName]
+                                                    );
+                                                }}
+                                            >
                                                 {!isAvailable ? (
                                                     <div className="w-5 h-5 mx-auto bg-zinc-100 dark:bg-zinc-800/50 rounded-full opacity-20" />
                                                 ) : selectedRole ? (
@@ -274,6 +299,57 @@ const AccessControlView: React.FC = () => {
                                     <strong>Note:</strong> Permissions are strictly inherited from the database schema. Manual overrides at the user level will supersede these defaults.
                                 </p>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Create Role Modal */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="p-6 border-b border-zinc-200 dark:border-zinc-800">
+                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Create New Role</h3>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Role Name
+                                </label>
+                                <input
+                                    type="text"
+                                    value={newRole.name}
+                                    onChange={(e) => setNewRole({ ...newRole, name: e.target.value })}
+                                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white"
+                                    placeholder="e.g. Auditor"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                    Description
+                                </label>
+                                <textarea
+                                    value={newRole.description}
+                                    onChange={(e) => setNewRole({ ...newRole, description: e.target.value })}
+                                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white h-24 resize-none"
+                                    placeholder="Describe the role's purpose..."
+                                />
+                            </div>
+                        </div>
+                        <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowCreateModal(false)}
+                                className="px-4 py-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleCreateRole}
+                                disabled={!newRole.name}
+                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Create Role
+                            </button>
                         </div>
                     </div>
                 </div>

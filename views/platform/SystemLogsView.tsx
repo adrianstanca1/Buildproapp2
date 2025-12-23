@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Filter, Calendar, User, Building2, AlertCircle } from 'lucide-react';
+import { FileText, Download, Filter, Calendar, User, Building2, AlertCircle, Search } from 'lucide-react';
 import { db } from '@/services/db';
 
 interface AuditLog {
@@ -15,6 +15,7 @@ interface AuditLog {
     metadata?: any;
     ipAddress?: string;
     severity: 'info' | 'warning' | 'error';
+    details: string;
 }
 
 /**
@@ -22,52 +23,85 @@ interface AuditLog {
  * Superadmin-only view for audit log viewing and export
  */
 const SystemLogsView: React.FC = () => {
-    const [filterAction, setFilterAction] = useState('all');
-    const [filterSeverity, setFilterSeverity] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Mock audit logs
     const [logs, setLogs] = useState<AuditLog[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Filtering State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterAction, setFilterAction] = useState('ALL');
+    const [filterSeverity, setFilterSeverity] = useState('ALL');
+    const [dateRange, setDateRange] = useState('7d'); // 24h, 7d, 30d, ALL
+
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const logsPerPage = 10;
 
     useEffect(() => {
-        const fetchLogs = async () => {
-            // Map TenantAuditLog (from db) to local AuditLog interface if there's a mismatch, 
-            // but basically they are similar. 
-            // Our local interface is defined at top of file.
+        const loadLogs = async () => {
             try {
                 const data = await db.getGlobalAuditLogs();
                 // Adapt to view model
-                const viewLogs = data.map(l => ({
+                const viewLogs = data.map((l: any) => ({
                     id: l.id,
                     timestamp: l.timestamp || new Date().toISOString(),
                     userId: l.userId,
                     userName: l.userName || 'Unknown',
                     companyId: l.tenantId,
-                    companyName: 'Tenant ' + l.tenantId, // Ideally fetch company name map
+                    companyName: 'Tenant ' + l.tenantId,
                     action: l.action,
                     resource: l.resource,
                     resourceId: l.resourceId,
                     severity: (l.status === 'failure' ? 'error' : 'info') as 'info' | 'warning' | 'error',
-                    ipAddress: '127.0.0.1'
+                    ipAddress: l.ipAddress || '127.0.0.1',
+                    details: l.details || `${l.action} on ${l.resource}/${l.resourceId}`
                 }));
                 setLogs(viewLogs);
-            } catch (e) {
-                console.error(e);
+            } catch (error) {
+                console.error("Failed to load audit logs", error);
+            } finally {
+                setIsLoading(false);
             }
         };
-        fetchLogs();
+        loadLogs();
     }, []);
 
+    // Filter Logic
     const filteredLogs = logs.filter(log => {
-        const matchesAction = filterAction === 'all' || log.action.includes(filterAction);
-        const matchesSeverity = filterSeverity === 'all' || log.severity === filterSeverity;
         const matchesSearch =
             log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
             log.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.action.toLowerCase().includes(searchTerm.toLowerCase());
+            log.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            log.details?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
 
-        return matchesAction && matchesSeverity && matchesSearch;
+        const matchesAction = filterAction === 'ALL' || log.action === filterAction;
+        const matchesSeverity = filterSeverity === 'ALL' || log.severity === filterSeverity;
+
+        // Date Logic
+        const logDate = new Date(log.timestamp);
+        const now = new Date();
+        let matchesDate = true;
+
+        if (dateRange === '24h') {
+            matchesDate = (now.getTime() - logDate.getTime()) < 24 * 60 * 60 * 1000;
+        } else if (dateRange === '7d') {
+            matchesDate = (now.getTime() - logDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
+        } else if (dateRange === '30d') {
+            matchesDate = (now.getTime() - logDate.getTime()) < 30 * 24 * 60 * 60 * 1000;
+        }
+
+        return matchesSearch && matchesAction && matchesSeverity && matchesDate;
     });
+
+    // Pagination Logic
+    const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
+    const displayedLogs = filteredLogs.slice(
+        (currentPage - 1) * logsPerPage,
+        currentPage * logsPerPage
+    );
+
+    // Get unique actions for filter dropdown
+    const uniqueActions = ['ALL', ...Array.from(new Set(logs.map(log => log.action)))];
 
     const getSeverityColor = (severity: string) => {
         const colors: Record<string, string> = {
@@ -171,40 +205,55 @@ const SystemLogsView: React.FC = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-white dark:bg-zinc-800 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-                <div className="flex items-center gap-4 flex-wrap">
-                    <div className="flex items-center gap-2">
-                        <Filter className="w-5 h-5 text-zinc-400" />
-                        <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Filters:</span>
+            <div className="bg-white dark:bg-zinc-800 p-4 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 flex flex-wrap gap-4">
+                <div className="flex-1 min-w-[200px]">
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                        <input
+                            type="text"
+                            placeholder="Search user, action, or details..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                        />
                     </div>
+                </div>
+                <div className="w-full sm:w-auto">
                     <select
                         value={filterAction}
                         onChange={(e) => setFilterAction(e.target.value)}
-                        className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white"
                     >
-                        <option value="all">All Actions</option>
-                        <option value="create">Create</option>
-                        <option value="update">Update</option>
-                        <option value="delete">Delete</option>
-                        <option value="export">Export</option>
+                        {uniqueActions.map(action => (
+                            <option key={action} value={action}>{action}</option>
+                        ))}
                     </select>
+                </div>
+                <div className="w-full sm:w-auto">
                     <select
                         value={filterSeverity}
                         onChange={(e) => setFilterSeverity(e.target.value)}
                         className="px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                        <option value="all">All Severities</option>
+                        <option value="ALL">All Severities</option>
                         <option value="info">Info</option>
                         <option value="warning">Warning</option>
                         <option value="error">Error</option>
                     </select>
-                    <input
-                        type="text"
-                        placeholder="Search logs..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="flex-1 min-w-[200px] px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                </div>
+                <div className="w-full sm:w-auto flex gap-2">
+                    {['24h', '7d', '30d', 'ALL'].map(range => (
+                        <button
+                            key={range}
+                            onClick={() => setDateRange(range)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${dateRange === range
+                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                    : 'text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700'
+                                }`}
+                        >
+                            {range}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -221,13 +270,13 @@ const SystemLogsView: React.FC = () => {
                                     User
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Company
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Action
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Resource
+                                    Details
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                    IP Address
                                 </th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                                     Severity
@@ -235,47 +284,36 @@ const SystemLogsView: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            {filteredLogs.map((log) => {
+                            {displayedLogs.map((log) => {
                                 const severityColor = getSeverityColor(log.severity);
-
                                 return (
-                                    <tr
-                                        key={log.id}
-                                        className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors"
-                                    >
+                                    <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                            {new Date(log.timestamp).toLocaleString()}
+                                        </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <div className="flex items-center gap-2">
-                                                <Calendar className="w-4 h-4 text-zinc-400" />
-                                                <span className="text-sm text-zinc-900 dark:text-white">
-                                                    {new Date(log.timestamp).toLocaleString()}
+                                                <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                                                    {log.userId?.slice(0, 2).toUpperCase() || 'SY'}
+                                                </span>
+                                                <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                    {log.userId || 'System'}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <User className="w-4 h-4 text-zinc-400" />
-                                                <span className="text-sm text-zinc-900 dark:text-white">
-                                                    {log.userName}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <Building2 className="w-4 h-4 text-zinc-400" />
-                                                <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                                    {log.companyName}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <code className="text-sm font-mono text-zinc-900 dark:text-white">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action.includes('DELETE') || log.action.includes('SUSPEND') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                                    log.action.includes('UPDATE') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
+                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                }`}>
                                                 {log.action}
-                                            </code>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                                                {log.resource}/{log.resourceId}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
+                                            {log.details}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                            {log.ipAddress || '—'}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs font-medium bg-${severityColor}-100 dark:bg-${severityColor}-900/30 text-${severityColor}-800 dark:text-${severityColor}-300 rounded-full capitalize`}>
@@ -283,17 +321,41 @@ const SystemLogsView: React.FC = () => {
                                             </span>
                                         </td>
                                     </tr>
-                                );
+                                )
                             })}
+                            {displayedLogs.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                        No logs found matching your criteria
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>
 
-                {filteredLogs.length === 0 && (
-                    <div className="p-8 text-center text-zinc-500">
-                        No logs found matching your filters.
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between p-4 border-t border-zinc-200 dark:border-zinc-700">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                        Showing <span className="font-medium">{(currentPage - 1) * logsPerPage + 1}</span> to <span className="font-medium">{Math.min(currentPage * logsPerPage, filteredLogs.length)}</span> of <span className="font-medium">{filteredLogs.length}</span> results
+                    </p>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            className="px-3 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 disabled:opacity-50"
+                        >
+                            Previous
+                        </button>
+                        <button
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            className="px-3 py-1 text-sm border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-800 disabled:opacity-50"
+                        >
+                            Next
+                        </button>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

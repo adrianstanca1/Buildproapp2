@@ -618,6 +618,10 @@ class DatabaseService {
     const res = await fetch(`${API_URL}/roles/${roleId}/permissions`, { headers: await this.getHeaders() });
     return res.ok ? await res.json() : [];
   }
+  async createRole(role: { name: string; description: string; permissions: any[] }): Promise<any> {
+    return this.post('roles', role);
+  }
+
   async updateRolePermissions(roleId: string, permissions: any[]): Promise<void> {
     // The endpoint handles the ID in the URL, but our put helper requires an ID arg. 
     // We pass roleId as the ID, though the URL structure here subsumes it. 
