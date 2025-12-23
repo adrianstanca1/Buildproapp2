@@ -6,7 +6,7 @@
   "main": "index.ts",
   "scripts": {
     "start": "node --loader ts-node/esm --experimental-specifier-resolution=node index.ts",
-    "dev": "nodemon --exec 'node --loader ts-node/esm --experimental-specifier-resolution=node index.ts'",
+    "dev": "nodemon --exec 'npx tsx index.ts'",
     "migrate": "npx tsx scripts/migrate-to-pg.ts"
   },
   "dependencies": {

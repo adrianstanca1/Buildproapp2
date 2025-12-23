@@ -129,21 +129,6 @@ export function getDb(): IDatabase {
 async function initializeSchema(db: IDatabase) {
   logger.info('Initializing database schema...');
 
-  // Users table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL,
-      companyId TEXT,
-      isActive BOOLEAN DEFAULT 1,
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
-    )
-  `);
-
   // Companies table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS companies (
@@ -155,7 +140,22 @@ async function initializeSchema(db: IDatabase) {
       maxProjects INTEGER DEFAULT 5,
       maxUsers INTEGER DEFAULT 10,
       createdAt TEXT NOT NULL,
-      isActive BOOLEAN DEFAULT 1
+      isActive BOOLEAN DEFAULT TRUE
+    )
+  `);
+
+  // Users table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      companyId TEXT,
+      isActive BOOLEAN DEFAULT TRUE,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
     )
   `);
 
@@ -203,7 +203,7 @@ async function initializeSchema(db: IDatabase) {
       createdAt TEXT NOT NULL,
       lastAccessedAt TEXT,
       accessCount INTEGER DEFAULT 0,
-      isActive BOOLEAN DEFAULT 1,
+      isActive BOOLEAN DEFAULT TRUE,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
@@ -687,7 +687,7 @@ async function initializeSchema(db: IDatabase) {
       title TEXT NOT NULL,
       message TEXT,
       link TEXT,
-      isRead BOOLEAN DEFAULT 0,
+      isRead BOOLEAN DEFAULT FALSE,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
@@ -733,11 +733,11 @@ async function initializeSchema(db: IDatabase) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS notification_preferences (
       user_id TEXT PRIMARY KEY,
-      email_mentions BOOLEAN DEFAULT 1,
-      email_assignments BOOLEAN DEFAULT 1,
-      email_comments BOOLEAN DEFAULT 1,
+      email_mentions BOOLEAN DEFAULT TRUE,
+      email_assignments BOOLEAN DEFAULT TRUE,
+      email_comments BOOLEAN DEFAULT TRUE,
       email_digest_frequency TEXT DEFAULT 'daily',
-      push_enabled BOOLEAN DEFAULT 0
+      push_enabled BOOLEAN DEFAULT FALSE
     )
   `);
 
@@ -780,7 +780,7 @@ async function initializeSchema(db: IDatabase) {
       triggerType TEXT NOT NULL, -- e.g., 'task_completed', 'safety_incident_high', 'rfi_created'
       actionType TEXT NOT NULL,  -- e.g., 'send_notification', 'update_status', 'email_pm'
       configuration TEXT,        -- JSON string of settings
-      enabled BOOLEAN DEFAULT 1,
+      enabled BOOLEAN DEFAULT TRUE,
       createdAt TEXT,
       updatedAt TEXT,
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE

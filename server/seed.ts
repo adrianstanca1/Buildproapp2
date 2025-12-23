@@ -137,9 +137,9 @@ export async function seedDatabase() {
 
   for (const t of tasks) {
     await db.run(
-      `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeId, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [t.id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, t.dependencies]
+      `INSERT INTO tasks (id, title, description, projectId, status, priority, assignedTo, dueDate, dependencies)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.dueDate, t.dependencies]
     );
   }
 
