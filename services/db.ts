@@ -15,7 +15,7 @@ const getEnv = (key: string) => {
   return undefined;
 };
 
-const API_URL = getEnv('VITE_API_URL') || '/api';
+const API_URL = import.meta.env?.VITE_API_URL || process.env?.VITE_API_URL || '/api';
 
 class DatabaseService {
   private useMock = false;
