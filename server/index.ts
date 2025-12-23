@@ -104,6 +104,11 @@ import { maintenanceMiddleware } from './middleware/maintenanceMiddleware.js';
 app.use('/api', authenticateToken, contextMiddleware, maintenanceMiddleware); // Protect, contextualize, and enforce maintenance
 
 import aiRoutes from './routes/ai.js';
+import systemRoutes from './routes/systemRoutes.js';
+// Auth, Companies, Projects, ClientPortal are already imported/used below or above. 
+// Consolidating:
+
+app.use('/api/system-settings', systemRoutes); // Mount at /system-settings to match db.ts
 app.use('/api/ai', aiRoutes);
 
 import storageRoutes from './routes/storage.js';

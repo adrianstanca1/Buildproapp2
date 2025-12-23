@@ -11,5 +11,6 @@ router.get('/user/permissions', authController.getCurrentUserPermissions);
 router.get('/permissions', authController.getAllPermissions);
 router.get('/roles/:role/permissions', authController.getRolePermissions);
 router.get('/me/context', authController.getCurrentUserContext);
+router.post('/invite', authController.inviteUser);
 
 export default router;

@@ -7,6 +7,8 @@ const UserManagementView: React.FC = () => {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [inviteForm, setInviteForm] = useState({ email: '', role: 'COMPANY_ADMIN', companyId: '' });
 
     useEffect(() => {
         loadUsers();
@@ -56,6 +58,23 @@ const UserManagementView: React.FC = () => {
         }
     };
 
+    const handleInviteUser = async () => {
+        try {
+            if (!inviteForm.email || !inviteForm.companyId) {
+                alert('Please fill in all fields');
+                return;
+            }
+            await db.inviteUser(inviteForm.email, inviteForm.role, inviteForm.companyId);
+            alert('Invitation sent successfully!');
+            setShowInviteModal(false);
+            setInviteForm({ email: '', role: 'COMPANY_ADMIN', companyId: '' });
+            loadUsers(); // Refresh list
+        } catch (e) {
+            console.error('Failed to invite user', e);
+            alert('Failed to invite user');
+        }
+    };
+
     const filteredUsers = users.filter(user =>
         user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -68,15 +87,23 @@ const UserManagementView: React.FC = () => {
                     <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Global User Management</h1>
                     <p className="text-zinc-600 dark:text-zinc-400 mt-1">Manage user access across all tenants</p>
                 </div>
-                <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                    <input
-                        type="text"
-                        placeholder="Search users..."
-                        className="pl-9 pr-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg w-64"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setShowInviteModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-bold shadow-sm hover:bg-blue-700 transition-colors"
+                    >
+                        <UserCheck size={16} /> Invite User
+                    </button>
+                    <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                        <input
+                            type="text"
+                            placeholder="Search users..."
+                            className="pl-9 pr-4 py-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg w-64"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -162,6 +189,66 @@ const UserManagementView: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            {/* Invite Modal */}
+            {showInviteModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-xl w-full max-w-md p-6 border border-zinc-200 dark:border-zinc-700">
+                        <h2 className="text-xl font-bold text-zinc-900 dark:text-white mb-4">Invite New User</h2>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Email Address</label>
+                                <input
+                                    type="email"
+                                    className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                    placeholder="colleague@company.com"
+                                    value={inviteForm.email}
+                                    onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Role</label>
+                                <select
+                                    className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                    value={inviteForm.role}
+                                    onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
+                                >
+                                    <option value="SUPERADMIN">SUPERADMIN</option>
+                                    <option value="COMPANY_ADMIN">COMPANY_ADMIN</option>
+                                    <option value="PROJECT_MANAGER">PROJECT_MANAGER</option>
+                                    <option value="FINANCE">FINANCE</option>
+                                    <option value="SUPERVISOR">SUPERVISOR</option>
+                                    <option value="OPERATIVE">OPERATIVE</option>
+                                    <option value="READ_ONLY">READ_ONLY</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-1">Company ID</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-3 py-2 border border-zinc-200 dark:border-zinc-600 rounded-lg bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-white"
+                                    placeholder="Company ID"
+                                    value={inviteForm.companyId}
+                                    onChange={e => setInviteForm({ ...inviteForm, companyId: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowInviteModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleInviteUser}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700 shadow-sm"
+                            >
+                                Send Invitation
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -554,28 +554,30 @@ class DatabaseService {
 
   // --- System Settings (Admin) ---
   async getSystemSettings(): Promise<any> {
-    if (this.useMock) {
-      return mockDb.getSystemSettings();
-    }
-    const res = await fetch(`${API_URL}/system-settings`, { headers: await this.getHeaders() });
-    if (!res.ok) return mockDb.getSystemSettings(); // Fallback
+    const res = await fetch(`${API_URL}/system-settings/settings`, { headers: await this.getHeaders() });
+    if (!res.ok) return mockDb.getSystemSettings();
     return await res.json();
   }
 
   async updateSystemSettings(settings: any): Promise<void> {
-    if (this.useMock) {
-      return mockDb.updateSystemSettings(settings);
-    }
     try {
-      // API expects { key, value } per request
+      // API expects { key, value } per request, or we update one by one
       const updates = Object.entries(settings).map(async ([key, value]) => {
-        await this.post('system-settings', { key, value });
+        await this.post('system-settings/settings', { key, value });
       });
       await Promise.all(updates);
     } catch (e) {
-      console.warn("API update failed, updating local mock", e);
-      mockDb.updateSystemSettings(settings); // Optimistic fallback
+      console.warn("API update failed", e);
     }
+  }
+
+  async broadcastMessage(message: string, urgent: boolean = false): Promise<void> {
+    await this.post('system-settings/broadcast', { message, urgent });
+  }
+
+  // --- User Management ---
+  async inviteUser(email: string, role: string, companyId: string): Promise<void> {
+    await this.post('auth/invite', { email, role, companyId });
   }
 
   // --- Access Logs (Admin) ---
@@ -583,14 +585,13 @@ class DatabaseService {
     if (this.useMock) {
       return mockDb.getAccessLogs();
     }
-    return this.fetch('access-logs');
+    // Return empty or fetch from real audit logs if available
+    return [];
   }
 
   async addAccessLog(log: any): Promise<void> {
-    if (this.useMock) {
-      return mockDb.addAccessLog(log);
-    }
-    await this.post('access-logs', log);
+    // implementation handled by backend for critical actions, but client can log too
+    // For now, no-op or specific endpoint
   }
 
 

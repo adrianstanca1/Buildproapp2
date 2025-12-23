@@ -188,3 +188,77 @@ export const getCurrentUserContext = async (req: Request, res: Response, next: N
         next(e);
     }
 };
+
+export const inviteUser = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { email, role, companyId } = req.body;
+        const inviterId = (req as any).userId;
+
+        if (!email || !role || !companyId) {
+            throw new AppError('Email, role, and companyId are required', 400);
+        }
+
+        const db = getDb();
+
+        // Check if inviter has permission
+        // 1. Get Inviter's membership for the target company
+        // If inviter is SUPERADMIN (global), they can invite to any company.
+        // Otherwise, they must be a COMPANY_ADMIN or have 'users:invite' permission for that company.
+
+        const inviterGlobalRole = await permissionService.getUserGlobalRole(inviterId);
+
+        if (inviterGlobalRole !== 'SUPERADMIN') {
+            const membership = await membershipService.getMembership(inviterId, companyId);
+            if (!membership || membership.status !== 'active') {
+                throw new AppError('You do not have permission to invite users to this company', 403);
+            }
+
+            // Check for specific permission or role
+            if (membership.role !== 'COMPANY_ADMIN' && membership.role !== 'SUPERADMIN') {
+                // Granular check if we had fine-grained permissions wired up
+                // const hasPerm = await permissionService.checkPermission(inviterId, companyId, 'users', 'invite');
+                // if (!hasPerm) throw new AppError(...);
+                throw new AppError('Only Company Admins can invite users', 403);
+            }
+        }
+        const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
+        if (existingUser) {
+            // If user exists, just add membership
+            const existingMember = await membershipService.getMembership(existingUser.id, companyId);
+            if (existingMember) {
+                throw new AppError('User is already a member of this company', 409);
+            }
+            // Add membership
+            await membershipService.addMember({ userId: existingUser.id, companyId, role });
+            res.status(200).json({ message: 'User added to company', userId: existingUser.id });
+            return; // stop execution
+        }
+
+        // 2. If user does NOT exist, create specific "Invite" record or Placeholder User
+        // For this MVP, we create a placeholder user with status 'invited'
+        const newUserId = uuidv4();
+        const now = new Date().toISOString();
+
+        await db.run(
+            `INSERT INTO users (id, email, name, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?)`,
+            [newUserId, email, email.split('@')[0], 'invited', now, now]
+        );
+
+        await membershipService.addMember({ userId: newUserId, companyId, role });
+
+        // 3. Log Audit
+        const logId = uuidv4();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, companyId, inviterId, 'Inviter', 'INVITE_USER', 'users', newUserId, JSON.stringify({ email, role }), 'success', now, req.ip, req.headers['user-agent']]
+        ).catch(err => logger.error('Audit log failed', err));
+
+        // 4. Send Email (Mock)
+        logger.info(`[MOCK EMAIL] Invitation sent to ${email} for company ${companyId} with role ${role}`);
+
+        res.status(201).json({ message: 'Invitation sent', userId: newUserId });
+    } catch (e) {
+        next(e);
+    }
+};

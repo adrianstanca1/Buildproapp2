@@ -13,6 +13,15 @@ export class PermissionService {
     /**
      * Check if a user has a specific permission
      */
+    async getUserGlobalRole(userId: string): Promise<string | null> {
+        const memberships = await membershipService.getUserMemberships(userId);
+        const superadminMembership = memberships.find(m => m.role === 'SUPERADMIN');
+        return superadminMembership ? 'SUPERADMIN' : null;
+    }
+
+    /**
+     * Check if a user has a specific permission
+     */
     async hasPermission(userId: string, permission: string, tenantId?: string): Promise<boolean> {
         try {
             // Get user's membership and role

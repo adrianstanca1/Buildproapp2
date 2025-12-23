@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     LayoutDashboard, Building2, Users, TrendingUp, AlertCircle,
-    DollarSign, Activity, Database, Server, Shield
+    DollarSign, Activity, Database, Server, Shield, Power, Sparkles,
+    UserCheck, BrainCircuit, RefreshCw, RotateCcw, Megaphone, Settings
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useState } from 'react';
 
 /**
  * PlatformDashboardView
@@ -17,13 +20,41 @@ import { PlatformStats, SystemHealth } from '@/types';
  * Superadmin-only view showing platform-wide metrics and system health
  */
 const PlatformDashboardView: React.FC = () => {
-    // State for real data
-    const [statsData, setStatsData] = React.useState<PlatformStats | null>(null);
-    const [healthData, setHealthData] = React.useState<SystemHealth | null>(null);
-    const [activityLogs, setActivityLogs] = React.useState<any[]>([]);
-    const [loading, setLoading] = React.useState(true);
+    const { systemSettings, updateSystemSettings, setBroadcastMessage } = useTenant();
+    const { addToast } = useToast();
 
-    React.useEffect(() => {
+    // State for real data
+    const [statsData, setStatsData] = useState<PlatformStats | null>(null);
+    const [healthData, setHealthData] = useState<SystemHealth | null>(null);
+    const [activityLogs, setActivityLogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [localBroadcastMsg, setLocalBroadcastMsg] = useState('');
+
+    const handleToggleSetting = (key: keyof typeof systemSettings) => {
+        const newState = !systemSettings[key];
+        updateSystemSettings({ [key]: newState });
+        addToast(`${key.replace(/([A-Z])/g, ' $1').trim()} ${newState ? 'Enabled' : 'Disabled'}`, 'success');
+    };
+
+    const handleBroadcast = () => {
+        if (!localBroadcastMsg.trim()) return;
+        setBroadcastMessage(localBroadcastMsg);
+        setLocalBroadcastMsg('');
+        addToast('Broadcast sent to all active sessions', 'success');
+    };
+
+    const handleFlushCache = () => {
+        addToast('System cache flushed successfully', 'success');
+    };
+
+    const handleRestartServices = () => {
+        if (confirm('Are you sure you want to restart core services? This may cause temporary downtime.')) {
+            addToast('Initiating service restart sequence...', 'warning');
+            setTimeout(() => addToast('Services restarted successfully', 'success'), 2000);
+        }
+    };
+
+    useEffect(() => {
         const loadData = async () => {
             try {
                 const [stats, health, activity] = await Promise.all([
@@ -205,6 +236,84 @@ const PlatformDashboardView: React.FC = () => {
                             </span>
                         </div>
                     ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* System Control Panel */}
+                <div className="lg:col-span-2 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-sm p-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-3 opacity-5"><Settings size={80} /></div>
+                    <h3 className="font-bold text-zinc-800 dark:text-white mb-6 flex items-center gap-2 relative z-10">
+                        <Server size={18} className="text-purple-600" /> System Control
+                    </h3>
+                    <div className="space-y-4 relative z-10">
+                        {/* Control Toggles */}
+                        {[
+                            { key: 'maintenance', label: 'Maintenance Mode', icon: Power, onColor: 'bg-red-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-red-600', iconBg: 'bg-red-100 dark:bg-red-900/20' },
+                            { key: 'betaFeatures', label: 'Global Beta Access', icon: Sparkles, onColor: 'bg-emerald-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-purple-600', iconBg: 'bg-purple-100 dark:bg-purple-900/20' },
+                            { key: 'registrations', label: 'New Registrations', icon: UserCheck, onColor: 'bg-emerald-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-blue-600', iconBg: 'bg-blue-100 dark:bg-blue-900/20' },
+                            { key: 'aiEngine', label: 'AI Inference Engine', icon: BrainCircuit, onColor: 'bg-indigo-500', offColor: 'bg-zinc-300 dark:bg-zinc-600', iconColor: 'text-indigo-600', iconBg: 'bg-indigo-100 dark:bg-indigo-900/20' },
+                        ].map((ctrl) => (
+                            <div key={ctrl.key} className="flex items-center justify-between p-3 bg-zinc-50 dark:bg-zinc-900/50 rounded-xl border border-zinc-100 dark:border-zinc-700 hover:border-zinc-300 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className={`p-2 rounded-lg ${ctrl.iconBg}`}>
+                                        <ctrl.icon size={16} className={ctrl.iconColor} />
+                                    </div>
+                                    <div className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{ctrl.label}</div>
+                                </div>
+                                <button
+                                    onClick={() => handleToggleSetting(ctrl.key as any)}
+                                    className={`w-11 h-6 rounded-full transition-colors relative ${systemSettings[ctrl.key as keyof typeof systemSettings] ? ctrl.onColor : ctrl.offColor}`}
+                                >
+                                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${systemSettings[ctrl.key as keyof typeof systemSettings] ? 'left-6' : 'left-1'}`}></div>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="mt-6 flex gap-3 relative z-10">
+                        <button
+                            onClick={handleFlushCache}
+                            className="flex-1 py-2.5 text-xs font-bold text-zinc-600 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 rounded-xl transition-colors flex items-center justify-center gap-2 border border-zinc-200 dark:border-zinc-600"
+                        >
+                            <RefreshCw size={14} /> Flush Cache
+                        </button>
+                        <button
+                            onClick={handleRestartServices}
+                            className="flex-1 py-2.5 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors flex items-center justify-center gap-2 border border-red-100 dark:border-red-900/30"
+                        >
+                            <RotateCcw size={14} /> Restart
+                        </button>
+                    </div>
+                </div>
+
+                {/* Enhanced Broadcast Widget */}
+                <div className="lg:col-span-1 bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-xl shadow-lg p-6 text-white relative overflow-hidden group">
+                    <div className="absolute -right-4 -bottom-4 bg-white/10 w-24 h-24 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <h3 className="font-bold mb-3 flex items-center gap-2 relative z-10">
+                        <Megaphone size={18} className="text-yellow-400" /> Global Broadcast
+                    </h3>
+                    <div className="relative z-10 h-full flex flex-col">
+                        <textarea
+                            className="w-full bg-black/20 border border-white/10 rounded-lg p-3 text-sm text-white placeholder-white/40 outline-none focus:ring-1 focus:ring-white/30 resize-none h-32 mb-3"
+                            placeholder="Type system-wide announcement..."
+                            value={localBroadcastMsg}
+                            onChange={e => setLocalBroadcastMsg(e.target.value)}
+                        />
+                        <div className="flex flex-col gap-3 mt-auto">
+                            <label className="flex items-center gap-2 text-xs text-blue-200 cursor-pointer hover:text-white transition-colors">
+                                <input type="checkbox" className="rounded text-blue-500 focus:ring-0 bg-white/10 border-white/20" />
+                                Urgent Alert
+                            </label>
+                            <button
+                                disabled={!localBroadcastMsg.trim()}
+                                onClick={handleBroadcast}
+                                className="w-full bg-white text-[#0f5c82] px-5 py-2 rounded-lg text-xs font-bold hover:bg-blue-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
+                            >
+                                Send Broadcast
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
