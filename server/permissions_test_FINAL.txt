@@ -1,0 +1,42 @@
+* Host localhost:3002 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:3002...
+* connect to ::1 port 3002 from ::1 port 55933 failed: Connection refused
+*   Trying 127.0.0.1:3002...
+* Connected to localhost (127.0.0.1) port 3002
+> GET /api/user/permissions HTTP/1.1
+> Host: localhost:3002
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Authorization: Bearer null
+> x-company-id: c1
+> 
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Content-Security-Policy: default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self';img-src 'self' data: https: blob:;connect-src 'self' ws: wss:;font-src 'self' data:;base-uri 'self';form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Origin-Agent-Cluster: ?1
+< Referrer-Policy: no-referrer
+< Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+< X-Content-Type-Options: nosniff
+< X-DNS-Prefetch-Control: off
+< X-Download-Options: noopen
+< X-Frame-Options: SAMEORIGIN
+< X-Permitted-Cross-Domain-Policies: none
+< X-XSS-Protection: 0
+< Access-Control-Allow-Origin: *
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 1495
+< ETag: W/"5d7-4quWfKoqqZjB+ja8jbnKie6wNNw"
+< Date: Tue, 23 Dec 2025 15:36:41 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [1495 bytes data]
+100  1495  100  1495    0     0   1911      0 --:--:-- --:--:-- --:--:--  1914
+* Connection #0 to host localhost left intact
+["projects.create","projects.read","projects.update","projects.delete","tasks.create","tasks.read","tasks.update","tasks.delete","companies.create","companies.read","companies.update","companies.delete","users.create","users.read","users.update","users.delete","roles.create","roles.read","roles.update","roles.delete","automations.create","automations.read","automations.update","automations.delete","reports.create","reports.read","reports.update","reports.delete","settings.create","settings.read","settings.update","settings.delete","client_portal.create","client_portal.read","client_portal.update","client_portal.delete","daily_logs.create","daily_logs.read","daily_logs.update","daily_logs.delete","documents.create","documents.read","documents.update","documents.delete","rfis.create","rfis.read","rfis.update","rfis.delete","punch_items.create","punch_items.read","punch_items.update","punch_items.delete","safety_incidents.create","safety_incidents.read","safety_incidents.update","safety_incidents.delete","equipment.create","equipment.read","equipment.update","equipment.delete","timesheets.create","timesheets.read","timesheets.update","timesheets.delete","chats.create","chats.read","chats.update","chats.delete","finance.create","finance.read","finance.update","finance.delete","inventory.create","inventory.read","inventory.update","inventory.delete","defects.create","defects.read","defects.update","defects.delete","risks.create","risks.read","risks.update","risks.delete","*"]

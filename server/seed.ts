@@ -131,15 +131,15 @@ export async function seedDatabase() {
   }
 
   const tasks = [
-    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeId: 'u1', assigneeName: 'Mike Thompson', assigneeType: 'user', dueDate: '2025-11-12', latitude: 40.7128, longitude: -74.0060, dependencies: '[]' },
-    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeId: 'role-operative', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', latitude: 40.7135, longitude: -74.0055, dependencies: '["t1"]' }
+    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', companyId: 'c1', status: 'To Do', priority: 'High', assigneeId: 'u1', assigneeName: 'Mike Thompson', assigneeType: 'user', dueDate: '2025-11-12', latitude: 40.7128, longitude: -74.0060, dependencies: '[]' },
+    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium.', projectId: 'p1', companyId: 'c1', status: 'Blocked', priority: 'Critical', assigneeId: 'role-operative', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', latitude: 40.7135, longitude: -74.0055, dependencies: '["t1"]' }
   ];
 
   for (const t of tasks) {
     await db.run(
-      `INSERT INTO tasks (id, title, description, projectId, status, priority, assignedTo, dueDate, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [t.id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.dueDate, t.dependencies]
+      `INSERT INTO tasks (id, title, description, projectId, companyId, status, priority, assignedTo, dueDate, dependencies)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.title, t.description, t.projectId, t.companyId, t.status, t.priority, t.assigneeId, t.dueDate, t.dependencies]
     );
   }
 
