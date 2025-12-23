@@ -36,9 +36,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host; // e.g. localhost:5173 or my-app.vercel.app
 
-        // Use environment var or fallback to direct backend port for local dev if CORS allows
-        // But commonly in Vite dev: ws://localhost:3002/api/live
-        const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.hostname}:3002/api/live`;
+        // Use environment var or fallback to relative path (handled by proxy in dev and prod)
+        // In local dev, Vite proxies /api/live -> localhost:3002
+        // In prod Vercel, Vercel proxies /api/live -> Cloud Run
+        const wsUrl = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.host}/api/live`;
 
         console.log('Connecting to WS:', wsUrl);
 

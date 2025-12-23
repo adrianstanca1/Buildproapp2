@@ -57,7 +57,7 @@ const FileUploadZone: React.FC<FileUploadZoneProps> = ({
 
                     const { data: authData } = await supabase.auth.getSession();
                     const token = authData.session?.access_token;
-                    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+                    const apiUrl = import.meta.env.VITE_API_URL || '';
 
                     const formData = new FormData();
                     formData.append('file', file);

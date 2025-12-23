@@ -103,7 +103,7 @@ const ProjectPhasesView: React.FC<ProjectPhasesViewProps> = ({ project, onUpdate
             const token = authData.session?.access_token;
 
             // Try explicit endpoint or fallback to relative
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
+            const apiUrl = import.meta.env.VITE_API_URL || '';
 
             const response = await fetch(`${apiUrl}/api/ai/analyze-phase`, {
                 method: 'POST',
