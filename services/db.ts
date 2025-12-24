@@ -507,13 +507,7 @@ class DatabaseService {
   }
 
 
-  async getGlobalActivity(): Promise<any[]> {
-    try {
-      const res = await fetch(`${API_URL}/platform/activity`, { headers: await this.getHeaders() });
-      if (!res.ok) return [];
-      return await res.json();
-    } catch { return []; }
-  }
+
 
   async getAllPlatformUsers(): Promise<any[]> {
     try {
@@ -592,22 +586,7 @@ class DatabaseService {
   }
 
   async impersonateUser(userId: string): Promise<{ user: any; token: string }> {
-    /*
-    if (this.useMock) {
-      console.log(`[MockDB] Impersonating user ${userId}`);
-      return {
-        user: {
-          id: userId,
-          email: `impersonated-${userId}@buildpro.app`,
-          role: 'PROJECT_MANAGER',
-          permissions: [],
-          name: 'Impersonated User',
-          avatarInitials: 'IU'
-        },
-        token: 'mock-impersonation-token-' + userId
-      };
-    }
-    */
+
     const res = await this.post('auth/impersonate', { userId });
     if (!res) throw new Error("Failed to impersonate user");
     return res as any;
@@ -615,12 +594,7 @@ class DatabaseService {
 
   // --- Audit Logs ---
   async getGlobalAuditLogs(params: Record<string, any> = {}): Promise<TenantAuditLog[]> {
-    /*
-    if (this.useMock) {
-      // Aggregate logs from all mock tenants or return global system logs
-      return mockDb.getSystemLogs ? mockDb.getSystemLogs() : [];
-    }
-    */
+
     const query = new URLSearchParams(params).toString();
     const url = `${API_URL}/platform/audit-logs${query ? `?${query}` : ''}`;
     const res = await fetch(url, { headers: await this.getHeaders() });
@@ -698,11 +672,7 @@ class DatabaseService {
   }
 
   async getAccessLogs(): Promise<any[]> {
-    /*
-    if (this.useMock) {
-      return mockDb.getAccessLogs();
-    }
-    */
+
     // Return empty or fetch from real audit logs if available
     return [];
   }
@@ -888,12 +858,7 @@ class DatabaseService {
   }
 
   async updateCostCode(id: string, u: Partial<CostCode>) {
-    /*
-    if (this.useMock) {
-      await (mockDb as any).updateCostCode(id, u);
-      return;
-    }
-    */
+
     await this.put('cost_codes', id, u);
   }
   // --- Client Portal ---

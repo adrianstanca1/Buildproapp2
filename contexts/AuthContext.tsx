@@ -115,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       // DEV BACKDOOR for Super Admin verification
       if (email === 'demo@buildpro.app' && password === 'dev-admin') {
-        console.log("Using DEV BACKDOOR for Super Admin");
+        console.warn("Using DEV BACKDOOR for Super Admin");
         const devUser: UserProfile = {
           id: 'demo-user-id',
           name: 'Demo Super Admin',

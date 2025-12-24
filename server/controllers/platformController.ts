@@ -128,10 +128,7 @@ export const getAuditLogs = async (req: Request, res: Response, next: NextFuncti
     }
 };
 
-/**
- * Legacy alias for dashboard activity
- */
-export const getGlobalActivity = getAuditLogs;
+
 
 /**
  * Execute raw SQL (Super Admin Only)
