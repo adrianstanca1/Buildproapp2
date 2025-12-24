@@ -48,6 +48,15 @@ const GlobalSettingsView: React.FC = () => {
         );
     }
 
+    if (!config) {
+        return (
+            <div className="flex items-center justify-center h-full flex-col gap-4">
+                <div className="text-zinc-400 font-bold">Failed to load configuration</div>
+                <button onClick={() => window.location.reload()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retry</button>
+            </div>
+        );
+    }
+
     const tabs = [
         { id: 'general', label: 'General', icon: Settings },
         { id: 'branding', label: 'Branding', icon: Palette },
