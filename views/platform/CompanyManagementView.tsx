@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
     Building2, Plus, Search, MoreVertical, Users,
-    DollarSign, AlertCircle, CheckCircle, XCircle, Pause, LogIn
+    DollarSign, AlertCircle, CheckCircle, XCircle, Pause, LogIn, UserPlus
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { Modal } from '@/components/Modal';
@@ -18,6 +18,9 @@ const CompanyManagementView: React.FC = () => {
     const [selectedCompany, setSelectedCompany] = useState<any>(null);
     const [fullCompanyDetails, setFullCompanyDetails] = useState<any>(null);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showQuickAdminModal, setShowQuickAdminModal] = useState(false);
+    const [quickAdminData, setQuickAdminData] = useState({ name: '', email: '' });
+    const [isProvisioning, setIsProvisioning] = useState(false);
 
     // Fetch deep details when a company is selected
     React.useEffect(() => {
@@ -157,6 +160,24 @@ const CompanyManagementView: React.FC = () => {
             setShowDetailsModal(false);
         } catch (error) {
             alert('Failed to activate company');
+        }
+    };
+
+    const handleQuickProvision = async () => {
+        if (!selectedCompany) return;
+        setIsProvisioning(true);
+        try {
+            await db.createUser(selectedCompany.id, {
+                ...quickAdminData,
+                role: 'COMPANY_ADMIN'
+            });
+            alert(`Provisioned ${quickAdminData.name} as admin for ${selectedCompany.name}`);
+            setShowQuickAdminModal(false);
+            setQuickAdminData({ name: '', email: '' });
+        } catch (error) {
+            alert('Failed to provision admin');
+        } finally {
+            setIsProvisioning(false);
         }
     };
 
@@ -340,6 +361,17 @@ const CompanyManagementView: React.FC = () => {
                                                     title="Login as Tenant Admin"
                                                 >
                                                     <LogIn className="w-5 h-5" />
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSelectedCompany(company);
+                                                        setShowQuickAdminModal(true);
+                                                    }}
+                                                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                                    title="Quick Add Admin"
+                                                >
+                                                    <UserPlus className="w-5 h-5" />
                                                 </button>
                                                 <button
                                                     onClick={(e) => {
@@ -536,6 +568,47 @@ const CompanyManagementView: React.FC = () => {
                     </div>
                 </Modal>
             )}
+
+            {/* Quick Admin Provisioning */}
+            <Modal
+                isOpen={showQuickAdminModal}
+                onClose={() => setShowQuickAdminModal(false)}
+                title={`Add Admin for ${selectedCompany?.name}`}
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Full Name
+                        </label>
+                        <input
+                            type="text"
+                            value={quickAdminData.name}
+                            onChange={(e) => setQuickAdminData({ ...quickAdminData, name: e.target.value })}
+                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder="e.g. Michael Scott"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            value={quickAdminData.email}
+                            onChange={(e) => setQuickAdminData({ ...quickAdminData, email: e.target.value })}
+                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+                            placeholder="michael@dundermifflin.com"
+                        />
+                    </div>
+                    <button
+                        onClick={handleQuickProvision}
+                        disabled={!quickAdminData.name || !quickAdminData.email || isProvisioning}
+                        className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all disabled:opacity-50"
+                    >
+                        {isProvisioning ? 'Provisioning...' : 'Provision Company Admin'}
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 };

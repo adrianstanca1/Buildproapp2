@@ -22,6 +22,7 @@ interface TenantContextType {
   updateTenant: (id: string, updates: Partial<Tenant>) => Promise<void>;
   deleteTenant: (id: string) => Promise<void>;
   getTenantById: (id: string) => Tenant | undefined;
+  refreshTenants: () => Promise<void>;
 
   // Tenant settings
   updateTenantSettings: (tenantId: string, settings: Partial<Tenant['settings']>) => Promise<void>;
@@ -533,6 +534,18 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [currentTenant]);
 
+  const refreshTenants = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const fetchedTenants = await db.getCompanies();
+      setTenants(fetchedTenants);
+    } catch (e) {
+      console.error('Failed to refresh tenants', e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logAccess = useCallback((log: Omit<AccessLog, 'id' | 'time'>) => {
     const newLog: AccessLog = {
       ...log,
@@ -605,6 +618,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTenant: setTenantWithPersistence,
         availableTenants: tenants,
         refreshTenantData,
+        refreshTenants,
 
         // Legacy API
         currentTenant,

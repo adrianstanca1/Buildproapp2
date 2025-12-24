@@ -770,6 +770,31 @@ class DatabaseService {
     await this.post('platform/broadcast/targeted', { filter, message });
   }
 
+  // --- User Provisioning (Phase 7) ---
+  async createUser(companyId: string, userData: any): Promise<any> {
+    if (this.useMock) {
+      console.log('User created:', { companyId, userData });
+      return { id: `u-${Math.random().toString(36).substr(2, 9)}`, ...userData, companyId };
+    }
+    return this.post(`platform/companies/${companyId}/users`, userData);
+  }
+
+  async updateUser(userId: string, data: any): Promise<void> {
+    if (this.useMock) {
+      console.log('User updated:', { userId, data });
+      return;
+    }
+    await this.put('platform/users', userId, data);
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    if (this.useMock) {
+      console.log('User deleted:', userId);
+      return;
+    }
+    await this.delete('platform/users', userId);
+  }
+
   async addAccessLog(log: any): Promise<void> {
     // implementation handled by backend for critical actions, but client can log too
     // For now, no-op or specific endpoint
