@@ -64,10 +64,28 @@ class DatabaseService {
     }
   }
 
+  private async getSingle<T>(endpoint: string): Promise<T | null> {
+    if (this.useMock) {
+      console.log(`[MockDB] Fetching Single ${endpoint}`);
+      return null;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/${endpoint}`, {
+        headers: await this.getHeaders()
+      });
+      if (!res.ok) throw new Error(`Failed to fetch ${endpoint} - ${res.statusText}`);
+      return await res.json();
+    } catch (e) {
+      console.error(`API Error (${endpoint}):`, e);
+      throw e;
+    }
+  }
+
   private async post<T>(endpoint: string, data: T): Promise<T | null> {
     if (this.useMock) {
       console.log(`[MockDB] POST ${endpoint}`, data);
-      return { ...data, id: 'mock-id-' + Date.now() };
+      return { ...data, id: 'mock-id-' + Date.now() } as any;
     }
     try {
       const res = await fetch(`${API_URL}/${endpoint}`, {
@@ -486,7 +504,7 @@ class DatabaseService {
   }
 
   async updateUserStatus(id: string, status: string): Promise<void> {
-    await fetch(`${API_URL}/platform/users/${id}/status`, {
+    await fetch(`${API_URL} / platform / users / ${id}/status`, {
       method: 'PUT',
       headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ status })
@@ -494,7 +512,7 @@ class DatabaseService {
   }
 
   async updatePlatformUserRole(id: string, role: string): Promise<void> {
-    await fetch(`${API_URL}/platform/users/${id}/role`, {
+    await fetch(`${API_URL} / platform / users / ${id}/role`, {
       method: 'PUT',
       headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ role })
@@ -650,7 +668,7 @@ class DatabaseService {
     // But I need `roles/123/permissions`.
     // So I should use the direct fetch or a custom post/put.
     // Let's use direct fetch wrapper to avoid the helper's URL construction if it's rigid.
-    await fetch(`${API_URL}/roles/${roleId}/permissions`, {
+    await fetch(`${API_URL} / roles / ${roleId}/permissions`, {
       method: 'PUT',
       headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ permissions })
@@ -793,6 +811,63 @@ class DatabaseService {
       return;
     }
     await this.delete('platform/users', userId);
+  }
+
+  // --- Support & System Config (Phase 8) ---
+  async getTicketMessages(ticketId: string): Promise<any[]> {
+    if (this.useMock) {
+      return [
+        {
+          id: 'm1',
+          author: 'Tenant Admin',
+          message: 'We are having trouble with the AI daily briefing not showing up for some users.',
+          timestamp: new Date(Date.now() - 3600000).toISOString(),
+          isAgent: false
+        },
+        {
+          id: 'm2',
+          author: 'System Auto-Ack',
+          message: 'Your request has been received and assigned to a specialist.',
+          timestamp: new Date(Date.now() - 3500000).toISOString(),
+          isAgent: true
+        }
+      ];
+    }
+    return this.fetch(`platform/support/tickets/${ticketId}/messages`);
+  }
+
+  async replyToTicket(ticketId: string, message: string): Promise<any> {
+    if (this.useMock) {
+      console.log('Reply sent to ticket:', ticketId, message);
+      return { id: `m-${Date.now()}`, author: 'SuperAdmin', message, timestamp: new Date().toISOString(), isAgent: true };
+    }
+    return this.post(`platform/support/tickets/${ticketId}/replies`, { message });
+  }
+
+  async getSystemConfig(): Promise<any> {
+    if (this.useMock) {
+      return {
+        platformName: 'BuildPro Enterprise',
+        primaryColor: '#4f46e5',
+        supportEmail: 'support@buildpro.app',
+        maintenanceMode: false,
+        allowRegistrations: true,
+        logoUrl: 'https://placeholder.com/logo.png',
+        apiKeys: {
+          googleMaps: 'AIzaSy...hidden',
+          openai: 'sk-...hidden'
+        }
+      };
+    }
+    return this.getSingle('platform/config');
+  }
+
+  async updateSystemConfig(config: any): Promise<void> {
+    if (this.useMock) {
+      console.log('System config updated:', config);
+      return;
+    }
+    await this.put('platform/config', '', config);
   }
 
   async addAccessLog(log: any): Promise<void> {

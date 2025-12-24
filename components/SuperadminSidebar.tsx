@@ -69,8 +69,8 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
         },
         {
             icon: Settings,
-            label: 'System Settings',
-            page: Page.SECURITY, // Reuse existing settings page
+            label: 'Platform Settings',
+            page: Page.GLOBAL_SETTINGS,
         },
     ];
 

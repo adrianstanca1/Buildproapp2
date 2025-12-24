@@ -85,6 +85,7 @@ const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsV
 const SubscriptionView = lazyWithReload(() => import('@/views/platform/SubscriptionView'));
 const SecurityDashboardView = lazyWithReload(() => import('@/views/platform/SecurityDashboardView'));
 const SupportTicketsView = lazyWithReload(() => import('@/views/platform/SupportTicketsView'));
+const GlobalSettingsView = lazyWithReload(() => import('@/views/platform/GlobalSettingsView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(
@@ -185,6 +186,7 @@ const AuthenticatedApp: React.FC = () => {
       Page.SUBSCRIPTIONS,
       Page.SECURITY_CENTER,
       Page.SUPPORT_CENTER,
+      Page.GLOBAL_SETTINGS,
       // Add other platform-specific pages if they exist in Page enum
     ];
     // Note: In strict mode, we should check against a comprehensive list. 
@@ -286,7 +288,8 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.TASKS && <TasksView />}
               {page === Page.TEAM && <TeamView />}
               {page === Page.TIMESHEETS && <TimesheetsView />}
-              {page === Page.DOCUMENTS && <DocumentsView />}
+              {page === Page.SUPPORT_CENTER && <SupportTicketsView />}
+              {page === Page.GLOBAL_SETTINGS && <GlobalSettingsView />}
               {page === Page.SAFETY && <SafetyView />}
               {page === Page.EQUIPMENT && <EquipmentView />}
               {page === Page.FINANCIALS && <FinancialsView />}
