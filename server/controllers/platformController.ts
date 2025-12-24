@@ -77,23 +77,61 @@ export const getSystemHealth = async (req: Request, res: Response, next: NextFun
 };
 
 /**
- * Get recent global activity logs
+ * Get global audit logs with filtering and pagination
  */
-export const getGlobalActivity = async (req: Request, res: Response, next: NextFunction) => {
+export const getAuditLogs = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const db = getDb();
-        // Fetch recent logs from audit_logs table, ideally indexed by timestamp
-        const logs = await db.all(
-            `SELECT * FROM audit_logs 
-             ORDER BY timestamp DESC 
-             LIMIT 50`
-        );
+        const { limit = 100, offset = 0, action, userId, resource, startDate, endDate } = req.query;
 
-        res.json(logs);
+        let sql = `SELECT * FROM audit_logs WHERE 1=1`;
+        const params: any[] = [];
+
+        if (action && action !== 'ALL') {
+            sql += ` AND action = ?`;
+            params.push(action);
+        }
+
+        if (userId) {
+            sql += ` AND (userId LIKE ? OR userName LIKE ?)`;
+            params.push(`%${userId}%`, `%${userId}%`);
+        }
+
+        if (resource) {
+            sql += ` AND resource = ?`;
+            params.push(resource);
+        }
+
+        if (startDate) {
+            sql += ` AND timestamp >= ?`;
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            sql += ` AND timestamp <= ?`;
+            params.push(endDate);
+        }
+
+        sql += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        const logs = await db.all(sql, params);
+
+        const parsedLogs = logs.map(l => ({
+            ...l,
+            metadata: l.changes ? JSON.parse(l.changes) : l.metadata ? JSON.parse(l.metadata) : null
+        }));
+
+        res.json(parsedLogs);
     } catch (e) {
         next(e);
     }
 };
+
+/**
+ * Legacy alias for dashboard activity
+ */
+export const getGlobalActivity = getAuditLogs;
 
 /**
  * Execute raw SQL (Super Admin Only)

@@ -39,20 +39,37 @@ const SystemLogsView: React.FC = () => {
 
     useEffect(() => {
         const loadLogs = async () => {
+            setIsLoading(true);
             try {
-                const data = await db.getGlobalAuditLogs();
+                // Prepare filters
+                const params: any = {};
+                if (filterAction !== 'ALL') params.action = filterAction;
+                // Simple search mapping
+                if (searchTerm && (searchTerm.startsWith('u') || searchTerm.startsWith('user'))) params.userId = searchTerm;
+                else if (searchTerm) params.userId = searchTerm; // Default search to userId/userName for now
+
+                // Date mapping
+                const now = new Date();
+                if (dateRange === '24h') params.startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+                else if (dateRange === '7d') params.startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+                else if (dateRange === '30d') params.startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+
+                params.limit = 100; // default
+
+                const data = await db.getGlobalAuditLogs(params);
+
                 // Adapt to view model
                 const viewLogs = data.map((l: any) => ({
                     id: l.id,
                     timestamp: l.timestamp || new Date().toISOString(),
                     userId: l.userId,
                     userName: l.userName || 'Unknown',
-                    companyId: l.tenantId,
-                    companyName: 'Tenant ' + l.tenantId,
+                    companyId: l.companyId || l.tenantId, // backend uses companyId
+                    companyName: 'Tenant ' + (l.companyId || l.tenantId),
                     action: l.action,
                     resource: l.resource,
                     resourceId: l.resourceId,
-                    metadata: l.metadata,
+                    metadata: l.metadata || l.changes, // standardize
                     severity: (l.status === 'failure' ? 'error' : 'info') as 'info' | 'warning' | 'error',
                     ipAddress: l.ipAddress || '127.0.0.1',
                     details: l.details || `${l.action} on ${l.resource}/${l.resourceId}`
@@ -64,46 +81,30 @@ const SystemLogsView: React.FC = () => {
                 setIsLoading(false);
             }
         };
-        loadLogs();
-    }, []);
 
-    // Filter Logic
-    const filteredLogs = logs.filter(log => {
-        const matchesSearch =
-            log.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.companyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            log.details?.toLowerCase().includes(searchTerm.toLowerCase());
+        const timeoutId = setTimeout(loadLogs, 500); // 500ms debounce
+        return () => clearTimeout(timeoutId);
+    }, [searchTerm, filterAction, dateRange]); // Re-fetch on filter change
 
-        const matchesAction = filterAction === 'ALL' || log.action === filterAction;
-        const matchesSeverity = filterSeverity === 'ALL' || log.severity === filterSeverity;
-
-        // Date Logic
-        const logDate = new Date(log.timestamp);
-        const now = new Date();
-        let matchesDate = true;
-
-        if (dateRange === '24h') {
-            matchesDate = (now.getTime() - logDate.getTime()) < 24 * 60 * 60 * 1000;
-        } else if (dateRange === '7d') {
-            matchesDate = (now.getTime() - logDate.getTime()) < 7 * 24 * 60 * 60 * 1000;
-        } else if (dateRange === '30d') {
-            matchesDate = (now.getTime() - logDate.getTime()) < 30 * 24 * 60 * 60 * 1000;
-        }
-
-        return matchesSearch && matchesAction && matchesSeverity && matchesDate;
-    });
+    // Filtering Logic (Client-side Search for non-exact matches if needed, but we rely mostly on server now)
+    // We can keep client-side filtering for displayed logs if we want to filter the *fetched* set further
+    // But since we fetch based on filters, we can just display `logs`.
+    // However, the `searchTerm` in backend is `userId` only.
+    // So if user searches for "UPDATE", backend won't catch it unless we map it.
+    // Let's keep `filteredLogs = logs` since we assume server does heavy lifting, OR do hybrid.
+    // To simplify: let's treat `logs` as the source of truth, but maybe filter strict text locally?
+    // Actually, let's just use `logs` directly and assume backend is doing the work.
 
     // Pagination Logic
+    const filteredLogs = logs; // Direct mapping
     const totalPages = Math.ceil(filteredLogs.length / logsPerPage);
     const displayedLogs = filteredLogs.slice(
         (currentPage - 1) * logsPerPage,
         currentPage * logsPerPage
     );
 
-    // Get unique actions for filter dropdown
-    const uniqueActions = ['ALL', ...Array.from(new Set(logs.map(log => log.action)))];
+    // Get unique actions for filter dropdown (can still be dynamic from fetched, or hardcoded)
+    const uniqueActions = ['ALL', 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'];
 
     const getSeverityStyles = (severity: string) => {
         const styles: Record<string, string> = {
@@ -213,7 +214,7 @@ const SystemLogsView: React.FC = () => {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                         <input
                             type="text"
-                            placeholder="Search user, action, or details..."
+                            placeholder="Search by User ID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-900 text-zinc-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
@@ -231,18 +232,7 @@ const SystemLogsView: React.FC = () => {
                         ))}
                     </select>
                 </div>
-                <div className="w-full sm:w-auto">
-                    <select
-                        value={filterSeverity}
-                        onChange={(e) => setFilterSeverity(e.target.value)}
-                        className="w-full px-4 py-2 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                        <option value="ALL">All Severities</option>
-                        <option value="info">Info</option>
-                        <option value="warning">Warning</option>
-                        <option value="error">Error</option>
-                    </select>
-                </div>
+
                 <div className="w-full sm:w-auto flex gap-2">
                     {['24h', '7d', '30d', 'ALL'].map(range => (
                         <button
@@ -262,80 +252,84 @@ const SystemLogsView: React.FC = () => {
             {/* Logs Table */}
             <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-sm border border-zinc-200 dark:border-zinc-700 overflow-hidden">
                 <div className="overflow-x-auto">
-                    <table className="w-full">
-                        <thead className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Timestamp
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    User
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Action
-                                </th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Details
-                                </th>
-                                <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
-                                    Actions
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            {displayedLogs.map((log) => {
-                                return (
-                                    <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
-                                            {new Date(log.timestamp).toLocaleString()}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center gap-2">
-                                                <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
-                                                    {log.userId?.slice(0, 2).toUpperCase() || 'SY'}
+                    {isLoading ? (
+                        <div className="p-12 text-center text-zinc-500">Loading logs...</div>
+                    ) : (
+                        <table className="w-full">
+                            <thead className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        Timestamp
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        User
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        Action
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        Details
+                                    </th>
+                                    <th className="px-6 py-3 text-right text-xs font-medium text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                {displayedLogs.map((log) => {
+                                    return (
+                                        <tr key={log.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50">
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400">
+                                                {new Date(log.timestamp).toLocaleString()}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs">
+                                                        {log.userId?.slice(0, 2).toUpperCase() || 'SY'}
+                                                    </span>
+                                                    <span className="text-sm font-medium text-zinc-900 dark:text-white">
+                                                        {log.userId || 'System'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getSeverityStyles(log.severity)}`}>
+                                                    {log.severity}
                                                 </span>
-                                                <span className="text-sm font-medium text-zinc-900 dark:text-white">
-                                                    {log.userId || 'System'}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action.includes('DELETE') || log.action.includes('SUSPEND') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                                    log.action.includes('UPDATE') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
+                                                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
+                                                    }`}>
+                                                    {log.action}
                                                 </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-medium rounded-full capitalize ${getSeverityStyles(log.severity)}`}>
-                                                {log.severity}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${log.action.includes('DELETE') || log.action.includes('SUSPEND') ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                                                log.action.includes('UPDATE') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' :
-                                                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                }`}>
-                                                {log.action}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
-                                            {log.details}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => setSelectedLog(log)}
-                                                className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye className="w-4 h-4" />
-                                            </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-zinc-600 dark:text-zinc-300">
+                                                {log.details}
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <button
+                                                    onClick={() => setSelectedLog(log)}
+                                                    className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-lg transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                                {displayedLogs.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
+                                            No logs found matching your criteria
                                         </td>
                                     </tr>
-                                )
-                            })}
-                            {displayedLogs.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-zinc-500 dark:text-zinc-400">
-                                        No logs found matching your criteria
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                                )}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
 
                 {/* Pagination Controls */}
@@ -407,13 +401,31 @@ const SystemLogsView: React.FC = () => {
                             </div>
 
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-2">Metadata / Change Diff</label>
-                                <pre className="p-4 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-mono overflow-x-auto dark:text-zinc-300">
-                                    {JSON.stringify(selectedLog.metadata || {
-                                        details: selectedLog.details,
-                                        note: "Full diff metadata would be expanded here for UPDATE actions."
-                                    }, null, 2)}
-                                </pre>
+                                <label className="text-[10px] font-bold text-zinc-400 uppercase block mb-2">Affected Fields</label>
+                                <div className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
+                                    {selectedLog.metadata && typeof selectedLog.metadata === 'object' && Object.keys(selectedLog.metadata).length > 0 ? (
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700">
+                                                <tr>
+                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase">Field</th>
+                                                    <th className="px-4 py-2 text-left text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase">New Value</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
+                                                {Object.entries(selectedLog.metadata).map(([key, value]) => (
+                                                    <tr key={key} className="hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50">
+                                                        <td className="px-4 py-2 font-mono text-zinc-600 dark:text-zinc-400">{key}</td>
+                                                        <td className="px-4 py-2 font-mono text-blue-600 dark:text-blue-400 break-all">
+                                                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    ) : (
+                                        <div className="p-4 text-zinc-500 italic text-sm text-center">No field changes recorded or metadata unavailable.</div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                         <div className="bg-zinc-50 dark:bg-zinc-900/50 p-4 border-t border-zinc-200 dark:border-zinc-700 flex justify-end">

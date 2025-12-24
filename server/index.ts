@@ -329,8 +329,18 @@ app.post('/api/cost_codes', authenticateToken, requirePermission('financials', '
 app.put('/api/cost_codes/:id', authenticateToken, requirePermission('financials', 'update'), updateCostCode);
 
 // --- Generic CRUD Helper ---
-const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
-    app.get(`/api/${tableName}`, async (req: any, res) => {
+// --- Generic CRUD Helper ---
+const createCrudRoutes = (tableName: string, jsonFields: string[] = [], permissionResource?: string) => {
+    // Helper to get middleware array (Authenticate + Context + Optional Permission)
+    const getMiddleware = (action: 'read' | 'create' | 'update' | 'delete') => {
+        const middlewares: any[] = [authenticateToken, contextMiddleware];
+        if (permissionResource) {
+            middlewares.push(requirePermission(permissionResource, action));
+        }
+        return middlewares;
+    };
+
+    app.get(`/api/${tableName}`, ...getMiddleware('read'), async (req: any, res: any) => {
         try {
             const db = getDb();
             let sql = `SELECT * FROM ${tableName}`;
@@ -342,14 +352,12 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
                 sql += ` WHERE companyId = ?`;
                 params.push(req.tenantId);
             } else if (!req.tenantId && tenantTables.includes(tableName) && tableName !== 'companies') {
-                // Strict isolation: if it's a tenant table but no header, return empty or error
-                // For dev flexibility we return all, but for prod we'd error.
-                // Let's stick with the current logic but add a warning.
                 logger.warn(`Accessing tenant table ${tableName} without companyId header!`);
+                // In strict mode, we might return [] or error, but keeping legacy behavior for now
             }
 
             const items = await db.all(sql, params);
-            const parsed = items.map(item => {
+            const parsed = items.map((item: any) => {
                 const newItem = { ...item };
                 jsonFields.forEach(field => {
                     if (newItem[field]) {
@@ -368,7 +376,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 
-    app.post(`/api/${tableName}`, async (req: any, res) => {
+    app.post(`/api/${tableName}`, ...getMiddleware('create'), async (req: any, res: any) => {
         try {
             const db = getDb();
             const item = req.body;
@@ -404,7 +412,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 
-    app.put(`/api/${tableName}/:id`, async (req: any, res) => {
+    app.put(`/api/${tableName}/:id`, ...getMiddleware('update'), async (req: any, res: any) => {
         try {
             const db = getDb();
             const { id } = req.params;
@@ -438,7 +446,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 
-    app.delete(`/api/${tableName}/:id`, async (req: any, res) => {
+    app.delete(`/api/${tableName}/:id`, ...getMiddleware('delete'), async (req: any, res: any) => {
         try {
             const db = getDb();
             const { id } = req.params;
@@ -473,26 +481,26 @@ app.put('/api/roles/:id/permissions', rbacController.updateRolePermissions);
 app.get('/api/permissions', rbacController.getPermissions);
 app.get('/api/roles/:id/permissions', rbacController.getRolePermissions);
 
-// Register Routes for other entities
-createCrudRoutes('team', ['skills', 'certifications']);
-createCrudRoutes('documents', ['linkedTaskIds']);
-createCrudRoutes('clients');
-createCrudRoutes('inventory');
-createCrudRoutes('rfis');
-createCrudRoutes('punch_items');
-createCrudRoutes('daily_logs');
-createCrudRoutes('dayworks', ['labor', 'materials', 'attachments']);
-createCrudRoutes('safety_incidents');
-createCrudRoutes('equipment');
-createCrudRoutes('timesheets');
-createCrudRoutes('channels');
-createCrudRoutes('team_messages');
-createCrudRoutes('transactions');
-createCrudRoutes('purchase_orders', ['items', 'approvers']);
-createCrudRoutes('defects', ['box_2d']);
-createCrudRoutes('project_risks', ['factors', 'recommendations']);
-createCrudRoutes('invoices', ['items']);
-createCrudRoutes('expense_claims', ['receipts', 'items']);
+// Register Routes for other entities (Secured with granular RBAC)
+createCrudRoutes('team', ['skills', 'certifications'], 'team');
+createCrudRoutes('documents', ['linkedTaskIds'], 'documents');
+createCrudRoutes('clients', [], 'clients');
+createCrudRoutes('inventory', [], 'inventory');
+createCrudRoutes('rfis', [], 'rfis');
+createCrudRoutes('punch_items', [], 'punch_items');
+createCrudRoutes('daily_logs', [], 'daily_logs');
+createCrudRoutes('dayworks', ['labor', 'materials', 'attachments'], 'dayworks');
+createCrudRoutes('safety_incidents', [], 'safety');
+createCrudRoutes('equipment', [], 'equipment');
+createCrudRoutes('timesheets', [], 'timesheets');
+createCrudRoutes('channels', [], 'channels');
+createCrudRoutes('team_messages', [], 'team_messages');
+createCrudRoutes('transactions', [], 'financials');
+createCrudRoutes('purchase_orders', ['items', 'approvers'], 'procurement');
+createCrudRoutes('defects', ['box_2d'], 'quality');
+createCrudRoutes('project_risks', ['factors', 'recommendations'], 'risk');
+createCrudRoutes('invoices', ['items'], 'financials');
+createCrudRoutes('expense_claims', ['receipts', 'items'], 'financials');
 
 
 // Serve static files from the React app

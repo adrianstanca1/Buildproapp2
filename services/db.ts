@@ -614,14 +614,16 @@ class DatabaseService {
   }
 
   // --- Audit Logs ---
-  async getGlobalAuditLogs(): Promise<TenantAuditLog[]> {
+  async getGlobalAuditLogs(params: Record<string, any> = {}): Promise<TenantAuditLog[]> {
     /*
     if (this.useMock) {
       // Aggregate logs from all mock tenants or return global system logs
       return mockDb.getSystemLogs ? mockDb.getSystemLogs() : [];
     }
     */
-    const res = await fetch(`${API_URL}/platform/audit-logs`, { headers: await this.getHeaders() });
+    const query = new URLSearchParams(params).toString();
+    const url = `${API_URL}/platform/audit-logs${query ? `?${query}` : ''}`;
+    const res = await fetch(url, { headers: await this.getHeaders() });
     if (!res.ok) return [];
     return await res.json();
   }

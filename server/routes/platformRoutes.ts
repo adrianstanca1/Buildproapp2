@@ -10,7 +10,8 @@ router.use(requireRole([UserRole.SUPERADMIN]));
 
 router.get('/stats', platformController.getDashboardStats);
 router.get('/health', platformController.getSystemHealth);
-router.get('/activity', platformController.getGlobalActivity);
+router.get('/activity', platformController.getGlobalActivity); // Legacy alias
+router.get('/audit-logs', platformController.getAuditLogs);
 router.get('/metrics', platformController.getAdvancedMetrics);
 
 router.post('/broadcast', platformController.broadcastMessage);
