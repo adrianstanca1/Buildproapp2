@@ -839,15 +839,7 @@ class DatabaseService {
     await this.put(`platform/support/admin/tickets`, ticketId + '/status', { status });
   }
 
-  async getSystemConfig(): Promise<any> {
-    return this.getSingle('platform/config');
-  }
 
-  async updateSystemConfig(config: any): Promise<void> {
-    // Backend uses POST /config for upsert or PUT if we follow standard. 
-    // routes/platformRoutes.ts has router.post('/config')
-    await this.post('platform/config', config);
-  }
 
   async addAccessLog(log: any): Promise<void> {
     // implementation handled by backend for critical actions, but client can log too

@@ -34,7 +34,7 @@ export const getRFIs = async (req: AuthenticatedRequest, res: Response): Promise
 export const createRFI = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
         const { tenantId } = req.context!;
-        const name = req.userName || 'Unknown';
+        const name = (req as any).userName || 'Unknown';
         const { projectId, subject, question, assignedTo, dueDate, number, status } = req.body;
 
         if (!projectId || !subject || !question) {
