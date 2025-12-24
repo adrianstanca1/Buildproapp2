@@ -22,6 +22,13 @@ interface TaskCardProps {
 }
 
 // Memoized component - only re-renders when props change
+export const ExpensiveComponent = React.memo(({ data }: { data: any }) => {
+    // Expensive logic here
+    return <div>{data.name}</div>;
+});
+ExpensiveComponent.displayName = 'ExpensiveComponent';
+
+// Memoized component - only re-renders when props change
 export const TaskCard = memo<TaskCardProps>(({ task, onUpdate }) => {
     console.log('TaskCard rendered:', task.id);
 
@@ -38,6 +45,7 @@ export const TaskCard = memo<TaskCardProps>(({ task, onUpdate }) => {
         prevProps.task.title === nextProps.task.title &&
         prevProps.task.status === nextProps.task.status;
 });
+TaskCard.displayName = 'TaskCard';
 
 // ============================================================================
 // Example 2: useMemo for expensive calculations

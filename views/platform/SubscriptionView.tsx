@@ -155,14 +155,15 @@ const SubscriptionView: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                                {filteredSubs.map((sub) => (
+                                {filteredSubs.map((sub, index) => (
                                     <tr key={sub.id} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/50 transition-colors">
                                         <td className="px-4 py-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-600 font-bold text-xs">
-                                                    {sub.companyName.charAt(0)}
+                                            <div key={index} className="flex items-center gap-2 py-2 text-zinc-600 border-b border-zinc-100 last:border-0 group-hover:bg-blue-50/50 transition-colors px-2 rounded-lg">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover:scale-125 transition-transform" />
+                                                <span className="text-sm font-medium">{sub.companyName}</span> {/* Assuming addon should be companyName for this context */}
+                                                <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <span className="text-[10px] uppercase font-bold text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded">Active</span>
                                                 </div>
-                                                <span className="font-medium text-zinc-900 dark:text-white">{sub.companyName}</span>
                                             </div>
                                         </td>
                                         <td className="px-4 py-3">
@@ -264,7 +265,7 @@ const SubscriptionView: React.FC = () => {
 
                         <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-900/30">
                             <p className="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">
-                                <strong>Note:</strong> Changes to plans will be applied immediately and prorated in the next billing cycle according to the platform's fair billing policy.
+                                <strong>Note:</strong> Changes to plans will be applied immediately and prorated in the next billing cycle according to the platform&apos;s fair billing policy.
                             </p>
                         </div>
                     </div>

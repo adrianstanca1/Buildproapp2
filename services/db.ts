@@ -10,8 +10,7 @@ class DatabaseService {
   private tenantId: string | null = null;
 
   constructor() {
-    // Simple health check on init
-    this.checkHealth();
+    // Health check removed from constructor to prevent unauthenticated 401 calls on landing page
   }
 
   setTenantId(id: string | null) {

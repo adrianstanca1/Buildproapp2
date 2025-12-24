@@ -356,8 +356,8 @@ const App: React.FC = () => {
     <QueryProvider>
       <ThemeProvider>
         <ToastProvider>
-          <TenantProvider>
-            <AuthProvider>
+          <AuthProvider>
+            <TenantProvider>
               <NotificationProvider>
                 <ProjectProvider>
                   <WebSocketProvider>
@@ -367,8 +367,8 @@ const App: React.FC = () => {
                   </WebSocketProvider>
                 </ProjectProvider>
               </NotificationProvider>
-            </AuthProvider>
-          </TenantProvider>
+            </TenantProvider>
+          </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
     </QueryProvider>

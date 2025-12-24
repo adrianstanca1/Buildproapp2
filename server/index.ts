@@ -28,11 +28,11 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:", "blob:"],
-            connectSrc: ["'self'", "ws:", "wss:"],
-            fontSrc: ["'self'", "data:"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
+            connectSrc: ["'self'", "ws:", "wss:", "https://zpbuvuxpfemldsknerew.supabase.co", "wss://zpbuvuxpfemldsknerew.supabase.co"],
+            fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         }
     },
     hsts: {
@@ -549,6 +549,20 @@ startApolloServer();
 // Start server immediately to satisfy Cloud Run health checks
 const startServer = async () => {
     logger.info(`DEBUG: startServer() called. Port: ${port}`);
+
+    // 1. Initialize DB FIRST and await it
+    try {
+        logger.info('Starting DB initialization...');
+        await ensureDbInitialized();
+        logger.info('DB Initialized. Seeding...');
+        await seedDatabase();
+        logger.info('DB Ready.');
+    } catch (err) {
+        logger.error('CRITICAL: DB Initialization failed:', err);
+        // Process might need to exit if DB is essential, but for now we continue
+    }
+
+    // 2. Start Listening ONLY after DB is ready
     try {
         // Listen strictly on 0.0.0.0 for Cloud Run
         httpServer.listen(Number(port), '0.0.0.0', () => {
@@ -560,25 +574,16 @@ const startServer = async () => {
         logger.error('DEBUG: httpServer.listen failed:', e);
     }
 
-    // Initialize DB in background
-    // if (!process.env.VERCEL) { // FORCE START
-    try {
-        logger.info('Starting DB initialization...');
-        await ensureDbInitialized();
-        logger.info('DB Initialized. Seeding...');
-        await seedDatabase();
-        logger.info('DB Ready.');
-    } catch (err) {
-        logger.error('CRITICAL: DB Initialization failed:', err);
-        // Don't crash, just log. App will be online but DB features might fail.
-    }
-    // }
+    logger.info(`DEBUG: Reached end of startServer. Env VERCEL: ${process.env.VERCEL}`);
 };
 
 // ... (previous code)
 
 logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`);
-startServer();
+const serverPromise = startServer();
+
+// For testing purposes, we might want to wait for this promise
+export { serverPromise };
 
 // Global Error Handler (must be last)
 import errorHandler from './middleware/errorMiddleware.js';

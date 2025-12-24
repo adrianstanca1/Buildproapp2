@@ -26,175 +26,178 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
 
   const menuGroups = [
     {
-      title: 'Main',
+      title: 'Strategic Control',
       items: [
         { id: Page.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.CLIENT_PORTAL, label: 'My Project Portal', icon: LayoutDashboard, roles: [UserRole.READ_ONLY] },
-        { id: Page.PROJECTS, label: 'Projects', icon: FolderOpen, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.TASKS, label: 'Tasks', icon: CheckSquare, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.SCHEDULE, label: 'Schedule', icon: Calendar, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.TEAM, label: 'Team', icon: Users, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.COMPANY_SETTINGS, label: 'Settings', icon: SettingsIcon, roles: [UserRole.COMPANY_ADMIN] },
-        { id: Page.CHAT, label: 'AI Assistant', icon: Bot, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.TEAM_CHAT, label: 'Team Chat', icon: MessageSquare, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.PROJECTS, label: 'Portfolio', icon: FolderOpen, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.TASKS, label: 'Vector Ledger', icon: CheckSquare, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.SCHEDULE, label: 'Timeline', icon: Calendar, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.TEAM, label: 'Human Capital', icon: Users, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.CHAT, label: 'Neural Assistant', icon: Bot, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
       ]
     },
     {
-      title: 'Field & Site',
+      title: 'Field Operations',
       items: [
-        { id: Page.LIVE, label: 'Live Field Asst.', icon: Zap, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.LIVE_PROJECT_MAP, label: 'Live Map', icon: Navigation, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.DAILY_LOGS, label: 'Daily Logs', icon: ClipboardCheck, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.RFI, label: 'RFIs', icon: FileText, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.SAFETY, label: 'Safety', icon: Shield, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.EQUIPMENT, label: 'Equipment', icon: Wrench, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.INVENTORY, label: 'Inventory', icon: Package, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.DOCUMENTS, label: 'Documents', icon: FileText, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-      ]
-    },
-    {
-      title: 'Business',
-      items: [
-        { id: Page.FINANCIALS, label: 'Financials', icon: PoundSterling, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.FINANCE] },
-        { id: Page.PROCUREMENT, label: 'Procurement', icon: ShoppingCart, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.FINANCE] },
-        { id: Page.CLIENTS, label: 'Clients', icon: UserCheck, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.TIMESHEETS, label: 'Timesheets', icon: Clock, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
-        { id: Page.EXECUTIVE, label: 'Executive', icon: Briefcase, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.LIVE, label: 'Field Assistant', icon: Zap, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.LIVE_PROJECT_MAP, label: 'Spatial Map', icon: Navigation, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.SAFETY, label: 'Digital Safety', icon: Shield, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
+        { id: Page.EQUIPMENT, label: 'Asset Management', icon: Wrench, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.DOCUMENTS, label: 'Neural Archive', icon: FileText, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
       ]
     },
     {
       title: 'Intelligence',
       items: [
         { id: Page.IMAGINE, label: 'Imagine Studio', icon: Wand2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.AI_TOOLS, label: 'AI Tools', icon: Cpu, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.ML_INSIGHTS, label: 'ML Insights', icon: LineChart, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.TENANT_ANALYTICS, label: 'Tenant Intelligence', icon: Building2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.RESOURCE_OPTIMIZATION, label: 'Resource Match AI', icon: BrainCircuit, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.REPORTS, label: 'Reports', icon: FileBarChart, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.MAP_VIEW, label: 'Global Map', icon: Map, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.AI_TOOLS, label: 'AI Synthesis', icon: Cpu, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.TENANT_ANALYTICS, label: 'Entity Intel', icon: Building2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.REPORTS, label: 'Strategic Intel', icon: FileBarChart, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
       ]
     },
     {
-      title: 'System',
+      title: 'Infrastructure',
       items: [
-        { id: Page.MY_DESKTOP, label: 'My Desktop', icon: Monitor, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.TENANT_MANAGEMENT, label: 'Tenant Management', icon: Building2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.COMPLIANCE, label: 'Compliance', icon: ClipboardCheck, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
-        { id: Page.WORKFORCE, label: 'Workforce', icon: HardHat, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.INTEGRATIONS, label: 'Integrations', icon: Zap, roles: [UserRole.SUPERADMIN] },
-        { id: Page.SECURITY, label: 'Security', icon: Lock, roles: [UserRole.SUPERADMIN] },
-        { id: Page.MARKETPLACE, label: 'Marketplace', icon: Store, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
-        { id: Page.DEV_SANDBOX, label: 'Dev Sandbox', icon: Code, roles: [UserRole.SUPERADMIN] },
+        { id: Page.COMPANY_SETTINGS, label: 'Core Config', icon: SettingsIcon, roles: [UserRole.COMPANY_ADMIN] },
+        { id: Page.TENANT_MANAGEMENT, label: 'Node Admin', icon: Building2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.DEV_SANDBOX, label: 'Alpha Lab', icon: Code, roles: [UserRole.SUPERADMIN] },
       ]
     }
   ];
 
   return (
     <div className={`
-      fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 flex flex-col flex-shrink-0 overflow-y-auto transform transition-transform duration-300 ease-in-out
+      fixed inset-y-0 left-0 z-50 w-72 bg-zinc-950 border-r border-white/5 flex flex-col flex-shrink-0 overflow-hidden transform transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]
       md:relative md:translate-x-0
-      ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+      ${isOpen ? 'translate-x-0 shadow-[20px_0_50px_rgba(0,0,0,0.5)]' : '-translate-x-full'}
     `}>
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-sky-500/10 to-transparent pointer-events-none opacity-50" />
+      <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-600/10 rounded-full blur-[80px] pointer-events-none" />
+
       {/* Logo Area */}
-      <div className="p-6 flex items-center justify-between sticky top-0 bg-white z-10 border-b border-zinc-100">
-        <div className="flex items-center gap-3">
-          <div className="text-[#166ba1]">
-            <LogoIcon size={28} strokeWidth={2.5} fill="#166ba1" className="text-white" />
+      <div className="p-8 flex items-center justify-between sticky top-0 bg-zinc-950/80 backdrop-blur-3xl z-20 border-b border-white/5">
+        <div className="flex items-center gap-4 group cursor-pointer">
+          <div className="relative">
+            <div className="absolute inset-0 bg-sky-400 rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
+            <div className="w-11 h-11 bg-gradient-to-br from-sky-400 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-2xl relative z-10 border border-white/20 transform transition-transform group-hover:scale-110">
+              <LogoIcon size={24} strokeWidth={2.5} />
+            </div>
           </div>
-          <span className="font-bold text-xl text-[#166ba1] tracking-tight">
-            BuildPro
-          </span>
+          <div className="flex flex-col">
+            <span className="font-black text-xl text-white tracking-tighter leading-none">
+              BUILDPRO
+            </span>
+            <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.3em] mt-1 ml-0.5">
+              Enterprise
+            </span>
+          </div>
         </div>
 
         {/* Mobile Close Button */}
         <button
           onClick={onClose}
-          className="md:hidden text-zinc-400 hover:text-zinc-600 p-1 hover:bg-zinc-100 rounded-lg transition-colors"
+          className="md:hidden text-zinc-500 hover:text-white p-2 bg-white/5 rounded-xl transition-all border border-white/10"
         >
           <X size={20} />
         </button>
       </div>
 
-      {/* User Role Badge */}
-      {user && (
-        <div className="px-6 py-2">
-          <span className="text-[10px] font-bold uppercase bg-zinc-100 text-zinc-500 px-2 py-1 rounded border border-zinc-200 tracking-wider">
-            {user.role.replace('_', ' ')}
-          </span>
-        </div>
-      )}
-
-      {/* Impersonation Warning */}
-      {isImpersonating && (
-        <div className="px-6 pb-2">
-          <button
-            onClick={stopImpersonating}
-            className="w-full bg-purple-100 text-purple-900 border border-purple-200 px-3 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-purple-200 transition-colors shadow-sm"
-          >
-            <Eye size={14} />
-            Stop Impersonating
-          </button>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <nav className="flex-1 py-4 px-0 space-y-6">
-        {menuGroups.map((group, groupIndex) => {
-          // Filter items based on Role and Beta Settings
-          const visibleItems = group.items.filter(item => {
-            const hasRole = user && item.roles.includes(user.role);
-            const isBeta = betaPages.includes(item.id);
-
-            // If beta features are disabled, hide beta pages
-            if (!systemSettings.betaFeatures && isBeta) return false;
-
-            return hasRole;
-          });
-
-          if (visibleItems.length === 0) return null;
-
-          return (
-            <div key={groupIndex}>
-              <div className="px-6 mb-2 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                {group.title}
-              </div>
-              <div className="space-y-0.5">
-                {visibleItems.map((item) => {
-                  const isActive = currentPage === item.id;
-
-                  return (
-                    <button
-                      key={item.label}
-                      onClick={() => setPage(item.id as Page)}
-                      className={`w-full flex items-center gap-3 px-6 py-2.5 text-sm font-medium transition-colors relative ${isActive
-                        ? 'text-[#0e5a8a] bg-blue-50/80'
-                        : 'text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50'
-                        }`}
-                    >
-                      {isActive && (
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0e5a8a]" />
-                      )}
-                      <item.icon size={18} strokeWidth={2} className={isActive ? 'text-[#0e5a8a]' : 'text-zinc-500'} />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
+      <div className="flex-1 overflow-y-auto custom-scrollbar relative z-10">
+        {/* User Identity Section */}
+        {user && (
+          <div className="px-6 py-8">
+            <div className="p-5 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-br from-sky-400/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="w-10 h-10 rounded-xl bg-sky-500/20 flex items-center justify-center text-sky-400 font-black text-sm border border-sky-500/20">
+                  {user.avatarInitials}
+                </div>
+                <div className="overflow-hidden">
+                  <div className="text-xs font-black text-white truncate tracking-tight">{user.name}</div>
+                  <div className="text-[9px] font-black text-sky-400 uppercase tracking-widest mt-0.5 opacity-80 decoration-sky-400/30">
+                    {user.role.replace('_', ' ')}
+                  </div>
+                </div>
               </div>
             </div>
-          );
-        })}
+          </div>
+        )}
 
-        <div className="my-4 border-t border-zinc-100 mx-6" />
+        {/* Impersonation Warning */}
+        {isImpersonating && (
+          <div className="px-6 mb-4">
+            <button
+              onClick={stopImpersonating}
+              className="w-full bg-rose-500/10 text-rose-400 border border-rose-500/20 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-rose-500 hover:text-white transition-all shadow-lg animate-pulse"
+            >
+              <Eye size={14} />
+              Stop Impersonation
+            </button>
+          </div>
+        )}
 
+        {/* Navigation */}
+        <nav className="pb-8 px-4 space-y-8">
+          {menuGroups.map((group, groupIndex) => {
+            const visibleItems = group.items.filter(item => {
+              const hasRole = user && item.roles.includes(user.role);
+              const isBeta = betaPages.includes(item.id);
+              if (!systemSettings.betaFeatures && isBeta) return false;
+              return hasRole;
+            });
+
+            if (visibleItems.length === 0) return null;
+
+            return (
+              <div key={groupIndex} className="space-y-2">
+                <div className="px-4 text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500/80 mb-3 ml-1">
+                  {group.title}
+                </div>
+                <div className="space-y-1">
+                  {visibleItems.map((item) => {
+                    const isActive = currentPage === item.id;
+
+                    return (
+                      <button
+                        key={item.label}
+                        onClick={() => {
+                          setPage(item.id as Page);
+                          if (onClose) onClose();
+                        }}
+                        className={`w-full flex items-center gap-4 px-4 py-3 text-xs font-black transition-all relative rounded-2xl group ${isActive
+                          ? 'text-white bg-sky-500 shadow-[0_10px_30px_rgba(14,165,233,0.3)]'
+                          : 'text-zinc-500 hover:text-white hover:bg-white/5'
+                          }`}
+                      >
+                        <div className={`transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-110'}`}>
+                          <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} className={isActive ? 'text-white' : 'text-zinc-500 group-hover:text-sky-400'} />
+                        </div>
+                        <span className="tracking-tight">{item.label}</span>
+                        {isActive && (
+                          <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full shadow-[0_0_10px_white]" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </nav>
+      </div>
+
+      <div className="p-6 bg-zinc-950/80 backdrop-blur-3xl border-t border-white/5 relative z-20">
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-6 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center gap-4 px-4 py-4 text-xs font-black text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all group"
         >
-          <LogOut size={18} strokeWidth={2} />
-          <span>Log Out</span>
+          <div className="group-hover:scale-110 transition-transform">
+            <LogOut size={18} strokeWidth={2.5} />
+          </div>
+          <span className="uppercase tracking-widest">System Logout</span>
         </button>
-
-      </nav>
+      </div>
     </div>
   );
 };

@@ -2,7 +2,6 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { UserProfile, UserRole } from '@/types';
 import { supabase } from '@/services/supabaseClient';
 import { db } from '@/services/db';
-import { useTenant } from '@/contexts/TenantContext';
 
 interface AuthContextType {
   user: UserProfile | null;
@@ -37,14 +36,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isFetchingPermissions, setIsFetchingPermissions] = useState(false);
 
   const [originalSession, setOriginalSession] = useState<{ user: UserProfile; token: string } | null>(null);
-
-  const { tenant } = useTenant();
-
-  useEffect(() => {
-    if (user && tenant) {
-      refreshPermissions();
-    }
-  }, [tenant?.id, user?.id]);
 
   useEffect(() => {
     // Check if Supabase is configured by attempting to get a session

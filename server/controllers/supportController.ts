@@ -14,7 +14,7 @@ export const getTickets = async (req: Request, res: Response, next: NextFunction
         const { companyId } = req.query;
 
         let query = 'SELECT * FROM support_tickets';
-        let params: any[] = [];
+        const params: any[] = [];
 
         if (companyId) {
             query += ' WHERE companyId = ?';

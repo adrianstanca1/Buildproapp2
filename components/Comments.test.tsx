@@ -2,13 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Comments } from '@/components/Comments';
 
-// Mock API
-vi.mock('@/services/api', () => ({
-    default: {
-        get: vi.fn(() => Promise.resolve({ data: [] })),
-        post: vi.fn(() => Promise.resolve({ data: {} })),
-        put: vi.fn(() => Promise.resolve({ data: {} })),
-        delete: vi.fn(() => Promise.resolve({ data: {} })),
+// Mock DB service
+vi.mock('@/services/db', () => ({
+    db: {
+        getComments: vi.fn(() => Promise.resolve([])),
+        addComment: vi.fn(() => Promise.resolve({ id: '123' })),
+        updateComment: vi.fn(() => Promise.resolve()),
+        deleteComment: vi.fn(() => Promise.resolve()),
     },
 }));
 
@@ -22,7 +22,7 @@ vi.mock('@/contexts/AuthContext', () => ({
 describe('Comments Component', () => {
     it('renders comments header', () => {
         render(<Comments entityType="task" entityId="123" />);
-        expect(screen.getByText(/Comments/i)).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: /Comments/i })).toBeInTheDocument();
     });
 
     it('shows empty state when no comments', async () => {

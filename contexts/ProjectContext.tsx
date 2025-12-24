@@ -179,8 +179,14 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   // Initial Data Load (and on Tenant Change)
   useEffect(() => {
+    // NO-OP if not logged in
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     // Wait for tenant to be initialized if we are logged in
-    if (user && !currentTenant) return;
+    if (!currentTenant) return;
 
     const loadData = async () => {
       setIsLoading(true);

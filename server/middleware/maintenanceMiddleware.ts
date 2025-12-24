@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { getDb } from '../database.js';
 import { UserRole } from '../../types.js';
@@ -16,17 +15,20 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
             try {
                 const val = JSON.parse(maintenanceSetting.value);
                 if (val && typeof val === 'object' && val.enabled === true) isMaintenance = true;
-                if (maintenanceSetting.value === 'true') isMaintenance = true;
-            } catch (e) {
-                if (maintenanceSetting.value === 'true') isMaintenance = true;
+            } catch (error) {
+                // Silently ignore or log maintenance check failures to avoid blocking the app
             }
+            // If JSON parsing failed or didn't set isMaintenance, check for simple 'true' string
+            if (maintenanceSetting.value === 'true') isMaintenance = true;
         }
 
         if (globalConfig && !isMaintenance) {
             try {
                 const config = JSON.parse(globalConfig.value);
                 if (config && config.maintenanceMode === true) isMaintenance = true;
-            } catch (e) { }
+            } catch (e) {
+                // Ignore parsing errors for global config
+            }
         }
 
         if (!isMaintenance) {

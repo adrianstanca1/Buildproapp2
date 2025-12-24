@@ -49,6 +49,7 @@ const PredictiveInsights: React.FC<PredictiveInsightsProps> = ({ projectId }) =>
                 <div className="flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-blue-600" />
                     <h3 className="font-semibold text-zinc-800">AI Predictive Insights</h3>
+                    <span className="text-xs text-zinc-500 ml-2">Try asking follow-ups like &quot;How can we recover the 3 days?&quot; or &quot;Show me the critical path items.&quot;</span>
                 </div>
                 <div className={`px-2 py-1 rounded-full text-xs font-bold border ${getStatusColor(analysis.delayProbability)}`}>
                     {analysis.delayProbability}% Delay Prob.
@@ -72,7 +73,7 @@ const PredictiveInsights: React.FC<PredictiveInsightsProps> = ({ projectId }) =>
                         <span className="text-xs font-bold text-zinc-500 uppercase">AI Reasoning</span>
                     </div>
                     <p className="text-sm text-zinc-600 leading-relaxed italic">
-                        "{analysis.reasoning}"
+                        &quot;{analysis.reasoning}&quot;
                     </p>
                 </div>
 

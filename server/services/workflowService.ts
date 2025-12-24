@@ -42,7 +42,7 @@ export class WorkflowService {
         const db = getDb();
 
         switch (automation.actionType) {
-            case 'send_notification':
+            case 'send_notification': {
                 // Integration with existing notification system
                 // (Assuming a global notification helper or direct DB insert)
                 const notificationId = uuidv4();
@@ -60,6 +60,7 @@ export class WorkflowService {
                 );
                 console.log(`[Workflow] Action Executed: Notification sent for ${automation.id}`);
                 break;
+            }
 
             case 'update_task_priority':
                 if (context.taskId && config.priority) {
