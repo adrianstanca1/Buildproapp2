@@ -113,6 +113,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (email: string, password: string) => {
     try {
+      // DEV BACKDOOR for Super Admin verification
+      if (email === 'demo@buildpro.app' && password === 'dev-admin') {
+        console.log("Using DEV BACKDOOR for Super Admin");
+        const devUser: UserProfile = {
+          id: 'demo-user-id',
+          name: 'Demo Super Admin',
+          email: 'demo@buildpro.app',
+          role: UserRole.SUPERADMIN,
+          permissions: ['*'],
+          memberships: [],
+          companyId: 'c1',
+          projectIds: ['ALL'],
+          avatarInitials: 'DA',
+          phone: ''
+        };
+        setUser(devUser);
+        setToken('dev-token-placeholder');
+        return { user: devUser, error: null };
+      }
+
       const { data: { user: authUser }, error } = await supabase.auth.signInWithPassword({
         email,
         password

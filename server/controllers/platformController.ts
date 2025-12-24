@@ -273,3 +273,74 @@ export const updateSystemConfig = async (req: Request, res: Response, next: Next
         next(e);
     }
 };
+
+/**
+ * Get All Platform Users (Super Admin)
+ */
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const users = await db.all(`
+            SELECT u.id, u.email, u.name, u.role, u.companyId, c.name as companyName, u.status, u.createdAt 
+            FROM users u 
+            LEFT JOIN companies c ON u.companyId = c.id
+            ORDER BY u.createdAt DESC
+        `);
+        res.json(users);
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Update User Status (Suspend/Activate)
+ */
+export const updateUserStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const db = getDb();
+
+        await db.run('UPDATE users SET status = ? WHERE id = ?', [status, id]);
+
+        // Audit log
+        const logId = (await import('uuid')).v4();
+        const now = new Date().toISOString();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, 'system', (req as any).userId, (req as any).userName, 'UPDATE_STATUS', 'users', id, JSON.stringify({ status }), 'success', now, req.ip, req.headers['user-agent']]
+        );
+
+        res.json({ success: true });
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Update User Role
+ */
+export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+        const db = getDb();
+
+        // Update both user table and memberships if needed. For now users table is source of truth for global role.
+        await db.run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+
+        // Audit log
+        const logId = (await import('uuid')).v4();
+        const now = new Date().toISOString();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, 'system', (req as any).userId, (req as any).userName, 'UPDATE_ROLE', 'users', id, JSON.stringify({ role }), 'success', now, req.ip, req.headers['user-agent']]
+        );
+
+        res.json({ success: true });
+    } catch (e) {
+        next(e);
+    }
+};

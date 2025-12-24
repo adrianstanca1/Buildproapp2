@@ -14,6 +14,10 @@ router.get('/activity', platformController.getGlobalActivity); // Legacy alias
 router.get('/audit-logs', platformController.getAuditLogs);
 router.get('/metrics', platformController.getAdvancedMetrics);
 
+router.get('/users', platformController.getAllUsers);
+router.put('/users/:id/status', platformController.updateUserStatus);
+router.put('/users/:id/role', platformController.updateUserRole);
+
 router.post('/broadcast', platformController.broadcastMessage);
 router.post('/maintenance', platformController.toggleMaintenance);
 router.post('/sql', platformController.executeSql);

@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Users, Search, Mail, Building2, Shield,
     Calendar, MoreVertical, Plus, X, UserPlus,
-    Trash2, Edit2, AlertTriangle, Check
+    Trash2, Edit2, AlertTriangle, Check, LogOut, Lock, UserX, UserCheck, Eye
 } from 'lucide-react';
 import { useTenant } from '@/contexts/TenantContext';
 import { db } from '@/services/db';
 import { useToast } from '@/contexts/ToastContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { UserRole } from '@/types';
 
 /**
@@ -14,9 +15,14 @@ import { UserRole } from '@/types';
  * Superadmin-only view for cross-tenant user management
  */
 const PlatformMembersView: React.FC = () => {
-    const { tenants, refreshTenants } = useTenant();
     const { addToast } = useToast();
+    const { impersonateUser } = useAuth();
+    const { tenants, refreshTenants } = useTenant(); // Keep for company dropdown
+    const [users, setUsers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Modals
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -31,32 +37,21 @@ const PlatformMembersView: React.FC = () => {
         companyId: '',
     });
 
-    // Aggregate all members across all companies
-    const allMembers = tenants.flatMap(tenant =>
-        (tenant.members || []).map(member => ({
-            ...member,
-            companyName: tenant.name,
-            companyId: tenant.id,
-        }))
-    );
+    useEffect(() => {
+        loadUsers();
+    }, []);
 
-    const filteredMembers = allMembers.filter(member =>
-        member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        member.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    const getRoleBadgeStyles = (role: string) => {
-        const styles: Record<string, string> = {
-            SUPERADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-            COMPANY_ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-            PROJECT_MANAGER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-            FINANCE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-            SUPERVISOR: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-            OPERATIVE: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
-            READ_ONLY: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
-        };
-        return styles[role] || 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300';
+    const loadUsers = async () => {
+        try {
+            setLoading(true);
+            const data = await db.getAllPlatformUsers();
+            setUsers(data);
+        } catch (error) {
+            console.error('Failed to load users', error);
+            addToast('Failed to load global user list', 'error');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleCreateUser = async (e: React.FormEvent) => {
@@ -76,8 +71,9 @@ const PlatformMembersView: React.FC = () => {
             addToast(`User ${formData.name} created successfully`, 'success');
             setShowAddModal(false);
             setFormData({ name: '', email: '', role: UserRole.OPERATIVE, companyId: '' });
-            refreshTenants(); // Re-fetch to show new user
+            loadUsers();
         } catch (error) {
+            console.error(error);
             addToast('Failed to create user', 'error');
         } finally {
             setIsSubmitting(false);
@@ -90,29 +86,53 @@ const PlatformMembersView: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            await db.updateUser(selectedUser.id, {
-                name: formData.name,
-                role: formData.role
-            });
+            // Update role via API
+            if (formData.role !== selectedUser.role) {
+                await db.updatePlatformUserRole(selectedUser.id, formData.role);
+            }
+            // Add name update endpoint later if needed, mostly role is critical
+
             addToast('User updated successfully', 'success');
             setShowEditModal(false);
-            refreshTenants();
+            loadUsers();
         } catch (error) {
+            console.error(error);
             addToast('Failed to update user', 'error');
         } finally {
             setIsSubmitting(false);
         }
     };
 
+    const handleStatusChange = async (userId: string, newStatus: string) => {
+        try {
+            await db.updateUserStatus(userId, newStatus);
+            setUsers(users.map(u => u.id === userId ? { ...u, status: newStatus } : u));
+            addToast(`User ${newStatus === 'active' ? 'activated' : 'suspended'}`, 'success');
+        } catch (e) {
+            console.error('Failed to update status', e);
+            addToast('Failed to update user status', 'error');
+        }
+    };
+
+    const handleImpersonate = async (userId: string) => {
+        if (!confirm('Are you sure you want to impersonate this user?')) return;
+        try {
+            await impersonateUser(userId);
+            window.location.href = '/dashboard';
+        } catch (e) {
+            console.error('Impersonation failed', e);
+            addToast('Failed to impersonate user', 'error');
+        }
+    };
+
     const handleDeleteUser = async () => {
         if (!selectedUser) return;
-
         setIsSubmitting(true);
         try {
             await db.deleteUser(selectedUser.id);
             addToast('User removed from platform', 'success');
             setShowDeleteConfirm(false);
-            refreshTenants();
+            loadUsers();
         } catch (error) {
             addToast('Failed to delete user', 'error');
         } finally {
@@ -120,11 +140,40 @@ const PlatformMembersView: React.FC = () => {
         }
     };
 
+    const handlePasswordReset = async (userId: string) => {
+        if (!confirm('Send password reset email to this user?')) return;
+        try {
+            await db.resetUserPassword(userId);
+            addToast('Password reset email sent', 'success');
+        } catch (e) {
+            addToast('Failed to trigger password reset', 'error');
+        }
+    };
+
+    const filteredUsers = users.filter(user =>
+        user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.companyName?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const getRoleBadgeStyles = (role: string) => {
+        const styles: Record<string, string> = {
+            SUPERADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+            COMPANY_ADMIN: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+            PROJECT_MANAGER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+            FINANCE: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+            SUPERVISOR: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+            OPERATIVE: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
+            READ_ONLY: 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300',
+        };
+        return styles[role] || 'bg-zinc-100 text-zinc-800 dark:bg-zinc-900/30 dark:text-zinc-300';
+    };
+
     const stats = [
-        { label: 'Total Users', value: allMembers.length, icon: Users, color: 'blue' },
-        { label: 'Superadmins', value: allMembers.filter(m => m.role === 'SUPERADMIN').length, icon: Shield, color: 'purple' },
-        { label: 'Company Admins', value: allMembers.filter(m => m.role === 'COMPANY_ADMIN').length, icon: Building2, color: 'blue' },
-        { label: 'Platform Health', value: '100%', icon: Check, color: 'green' },
+        { label: 'Total Users', value: users.length, icon: Users, color: 'blue' },
+        { label: 'Superadmins', value: users.filter(m => m.role === 'SUPERADMIN').length, icon: Shield, color: 'purple' },
+        { label: 'Company Admins', value: users.filter(m => m.role === 'COMPANY_ADMIN').length, icon: Building2, color: 'blue' },
+        { label: 'Active Sessions', value: '142', icon: Check, color: 'green' }, // Mock for now
     ];
 
     return (
@@ -197,68 +246,101 @@ const PlatformMembersView: React.FC = () => {
                                 <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">User</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Company</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Role</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Email</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Status</th>
                                 <th className="px-6 py-4 text-right text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-700">
-                            {filteredMembers.map((member, idx) => (
-                                <tr key={`${member.companyId}-${member.id || idx}`} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors group">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
-                                                {member.name?.charAt(0) || 'U'}
+                            {loading ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-zinc-500">Loading users...</td></tr>
+                            ) : filteredUsers.length === 0 ? (
+                                <tr><td colSpan={5} className="p-8 text-center text-zinc-500">No users found match your search.</td></tr>
+                            ) : (
+                                filteredUsers.map((member, idx) => (
+                                    <tr key={`${member.companyId}-${member.id || idx}`} className="hover:bg-zinc-50 dark:hover:bg-zinc-700/30 transition-colors group">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-md">
+                                                    {member.name?.charAt(0) || 'U'}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-zinc-900 dark:text-white">{member.name || 'Unknown'}</p>
+                                                    <p className="text-xs text-zinc-500">ID: {member.id || 'N/A'}</p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="font-bold text-zinc-900 dark:text-white">{member.name || 'Unknown'}</p>
-                                                <p className="text-xs text-zinc-500">ID: {member.id || 'N/A'}</p>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <div className="flex items-center gap-2">
+                                                <Building2 className="w-4 h-4 text-zinc-400" />
+                                                <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{member.companyName || 'Unassigned'}</span>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <Building2 className="w-4 h-4 text-zinc-400" />
-                                            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{member.companyName}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${getRoleBadgeStyles(member.role || 'READ_ONLY')}`}>
-                                            {member.role?.replace('_', ' ') || 'READ ONLY'}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-zinc-600 dark:text-zinc-400">
-                                        {member.email}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                                        <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedUser(member);
-                                                    setFormData({
-                                                        name: member.name,
-                                                        email: member.email,
-                                                        role: (member.role as UserRole) || UserRole.OPERATIVE,
-                                                        companyId: member.companyId
-                                                    });
-                                                    setShowEditModal(true);
-                                                }}
-                                                className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"
-                                            >
-                                                <Edit2 size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => {
-                                                    setSelectedUser(member);
-                                                    setShowDeleteConfirm(true);
-                                                }}
-                                                className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${getRoleBadgeStyles(member.role || 'READ_ONLY')}`}>
+                                                {member.role?.replace('_', ' ') || 'READ ONLY'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${member.status !== 'suspended' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'}`}>
+                                                {member.status || 'active'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => handlePasswordReset(member.id)}
+                                                    title="Reset Password"
+                                                    className="p-1.5 text-zinc-400 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-lg"
+                                                >
+                                                    <Lock size={16} />
+                                                </button>
+
+                                                {member.status !== 'suspended' ? (
+                                                    <button
+                                                        onClick={() => handleStatusChange(member.id, 'suspended')}
+                                                        title="Suspend User"
+                                                        className="p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
+                                                    >
+                                                        <UserX size={16} />
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleStatusChange(member.id, 'active')}
+                                                        title="Activate User"
+                                                        className="p-1.5 text-zinc-400 hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg"
+                                                    >
+                                                        <UserCheck size={16} />
+                                                    </button>
+                                                )}
+
+                                                <button
+                                                    onClick={() => handleImpersonate(member.id)}
+                                                    title="Impersonate"
+                                                    className="p-1.5 text-zinc-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg"
+                                                >
+                                                    <Eye size={16} />
+                                                </button>
+
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedUser(member);
+                                                        setFormData({
+                                                            name: member.name,
+                                                            email: member.email,
+                                                            role: (member.role as UserRole) || UserRole.OPERATIVE,
+                                                            companyId: member.companyId
+                                                        });
+                                                        setShowEditModal(true);
+                                                    }}
+                                                    className="p-1.5 text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -286,7 +368,6 @@ const PlatformMembersView: React.FC = () => {
                                     className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
                                     value={formData.name}
                                     onChange={e => setFormData({ ...formData, name: e.target.value })}
-                                    placeholder="e.g. Michael Scott"
                                 />
                             </div>
                             <div>
@@ -297,7 +378,6 @@ const PlatformMembersView: React.FC = () => {
                                     className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500/20"
                                     value={formData.email}
                                     onChange={e => setFormData({ ...formData, email: e.target.value })}
-                                    placeholder="michael@dundermifflin.com"
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -342,6 +422,53 @@ const PlatformMembersView: React.FC = () => {
                 </div>
             )}
 
+            {/* Edit Modal */}
+            {showEditModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                        <div className="p-6 border-b border-zinc-100 dark:border-zinc-700 flex justify-between items-center bg-indigo-50 dark:bg-zinc-900">
+                            <h3 className="text-lg font-bold text-zinc-900 dark:text-white flex items-center gap-2">
+                                <Edit2 className="text-indigo-600" />
+                                Edit User Access
+                            </h3>
+                            <button onClick={() => setShowEditModal(false)} className="text-zinc-400 hover:text-zinc-600 transition-colors">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateUser} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">User</label>
+                                <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg border border-zinc-200 dark:border-zinc-700">
+                                    <p className="font-bold text-zinc-900 dark:text-white">{formData.name}</p>
+                                    <p className="text-xs text-zinc-500">{formData.email}</p>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Role</label>
+                                <select
+                                    required
+                                    className="w-full p-2.5 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg outline-none"
+                                    value={formData.role}
+                                    onChange={e => setFormData({ ...formData, role: e.target.value as any as UserRole })}
+                                >
+                                    {Object.values(UserRole).map(role => (
+                                        <option key={role} value={role}>{role.replace('_', ' ')}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <button
+                                disabled={isSubmitting}
+                                type="submit"
+                                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Check size={18} />
+                                Save Changes
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Delete Confirmation */}
             {showDeleteConfirm && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -351,7 +478,7 @@ const PlatformMembersView: React.FC = () => {
                         </div>
                         <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">Delete User?</h3>
                         <p className="text-zinc-500 dark:text-zinc-400 mb-6 text-sm">
-                            This will permanently remove <span className="font-bold text-zinc-900 dark:text-white">{selectedUser?.name}</span> from the platform and revoke all access immediately.
+                            This will permanently remove <span className="font-bold text-zinc-900 dark:text-white">{selectedUser?.name}</span> from the platform.
                         </p>
                         <div className="flex gap-3">
                             <button
