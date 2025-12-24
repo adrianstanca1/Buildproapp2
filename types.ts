@@ -29,6 +29,7 @@ export interface PlatformStats {
 
 export interface SystemSettings {
   maintenance: boolean;
+  maintenanceMode?: boolean; // For legacy/frontend compatibility
   betaFeatures: boolean;
   registrations: boolean;
   aiEngine: boolean;

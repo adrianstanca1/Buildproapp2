@@ -104,9 +104,18 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
 
         req.tenantId = jwtTenantId || headerTenantId;
 
-        if (!req.tenantId) {
+        req.tenantId = jwtTenantId || headerTenantId;
+
+        // Routes that do not require tenant context
+        const isPlatformRoute = req.path.includes('/api/companies') ||
+            req.path.includes('/api/system-settings') ||
+            req.path.includes('/api/auth');
+
+        const isSuperAdmin = user.user_metadata?.role === 'super_admin' || user.user_metadata?.role === 'SUPERADMIN';
+
+        if (!req.tenantId && !isPlatformRoute && !isSuperAdmin) {
             // Block request if no tenant context implies security risk
-            console.warn(`[Auth] No tenant context for user ${user.id}`);
+            console.warn(`[Auth] No tenant context for user ${user.id} on path ${req.path}`);
             return res.status(403).json({ error: 'Tenant context required' });
         }
 

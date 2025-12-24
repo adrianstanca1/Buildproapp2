@@ -135,9 +135,18 @@ export const getRolePermissions = async (req: Request, res: Response, next: Next
 export const getCurrentUserPermissions = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { userId, tenantId } = (req as any).context || {};
+        const authUser = (req as any).user;
 
         if (!userId) throw new AppError('Authentication required', 401);
-        if (!tenantId) throw new AppError('Company selection required', 400);
+
+        // Superadmin Bypass
+        if (!tenantId) {
+            const globalRole = await permissionService.getUserGlobalRole(userId);
+            if (globalRole === 'SUPERADMIN' || authUser?.user_metadata?.role === 'super_admin') {
+                return res.json(['*']);
+            }
+            throw new AppError('Company selection required', 400);
+        }
 
         const permissions = await permissionService.getUserPermissions(userId, tenantId);
         res.json(permissions);

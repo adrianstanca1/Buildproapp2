@@ -7,19 +7,27 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
     try {
         const db = getDb();
         const maintenanceSetting = await db.get('SELECT value FROM system_settings WHERE key = ?', ['maintenance_mode']);
+        const maintenanceSettingCamel = await db.get('SELECT value FROM system_settings WHERE key = ?', ['maintenanceMode']);
         const globalConfig = await db.get('SELECT value FROM system_settings WHERE key = ?', ['global_config']);
 
         let isMaintenance = false;
 
+        // Check snake_case key
         if (maintenanceSetting) {
             try {
                 const val = JSON.parse(maintenanceSetting.value);
                 if (val && typeof val === 'object' && val.enabled === true) isMaintenance = true;
-            } catch (error) {
-                // Silently ignore or log maintenance check failures to avoid blocking the app
-            }
-            // If JSON parsing failed or didn't set isMaintenance, check for simple 'true' string
+            } catch (error) { }
             if (maintenanceSetting.value === 'true') isMaintenance = true;
+        }
+
+        // Check camelCase key (Frontend default)
+        if (maintenanceSettingCamel && !isMaintenance) {
+            if (maintenanceSettingCamel.value === 'true' || maintenanceSettingCamel.value === '1') isMaintenance = true;
+            try {
+                const val = JSON.parse(maintenanceSettingCamel.value);
+                if (val === true) isMaintenance = true;
+            } catch (e) { }
         }
 
         if (globalConfig && !isMaintenance) {

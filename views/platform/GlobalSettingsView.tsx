@@ -18,9 +18,11 @@ const GlobalSettingsView: React.FC = () => {
         const loadConfig = async () => {
             try {
                 const data = await db.getSystemConfig();
-                setConfig(data);
+                setConfig(data || {});
             } catch (error) {
-                addToast('Failed to load system configuration', 'error');
+                console.error('Config load failed', error);
+                setConfig({}); // Fallback to empty object to prevent crash
+                addToast('Using default settings (Config failed)', 'warning');
             } finally {
                 setIsLoading(false);
             }
@@ -116,7 +118,7 @@ const GlobalSettingsView: React.FC = () => {
                                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Platform Name</label>
                                         <input
                                             type="text"
-                                            value={config.platformName}
+                                            value={config?.platformName || ''}
                                             onChange={e => setConfig({ ...config, platformName: e.target.value })}
                                             className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
                                         />

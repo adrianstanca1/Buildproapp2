@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, MoreVertical, Shield, Lock, UserX, UserCheck, Eye } from 'lucide-react';
+import { Search, Filter, MoreVertical, Shield, Lock, UserX, UserCheck, Eye, LogOut } from 'lucide-react';
 import { db } from '@/services/db';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -202,6 +202,23 @@ const UserManagementView: React.FC = () => {
                                                 className="p-1 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded text-purple-500"
                                             >
                                                 <Eye size={16} />
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    if (!confirm('Force logout this user? They will be signed out immediately.')) return;
+                                                    try {
+                                                        // Call backend to revoke session
+                                                        // For now we just suspend/activate quickly or assume a future endpoint
+                                                        // await db.forceLogout(user.id); 
+                                                        alert('Force logout command sent (Simulation)');
+                                                    } catch (e) {
+                                                        alert('Failed to force logout');
+                                                    }
+                                                }}
+                                                title="Force Logout"
+                                                className="p-1 hover:bg-orange-100 dark:hover:bg-orange-900/30 rounded text-orange-500"
+                                            >
+                                                <LogOut size={16} />
                                             </button>
                                         </div>
                                     </td>

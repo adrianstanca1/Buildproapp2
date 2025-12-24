@@ -118,7 +118,7 @@ const AuthenticatedApp: React.FC = () => {
   // Maintenance Mode Check (Super Admins Bypass)
   // If user is logged in AND is Super Admin, they bypass.
   // If user is NOT logged in or NOT Super Admin, they see Maintenance View.
-  const isMaintenanceActive = systemSettings.maintenance;
+  const isMaintenanceActive = systemSettings.maintenance || systemSettings.maintenanceMode;
   const isSuperAdmin = user?.role === UserRole.SUPERADMIN;
 
   if (isMaintenanceActive && !isSuperAdmin) {
