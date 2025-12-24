@@ -44,7 +44,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       try {
         // Check if Supabase is configured (either via env or fallback)
         // We check if the supabase client has a valid URL configured
-        // @ts-ignore - inspecting internal client config is a safe heuristic here
+        // @ts-expect-error - inspecting internal client config is a safe heuristic here
         const clientUrl = supabase.supabaseUrl;
 
         if (!clientUrl || clientUrl.includes('placeholder')) {

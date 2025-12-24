@@ -17,7 +17,7 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
             try {
                 const val = JSON.parse(maintenanceSetting.value);
                 if (val && typeof val === 'object' && val.enabled === true) isMaintenance = true;
-            } catch (error) { }
+            } catch (error) { /* ignore */ }
             if (maintenanceSetting.value === 'true') isMaintenance = true;
         }
 
@@ -27,7 +27,7 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
             try {
                 const val = JSON.parse(maintenanceSettingCamel.value);
                 if (val === true) isMaintenance = true;
-            } catch (e) { }
+            } catch (e) { /* ignore */ }
         }
 
         if (globalConfig && !isMaintenance) {

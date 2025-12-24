@@ -9,7 +9,14 @@ import { useToast } from '@/contexts/ToastContext';
 
 const GlobalSettingsView: React.FC = () => {
     const { addToast } = useToast();
-    const [config, setConfig] = useState<any>(null);
+    const [config, setConfig] = useState<any>({
+        platformName: '',
+        supportEmail: '',
+        primaryColor: '#6366f1',
+        maintenanceMode: false,
+        allowRegistrations: false,
+        apiKeys: { googleMaps: '', sendGrid: '', openAi: '' }
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'general' | 'branding' | 'integrations' | 'security'>('general');
@@ -17,11 +24,10 @@ const GlobalSettingsView: React.FC = () => {
     useEffect(() => {
         const loadConfig = async () => {
             try {
-                const data = await db.getSystemConfig();
-                setConfig(data || {});
+                const data = await db.getSystemSettings();
+                setConfig((prev: any) => ({ ...prev, ...data }));
             } catch (error) {
                 console.error('Config load failed', error);
-                setConfig({}); // Fallback to empty object to prevent crash
                 addToast('Using default settings (Config failed)', 'warning');
             } finally {
                 setIsLoading(false);
@@ -33,7 +39,7 @@ const GlobalSettingsView: React.FC = () => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await db.updateSystemConfig(config);
+            await db.updateSystemSettings(config);
             addToast('System configuration saved successfully', 'success');
         } catch (error) {
             addToast('Failed to save settings', 'error');

@@ -20,8 +20,9 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 describe('Comments Component', () => {
-    it('renders comments header', () => {
+    it('renders comments header', async () => {
         render(<Comments entityType="task" entityId="123" />);
+        await waitFor(() => expect(screen.getByText(/No comments yet/i)).toBeInTheDocument());
         expect(screen.getByRole('heading', { name: /Comments/i })).toBeInTheDocument();
     });
 
@@ -33,8 +34,9 @@ describe('Comments Component', () => {
         });
     });
 
-    it('allows user to type a comment', () => {
+    it('allows user to type a comment', async () => {
         render(<Comments entityType="task" entityId="123" />);
+        await waitFor(() => expect(screen.getByText(/No comments yet/i)).toBeInTheDocument());
 
         const textarea = screen.getByPlaceholderText(/Add a comment/i);
         fireEvent.change(textarea, { target: { value: 'Test comment' } });
@@ -42,8 +44,9 @@ describe('Comments Component', () => {
         expect(textarea).toHaveValue('Test comment');
     });
 
-    it('disables send button when comment is empty', () => {
+    it('disables send button when comment is empty', async () => {
         render(<Comments entityType="task" entityId="123" />);
+        await waitFor(() => expect(screen.getByText(/No comments yet/i)).toBeInTheDocument());
 
         const sendButton = screen.getByRole('button', { name: /Send/i });
         expect(sendButton).toBeDisabled();
