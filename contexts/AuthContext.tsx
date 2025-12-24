@@ -42,8 +42,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // If the URL/Key are missing, this might fail or return null
     const initSupabase = async () => {
       try {
-        // Check if env vars are present (basic check)
-        if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        // Check if Supabase is configured (either via env or fallback)
+        // We check if the supabase client has a valid URL configured
+        // @ts-ignore - inspecting internal client config is a safe heuristic here
+        const clientUrl = supabase.supabaseUrl;
+
+        if (!clientUrl || clientUrl.includes('placeholder')) {
           return;
         }
 

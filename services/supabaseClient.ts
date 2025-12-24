@@ -10,8 +10,12 @@ const getEnv = (key: string) => {
   return undefined;
 };
 
-const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY;
+// Fallback to production credentials if env vars are missing
+const DEFAULT_URL = 'https://zpbuvuxpfemldsknerew.supabase.co';
+const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwYnV2dXhwZmVtbGRza25lcmV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTQzMTcsImV4cCI6MjA3MTY5MDMxN30.4wb8_qMaJ0hpkLEv51EWh0pRtVXD3GWWOsuCmZsOx6A';
+
+const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL || DEFAULT_URL;
+const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY || DEFAULT_KEY;
 
 // Detect placeholder or invalid URLs
 const isPlaceholder = !supabaseUrl ||
@@ -23,16 +27,12 @@ const isKeyPlaceholder = !supabaseAnonKey ||
   supabaseAnonKey.length < 20;
 
 if (isPlaceholder || isKeyPlaceholder) {
-  console.warn('⚠️  Supabase credentials are missing or invalid. Using placeholder values. Supabase features will not work.');
+  console.warn('⚠️  Supabase credentials are missing (and defaults failed). Supabase features will not work.');
 }
 
-// Use placeholders to prevent crash if env vars are missing or invalid
-const validUrl = isPlaceholder ? 'https://placeholder.supabase.co' : supabaseUrl;
-const validKey = isKeyPlaceholder ? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBsYWNlaG9sZGVyIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDUxOTI4MDAsImV4cCI6MTk2MDc2ODgwMH0.placeholder' : supabaseAnonKey;
-
 export const supabase = createClient(
-  validUrl,
-  validKey
+  supabaseUrl,
+  supabaseAnonKey
 );
 
 export const uploadFile = async (file: File, bucket: string = 'documents', path?: string) => {
