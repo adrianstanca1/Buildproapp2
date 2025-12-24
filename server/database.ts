@@ -660,6 +660,39 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Support Tickets
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      priority TEXT NOT NULL DEFAULT 'MEDIUM',
+      category TEXT,
+      lastMessageAt TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Ticket Messages
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS ticket_messages (
+      id TEXT PRIMARY KEY,
+      ticketId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      userName TEXT NOT NULL,
+      message TEXT NOT NULL,
+      isAdmin BOOLEAN DEFAULT FALSE,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (ticketId) REFERENCES support_tickets(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Vendors (Supply Chain)
   await db.exec(`
     CREATE TABLE IF NOT EXISTS vendors (
@@ -791,6 +824,20 @@ async function initializeSchema(db: IDatabase) {
       email_comments BOOLEAN DEFAULT TRUE,
       email_digest_frequency TEXT DEFAULT 'daily',
       push_enabled BOOLEAN DEFAULT FALSE
+    )
+  `);
+
+  // Platform System Events (Phase 11)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS system_events (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      level TEXT NOT NULL,
+      message TEXT NOT NULL,
+      source TEXT NOT NULL,
+      metadata TEXT,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
 

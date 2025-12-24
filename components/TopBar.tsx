@@ -12,6 +12,7 @@ import { searchService, SearchResult } from '../services/SearchService';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import NotificationBell from './NotificationBell';
+import PlatformNotificationBell from './PlatformNotificationBell';
 import GlobalSearch from './GlobalSearch';
 import { UserRole } from '@/types';
 
@@ -226,6 +227,13 @@ const TopBar: React.FC<TopBarProps> = ({ setPage, onMenuClick }) => {
           <div className="hidden lg:block">
             <TenantSelector />
           </div>
+
+          {user?.role === UserRole.SUPERADMIN && (
+            <>
+              <PlatformNotificationBell />
+              <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 mx-1" />
+            </>
+          )}
 
           <NotificationBell />
 

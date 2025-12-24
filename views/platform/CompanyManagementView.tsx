@@ -39,7 +39,9 @@ const CompanyManagementView: React.FC = () => {
         email: '',
         phone: '',
         address: '',
-        isTrial: false
+        isTrial: false,
+        adminName: '',
+        adminEmail: ''
     });
 
     const [editPlan, setEditPlan] = useState('');
@@ -51,6 +53,7 @@ const CompanyManagementView: React.FC = () => {
 
     const handleCreateCompany = async () => {
         const newId = `tenant-${Date.now()}`;
+        setIsProvisioning(true);
         try {
             await addTenant({
                 id: newId,
@@ -87,10 +90,21 @@ const CompanyManagementView: React.FC = () => {
                 updatedAt: new Date().toISOString(),
             });
             setShowCreateModal(false);
-            setNewCompany({ name: '', plan: 'starter', email: '', phone: '', address: '', isTrial: false });
+            setNewCompany({
+                name: '',
+                plan: 'starter',
+                email: '',
+                phone: '',
+                address: '',
+                isTrial: false,
+                adminName: '',
+                adminEmail: ''
+            });
         } catch (e) {
             console.error(e);
             alert('Failed to create company');
+        } finally {
+            setIsProvisioning(false);
         }
     };
 
@@ -451,19 +465,53 @@ const CompanyManagementView: React.FC = () => {
                             placeholder="admin@acme.com"
                         />
                     </div>
-                    <div className="flex gap-3 pt-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Admin Full Name
+                            </label>
+                            <input
+                                type="text"
+                                value={newCompany.adminName}
+                                onChange={(e) => setNewCompany({ ...newCompany, adminName: e.target.value })}
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="John Doe"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">
+                                Admin Email
+                            </label>
+                            <input
+                                type="email"
+                                value={newCompany.adminEmail}
+                                onChange={(e) => setNewCompany({ ...newCompany, adminEmail: e.target.value })}
+                                className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="admin@example.com"
+                            />
+                        </div>
+                    </div>
+
+                    {isProvisioning && (
+                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center gap-3">
+                            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                            <span className="text-sm text-blue-700 dark:text-blue-300">Provisioning infrastructure and inviting admin...</span>
+                        </div>
+                    )}
+
+                    <div className="flex justify-end gap-3 mt-6">
                         <button
                             onClick={() => setShowCreateModal(false)}
-                            className="flex-1 px-4 py-2 border border-zinc-300 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors"
+                            className="px-4 py-2 text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 rounded-lg transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             onClick={handleCreateCompany}
-                            disabled={!newCompany.name}
-                            className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isProvisioning || !newCompany.name || !newCompany.adminEmail}
+                            className={`px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 ${isProvisioning ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
-                            Create Company
+                            {isProvisioning ? 'Provisioning...' : 'Create Company'}
                         </button>
                     </div>
                 </div>

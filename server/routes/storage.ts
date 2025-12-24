@@ -23,10 +23,16 @@ router.post('/upload', requirePermission('documents', 'create'), upload.single('
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
-        const bucket = req.body.bucket || 'project-documents';
+        // --- Phase 10: Enforce Tenant Isolation ---
+        const tenantId = req.tenantId;
+        if (!tenantId) {
+            return res.status(403).json({ error: 'Tenant context required for storage operations' });
+        }
+
+        const bucket = `tenant-${tenantId}`;
         const pathPrefix = req.body.pathPrefix || '';
 
-        logger.info(`Uploading file ${req.file.originalname} to bucket ${bucket}`);
+        logger.info(`Uploading file ${req.file.originalname} to tenant bucket ${bucket}`);
 
         const { path, error } = await uploadFile(
             bucket,

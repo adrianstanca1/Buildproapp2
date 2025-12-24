@@ -1,73 +1,114 @@
 
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
+import { broadcastToAll, broadcastToUser } from '../socket.js';
 import { logger } from '../utils/logger.js';
-import { broadcastToUser } from '../socket.js';
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+export type SystemEventType =
+    | 'PROVISIONING_SUCCESS'
+    | 'PROVISIONING_FAILURE'
+    | 'SECURITY_ALERT'
+    | 'SYSTEM_UPDATE'
+    | 'MAINTENANCE_MODE';
 
+export type SystemEventLevel = 'info' | 'warning' | 'critical';
+
+export interface SystemEvent {
+    id: string;
+    type: SystemEventType;
+    level: SystemEventLevel;
+    message: string;
+    source: string;
+    metadata?: any;
+    is_read: boolean;
+    created_at: string;
+}
+
+/**
+ * Emits a system event: persists to DB and broadcasts to all connected clients
+ * Used for platform-level alerts for SuperAdmins
+ */
+export const emitSystemEvent = async (params: {
+    type: SystemEventType;
+    level: SystemEventLevel;
+    message: string;
+    source: string;
+    metadata?: any;
+}) => {
+    try {
+        const db = getDb();
+        const event: SystemEvent = {
+            id: uuidv4(),
+            ...params,
+            is_read: false,
+            created_at: new Date().toISOString()
+        };
+
+        // Persist to DB
+        await db.run(
+            `INSERT INTO system_events (id, type, level, message, source, metadata, is_read, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                event.id,
+                event.type,
+                event.level,
+                event.message,
+                event.source,
+                event.metadata ? JSON.stringify(event.metadata) : null,
+                event.is_read ? 0 : 0, // is_read is false (0) by default
+                event.created_at
+            ]
+        );
+
+        // Broadcast to all connected clients
+        broadcastToAll({
+            type: 'SYSTEM_EVENT',
+            payload: event
+        });
+
+        logger.info(`System event emitted: [${event.level.toUpperCase()}] ${event.type} - ${event.message}`);
+        return event;
+    } catch (error) {
+        logger.error('Failed to emit system event:', error);
+    }
+};
+
+/**
+ * Sends a notification to a specific user (tenant-level)
+ * Reconstructed to fix overwrite error.
+ */
 export const sendNotification = async (
     companyId: string,
     userId: string,
-    type: NotificationType,
+    type: 'info' | 'success' | 'warning' | 'error',
     title: string,
     message: string,
-    link: string | null = null
+    link?: string
 ) => {
     try {
         const db = getDb();
         const id = uuidv4();
         const createdAt = new Date().toISOString();
 
-        // 1. Persist to DB
         await db.run(
             `INSERT INTO notifications (id, companyId, userId, type, title, message, link, isRead, createdAt)
-             VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)`,
-            [id, companyId, userId, type, title, message, link, createdAt]
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [id, companyId, userId, type, title, message, link || null, 0, createdAt]
         );
 
-        // 2. Broadcast via WebSocket
+        // Broadcast to specific user via WebSocket
         broadcastToUser(userId, {
             type: 'notification',
             id,
+            notificationType: type,
             title,
             message,
-            notificationType: type,
             link,
             createdAt
         });
 
-        logger.info(`Notification sent to User ${userId}: ${title}`);
-        return { success: true, id };
-    } catch (e: any) {
-        logger.error('Failed to send notification:', e);
-        return { success: false, error: e.message };
-    }
-};
-
-export const markAsRead = async (id: string, userId: string) => {
-    try {
-        const db = getDb();
-        await db.run(
-            `UPDATE notifications SET isRead = 1 WHERE id = ? AND userId = ?`,
-            [id, userId]
-        );
-        return { success: true };
-    } catch (e: any) {
-        logger.error('Failed to mark notification as read:', e);
-        return { success: false, error: e.message };
-    }
-};
-
-export const getUnreadCount = async (userId: string) => {
-    try {
-        const db = getDb();
-        const result = await db.get(
-            `SELECT COUNT(*) as count FROM notifications WHERE userId = ? AND isRead = 0`,
-            [userId]
-        );
-        return result?.count || 0;
-    } catch (e: any) {
-        return 0;
+        logger.info(`Notification sent to user ${userId}: ${title}`);
+    } catch (error) {
+        logger.error('Failed to send notification:', error);
     }
 };

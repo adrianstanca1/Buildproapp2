@@ -450,6 +450,27 @@ class DatabaseService {
     return await res.json();
   }
 
+  // --- Platform Notifications (Phase 11) ---
+  async getPlatformEvents(limit: number = 20): Promise<any[]> {
+    return this.fetch(`platform/notifications/events?limit=${limit}`);
+  }
+
+  async markPlatformEventRead(id: string): Promise<void> {
+    const res = await fetch(`${API_URL}/platform/notifications/events/${id}/read`, {
+      method: "PUT",
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to mark event as read");
+  }
+
+  async markAllPlatformEventsRead(): Promise<void> {
+    const res = await fetch(`${API_URL}/platform/notifications/events/mark-all-read`, {
+      method: "POST",
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) throw new Error("Failed to mark all events as read");
+  }
+
   async getUserRoles(userId: string, companyId: string): Promise<any[]> {
     const res = await fetch(`${API_URL}/user-roles/${userId}/${companyId}`, {
       headers: await this.getHeaders()
@@ -762,23 +783,7 @@ class DatabaseService {
     return this.fetch<any[]>('platform/alerts');
   }
 
-  // --- Platform Support & Communications (Phase 6) ---
-  async getSupportTickets(companyId?: string): Promise<any[]> {
-    if (this.useMock) {
-      return [
-        { id: 't-1', companyId: 'c1', companyName: 'Acme Corp', subject: 'Cannot export reports', status: 'open', priority: 'high', createdAt: new Date(Date.now() - 86400000).toISOString(), author: 'John Doe' },
-        { id: 't-2', companyId: 'c2', companyName: 'Global Build', subject: 'Inquiry about Enterprise plan', status: 'pending', priority: 'medium', createdAt: new Date(Date.now() - 172800000).toISOString(), author: 'Jane Smith' },
-        { id: 't-3', companyId: 'c3', companyName: 'Urban Dev', subject: 'Login issue on mobile', status: 'resolved', priority: 'low', createdAt: new Date(Date.now() - 259200000).toISOString(), author: 'Mike Ross' },
-      ].filter(t => !companyId || t.companyId === companyId);
-    }
-    const query = companyId ? `?companyId=${companyId}` : '';
-    return this.fetch<any[]>(`platform/tickets${query}`);
-  }
-
-  async updateTicketStatus(id: string, status: string): Promise<void> {
-    if (this.useMock) return;
-    await this.put('platform/tickets', id, { status });
-  }
+  // --- Platform Support & Communications (Phase 9) ---
 
   async sendTargetedBroadcast(filter: any, message: string): Promise<void> {
     if (this.useMock) {
@@ -813,61 +818,36 @@ class DatabaseService {
     await this.delete('platform/users', userId);
   }
 
-  // --- Support & System Config (Phase 8) ---
+  // --- Support & System Config (Phase 9) ---
+  async getTickets(companyId?: string): Promise<any[]> {
+    const endpoint = companyId ? `platform/support/my-tickets?companyId=${companyId}` : 'platform/support/admin/tickets';
+    return this.fetch(endpoint);
+  }
+
   async getTicketMessages(ticketId: string): Promise<any[]> {
-    if (this.useMock) {
-      return [
-        {
-          id: 'm1',
-          author: 'Tenant Admin',
-          message: 'We are having trouble with the AI daily briefing not showing up for some users.',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          isAgent: false
-        },
-        {
-          id: 'm2',
-          author: 'System Auto-Ack',
-          message: 'Your request has been received and assigned to a specialist.',
-          timestamp: new Date(Date.now() - 3500000).toISOString(),
-          isAgent: true
-        }
-      ];
-    }
     return this.fetch(`platform/support/tickets/${ticketId}/messages`);
   }
 
-  async replyToTicket(ticketId: string, message: string): Promise<any> {
-    if (this.useMock) {
-      console.log('Reply sent to ticket:', ticketId, message);
-      return { id: `m-${Date.now()}`, author: 'SuperAdmin', message, timestamp: new Date().toISOString(), isAgent: true };
-    }
-    return this.post(`platform/support/tickets/${ticketId}/replies`, { message });
+  async createTicket(data: { subject: string; message: string; priority?: string; category?: string }): Promise<any> {
+    return this.post('platform/support/tickets', data);
+  }
+
+  async replyToTicket(ticketId: string, message: string, isAdmin: boolean = false): Promise<any> {
+    return this.post(`platform/support/tickets/${ticketId}/reply`, { message, isAdmin });
+  }
+
+  async updateTicketStatus(ticketId: string, status: string): Promise<void> {
+    await this.put(`platform/support/admin/tickets`, ticketId + '/status', { status });
   }
 
   async getSystemConfig(): Promise<any> {
-    if (this.useMock) {
-      return {
-        platformName: 'BuildPro Enterprise',
-        primaryColor: '#4f46e5',
-        supportEmail: 'support@buildpro.app',
-        maintenanceMode: false,
-        allowRegistrations: true,
-        logoUrl: 'https://placeholder.com/logo.png',
-        apiKeys: {
-          googleMaps: 'AIzaSy...hidden',
-          openai: 'sk-...hidden'
-        }
-      };
-    }
     return this.getSingle('platform/config');
   }
 
   async updateSystemConfig(config: any): Promise<void> {
-    if (this.useMock) {
-      console.log('System config updated:', config);
-      return;
-    }
-    await this.put('platform/config', '', config);
+    // Backend uses POST /config for upsert or PUT if we follow standard. 
+    // routes/platformRoutes.ts has router.post('/config')
+    await this.post('platform/config', config);
   }
 
   async addAccessLog(log: any): Promise<void> {

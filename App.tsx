@@ -85,6 +85,7 @@ const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsV
 const SubscriptionView = lazyWithReload(() => import('@/views/platform/SubscriptionView'));
 const SecurityDashboardView = lazyWithReload(() => import('@/views/platform/SecurityDashboardView'));
 const SupportTicketsView = lazyWithReload(() => import('@/views/platform/SupportTicketsView'));
+const PlatformNotificationsView = lazyWithReload(() => import('@/views/platform/PlatformNotificationsView'));
 const GlobalSettingsView = lazyWithReload(() => import('@/views/platform/GlobalSettingsView'));
 
 const AuthenticatedApp: React.FC = () => {
@@ -186,6 +187,7 @@ const AuthenticatedApp: React.FC = () => {
       Page.SUBSCRIPTIONS,
       Page.SECURITY_CENTER,
       Page.SUPPORT_CENTER,
+      Page.PLATFORM_NOTIFICATIONS,
       Page.GLOBAL_SETTINGS,
       // Add other platform-specific pages if they exist in Page enum
     ];
@@ -289,6 +291,7 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.TEAM && <TeamView />}
               {page === Page.TIMESHEETS && <TimesheetsView />}
               {page === Page.SUPPORT_CENTER && <SupportTicketsView />}
+              {page === Page.PLATFORM_NOTIFICATIONS && <PlatformNotificationsView />}
               {page === Page.GLOBAL_SETTINGS && <GlobalSettingsView />}
               {page === Page.SAFETY && <SafetyView />}
               {page === Page.EQUIPMENT && <EquipmentView />}

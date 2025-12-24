@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     LayoutDashboard, Building2, Users, Shield, FileText, Settings,
-    LogOut, ChevronRight, CreditCard, Lock, LifeBuoy
+    LogOut, ChevronRight, CreditCard, Lock, LifeBuoy, Zap
 } from 'lucide-react';
 import { Page } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -46,6 +46,11 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
             icon: Shield,
             label: 'Access Control',
             page: Page.ACCESS_CONTROL,
+        },
+        {
+            icon: Zap,
+            label: 'System Alerts',
+            page: Page.PLATFORM_NOTIFICATIONS,
         },
         {
             icon: FileText,

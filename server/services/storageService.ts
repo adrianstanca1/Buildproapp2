@@ -56,10 +56,47 @@ try {
                 upload: async (path: string, file: Buffer) => localAdapter.upload(bucket, path, file),
                 createSignedUrl: async (path: string) => ({ data: { signedUrl: `/uploads/${bucket}/${path}` }, error: null }),
                 remove: async () => ({ error: null })
-            })
+            }),
+            createBucket: async (name: string) => ({ data: { name }, error: null }),
+            getBucket: async (name: string) => ({ data: null, error: { message: 'Not found' } })
         }
     };
 }
+
+/**
+ * Creates a dedicated storage bucket for a tenant
+ */
+export const createTenantBucket = async (tenantId: string) => {
+    const bucketName = `tenant-${tenantId}`;
+    logger.info(`Provisioning storage bucket: ${bucketName}`);
+
+    const { data, error } = await supabase.storage.createBucket(bucketName, {
+        public: false,
+        fileSizeLimit: 50 * 1024 * 1024, // 50MB
+        allowedMimeTypes: ['image/*', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+    });
+
+    if (error && error.message !== 'Bucket already exists') {
+        logger.error('Failed to create tenant bucket:', error);
+        return { error };
+    }
+
+    return { data, error: null };
+};
+
+/**
+ * Ensures a tenant bucket exists, creating it if necessary
+ */
+export const ensureTenantBucket = async (tenantId: string) => {
+    const bucketName = `tenant-${tenantId}`;
+    const { data: bucket, error: getError } = await supabase.storage.getBucket(bucketName);
+
+    if (getError || !bucket) {
+        return createTenantBucket(tenantId);
+    }
+
+    return { data: bucket, error: null };
+};
 
 export const uploadFile = async (
     bucket: string,

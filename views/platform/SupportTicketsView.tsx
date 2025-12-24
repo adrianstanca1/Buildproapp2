@@ -30,7 +30,7 @@ const SupportTicketsView: React.FC = () => {
     const loadTickets = async () => {
         try {
             setIsLoading(true);
-            const data = await db.getSupportTickets();
+            const data = await db.getTickets();
             setTickets(data);
         } catch (error) {
             console.error("Failed to load tickets", error);

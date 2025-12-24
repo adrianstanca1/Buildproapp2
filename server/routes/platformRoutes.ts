@@ -17,4 +17,7 @@ router.post('/broadcast', platformController.broadcastMessage);
 router.post('/maintenance', platformController.toggleMaintenance);
 router.post('/sql', platformController.executeSql);
 
+router.get('/config', platformController.getSystemConfig);
+router.post('/config', platformController.updateSystemConfig);
+
 export default router;

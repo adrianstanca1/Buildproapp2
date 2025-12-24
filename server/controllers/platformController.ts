@@ -118,7 +118,7 @@ export const executeSql = async (req: Request, res: Response, next: NextFunction
 
         const duration = Date.now() - start;
 
-        logger.warn(`SUPERADMIN SQL EXECUTION by ${req.userName}: ${query}`);
+        logger.warn(`SUPERADMIN SQL EXECUTION by ${(req as any).userName}: ${query}`);
 
         res.json({
             success: true,
@@ -178,6 +178,59 @@ export const getAdvancedMetrics = async (req: Request, res: Response, next: Next
             nodeVersion: process.version
         };
         res.json({ success: true, metrics });
+    } catch (e) {
+        next(e);
+    }
+};
+/**
+ * Get Global System Configuration
+ */
+export const getSystemConfig = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const configSetting = await db.get('SELECT value FROM system_settings WHERE key = ?', ['global_config']);
+
+        if (!configSetting) {
+            // Return default config if not found
+            const defaultConfig = {
+                platformName: 'BuildPro',
+                supportEmail: 'support@buildpro.app',
+                maintenanceMode: false,
+                allowRegistrations: true,
+                primaryColor: '#4f46e5',
+                apiKeys: {
+                    googleMaps: '****************',
+                    sendGrid: '****************',
+                    openai: '****************'
+                }
+            };
+            return res.json(defaultConfig);
+        }
+
+        res.json(JSON.parse(configSetting.value));
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Update Global System Configuration
+ */
+export const updateSystemConfig = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const config = req.body;
+        const now = new Date().toISOString();
+        const updatedBy = (req as any).userName || 'admin';
+
+        await db.run(
+            `INSERT INTO system_settings (key, value, updatedAt, updatedBy) 
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT(key) DO UPDATE SET value = ?, updatedAt = ?, updatedBy = ?`,
+            ['global_config', JSON.stringify(config), now, updatedBy, JSON.stringify(config), now, updatedBy]
+        );
+
+        res.json({ success: true });
     } catch (e) {
         next(e);
     }

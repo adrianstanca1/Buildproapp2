@@ -104,11 +104,8 @@ import { maintenanceMiddleware } from './middleware/maintenanceMiddleware.js';
 app.use('/api', authenticateToken, contextMiddleware, maintenanceMiddleware); // Protect, contextualize, and enforce maintenance
 
 import aiRoutes from './routes/ai.js';
-import systemRoutes from './routes/systemRoutes.js';
 // Auth, Companies, Projects, ClientPortal are already imported/used below or above. 
-// Consolidating:
 
-app.use('/api/system-settings', systemRoutes); // Mount at /system-settings to match db.ts
 app.use('/api/ai', aiRoutes);
 
 import storageRoutes from './routes/storage.js';
@@ -139,17 +136,18 @@ app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), systemContr
 // --- Platform / SuperAdmin Routes ---
 import * as platformController from './controllers/platformController.js';
 import * as userManagementController from './controllers/userManagementController.js';
+import platformRoutes from './routes/platformRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+
+app.use('/api/platform', platformRoutes);
+app.use('/api/platform/support', supportRoutes);
+app.use('/api/platform/notifications', notificationRoutes);
 
 const superAdminOnly = requireRole([UserRole.SUPERADMIN]);
 
-app.get('/api/platform/stats', superAdminOnly, platformController.getDashboardStats);
-app.get('/api/platform/health', superAdminOnly, platformController.getSystemHealth);
-app.get('/api/platform/activity', superAdminOnly, platformController.getGlobalActivity);
-
-app.get('/api/platform/users', superAdminOnly, userManagementController.getAllPlatformUsers);
-app.put('/api/platform/users/:id/status', superAdminOnly, userManagementController.updateUserStatus);
-app.put('/api/platform/users/:id/role', superAdminOnly, userManagementController.updateUserRole);
-app.post('/api/platform/users/:id/reset-password', superAdminOnly, userManagementController.forceResetPassword);
+// Note: stats, health, and activity are handled by platformRoutes
+// Mounted at /api/platform/stats, /api/platform/health, etc.
 
 // --- Tenant Team Management Routes ---
 import * as tenantTeamController from './controllers/tenantTeamController.js';
@@ -466,8 +464,6 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 };
-import platformRoutes from './routes/platformRoutes.js';
-app.use('/api/platform', platformRoutes);
 
 // RBAC Routes
 import * as rbacController from './controllers/rbacController.js';

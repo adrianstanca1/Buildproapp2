@@ -8,9 +8,28 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
     try {
         const db = getDb();
         const maintenanceSetting = await db.get('SELECT value FROM system_settings WHERE key = ?', ['maintenance_mode']);
+        const globalConfig = await db.get('SELECT value FROM system_settings WHERE key = ?', ['global_config']);
 
-        // If maintenance is OFF, proceed
-        if (!maintenanceSetting || maintenanceSetting.value !== 'true') {
+        let isMaintenance = false;
+
+        if (maintenanceSetting) {
+            try {
+                const val = JSON.parse(maintenanceSetting.value);
+                if (val && typeof val === 'object' && val.enabled === true) isMaintenance = true;
+                if (maintenanceSetting.value === 'true') isMaintenance = true;
+            } catch (e) {
+                if (maintenanceSetting.value === 'true') isMaintenance = true;
+            }
+        }
+
+        if (globalConfig && !isMaintenance) {
+            try {
+                const config = JSON.parse(globalConfig.value);
+                if (config && config.maintenanceMode === true) isMaintenance = true;
+            } catch (e) { }
+        }
+
+        if (!isMaintenance) {
             return next();
         }
 

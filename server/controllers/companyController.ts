@@ -4,6 +4,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { AppError } from '../utils/AppError.js';
 import { companySchema, updateCompanySchema } from '../schemas/companySchema.js';
 import { logger } from '../utils/logger.js';
+import { emitSystemEvent } from '../services/notificationService.js';
+import { ensureTenantBucket } from '../services/storageService.js';
+import { supabaseAdmin } from '../utils/supabase.js';
 
 export const getCompanies = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -87,13 +90,38 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             ]
         );
 
+
+        logger.info(`Company created: ${c.name} (${id})`);
+
+        // --- Phase 10: Infrastructure Provisioning ---
+        try {
+            await ensureTenantBucket(id);
+            logger.info(`Storage bucket provisioned for ${id}`);
+
+            await emitSystemEvent({
+                type: 'PROVISIONING_SUCCESS',
+                level: 'info',
+                message: `New company "${c.name}" provisioned and initial storage bucket created.`,
+                source: 'CompanyController',
+                metadata: { companyId: id, name: c.name }
+            });
+        } catch (storageErr) {
+            logger.error(`Failed to provision storage for ${id}:`, storageErr);
+            await emitSystemEvent({
+                type: 'PROVISIONING_FAILURE',
+                level: 'critical',
+                message: `Storage provisioning failed for "${c.name}". Manual intervention required.`,
+                source: 'CompanyController',
+                metadata: { companyId: id, name: c.name, error: (storageErr as Error).message }
+            });
+        }
+
         // Optional: Create Initial Admin User
         // If adminEmail is provided in the request (extra field not in schema but passed in body)
         const { adminEmail, adminName } = req.body;
         if (adminEmail && adminName) {
             try {
-                const { supabase } = await import('../../services/supabaseClient.js');
-                const { data: { user }, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(adminEmail, {
+                const { data: { user }, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(adminEmail, {
                     data: {
                         companyId: id,
                         role: 'COMPANY_ADMIN',
@@ -123,7 +151,6 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             }
         }
 
-        logger.info(`Company created: ${c.name} (${id})`);
         res.status(201).json({ ...c, id });
     } catch (e) {
         next(e);
