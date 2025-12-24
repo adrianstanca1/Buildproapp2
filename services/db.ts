@@ -667,6 +667,109 @@ class DatabaseService {
     return [];
   }
 
+  // --- Billing & Subscriptions ---
+  async getSubscriptions(): Promise<any[]> {
+    if (this.useMock) {
+      // Mock subscriptions based on existing tenants
+      const tenants = await this.getCompanies();
+      return tenants.map(t => ({
+        id: t.subscription?.id || `sub-${t.id}`,
+        companyId: t.id,
+        companyName: t.name,
+        plan: t.plan,
+        status: t.subscription?.status || 'active',
+        mrr: t.mrr || 0,
+        nextBillingDate: t.subscription?.currentPeriodEnd || new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
+      }));
+    }
+    return this.fetch<any[]>('platform/subscriptions');
+  }
+
+  async getInvoices(companyId?: string): Promise<any[]> {
+    if (this.useMock) {
+      // Mock billing history
+      return [
+        { id: 'inv-1', companyId: 'c1', companyName: 'Acme Corp', amount: 999, status: 'Paid', date: '2025-12-01', invoiceNumber: 'INV-2025-001' },
+        { id: 'inv-2', companyId: 'c2', companyName: 'Global Build', amount: 299, status: 'Paid', date: '2025-12-05', invoiceNumber: 'INV-2025-002' },
+        { id: 'inv-3', companyId: 'c3', companyName: 'Urban Dev', amount: 99, status: 'Pending', date: '2025-12-20', invoiceNumber: 'INV-2025-003' },
+      ].filter(inv => !companyId || inv.companyId === companyId);
+    }
+    const query = companyId ? `?companyId=${companyId}` : '';
+    // If we're getting all invoices (no companyId), we hit the platform endpoint.
+    // Otherwise we might hit a specific company endpoint.
+    const endpoint = companyId ? `platform/invoices${query}` : 'platform/invoices';
+    return this.fetch<any[]>(endpoint);
+  }
+
+  async updateSubscription(id: string, data: any): Promise<void> {
+    if (this.useMock) return;
+    await this.put('platform/subscriptions', id, data);
+  }
+
+  // --- Platform Security & Performance (Phase 5) ---
+  async getGlobalSecurityStats(): Promise<any> {
+    if (this.useMock) {
+      return {
+        mfaAdoption: 68,
+        activeSessions: 142,
+        failedLogins24h: 12,
+        unusualLogins: 2,
+        securityScore: 84
+      };
+    }
+    return this.fetch<any>('platform/security/stats');
+  }
+
+  async getSystemPerformanceHistory(): Promise<any[]> {
+    if (this.useMock) {
+      // Return 24 points of mock data for charts
+      return Array.from({ length: 24 }).map((_, i) => ({
+        timestamp: new Date(Date.now() - (23 - i) * 3600000).toISOString(),
+        cpu: 15 + Math.random() * 20,
+        ram: 45 + Math.random() * 10,
+        latency: 120 + Math.random() * 50
+      }));
+    }
+    return this.fetch<any[]>('platform/performance/history');
+  }
+
+  async getPlatformAlerts(): Promise<any[]> {
+    if (this.useMock) {
+      return [
+        { id: 'alt-1', type: 'security', severity: 'high', message: 'Multiple failed logins detected from IP 192.168.1.1', timestamp: new Date().toISOString() },
+        { id: 'alt-2', type: 'performance', severity: 'medium', message: 'API latency spike in EU-West-1', timestamp: new Date(Date.now() - 3600000).toISOString() },
+        { id: 'alt-3', type: 'system', severity: 'info', message: 'Scheduled DB vacuum completed', timestamp: new Date(Date.now() - 7200000).toISOString() },
+      ];
+    }
+    return this.fetch<any[]>('platform/alerts');
+  }
+
+  // --- Platform Support & Communications (Phase 6) ---
+  async getSupportTickets(companyId?: string): Promise<any[]> {
+    if (this.useMock) {
+      return [
+        { id: 't-1', companyId: 'c1', companyName: 'Acme Corp', subject: 'Cannot export reports', status: 'open', priority: 'high', createdAt: new Date(Date.now() - 86400000).toISOString(), author: 'John Doe' },
+        { id: 't-2', companyId: 'c2', companyName: 'Global Build', subject: 'Inquiry about Enterprise plan', status: 'pending', priority: 'medium', createdAt: new Date(Date.now() - 172800000).toISOString(), author: 'Jane Smith' },
+        { id: 't-3', companyId: 'c3', companyName: 'Urban Dev', subject: 'Login issue on mobile', status: 'resolved', priority: 'low', createdAt: new Date(Date.now() - 259200000).toISOString(), author: 'Mike Ross' },
+      ].filter(t => !companyId || t.companyId === companyId);
+    }
+    const query = companyId ? `?companyId=${companyId}` : '';
+    return this.fetch<any[]>(`platform/tickets${query}`);
+  }
+
+  async updateTicketStatus(id: string, status: string): Promise<void> {
+    if (this.useMock) return;
+    await this.put('platform/tickets', id, { status });
+  }
+
+  async sendTargetedBroadcast(filter: any, message: string): Promise<void> {
+    if (this.useMock) {
+      console.log('Targeted Broadcast Sent:', { filter, message });
+      return;
+    }
+    await this.post('platform/broadcast/targeted', { filter, message });
+  }
+
   async addAccessLog(log: any): Promise<void> {
     // implementation handled by backend for critical actions, but client can log too
     // For now, no-op or specific endpoint
@@ -674,9 +777,6 @@ class DatabaseService {
 
 
   // --- Financials ---
-  async getInvoices(): Promise<Invoice[]> {
-    return this.fetch<Invoice>('invoices');
-  }
   async addInvoice(item: Invoice) {
     await this.post('invoices', item);
   }

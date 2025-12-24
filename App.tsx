@@ -82,6 +82,9 @@ const UserManagementView = lazyWithReload(() => import('@/views/platform/UserMan
 const PlatformMembersView = lazyWithReload(() => import('@/views/platform/PlatformMembersView'));
 const AccessControlView = lazyWithReload(() => import('@/views/platform/AccessControlView'));
 const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsView'));
+const SubscriptionView = lazyWithReload(() => import('@/views/platform/SubscriptionView'));
+const SecurityDashboardView = lazyWithReload(() => import('@/views/platform/SecurityDashboardView'));
+const SupportTicketsView = lazyWithReload(() => import('@/views/platform/SupportTicketsView'));
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(
@@ -179,6 +182,9 @@ const AuthenticatedApp: React.FC = () => {
       Page.ACCESS_CONTROL,
       Page.SYSTEM_LOGS,
       Page.SQL_CONSOLE,
+      Page.SUBSCRIPTIONS,
+      Page.SECURITY_CENTER,
+      Page.SUPPORT_CENTER,
       // Add other platform-specific pages if they exist in Page enum
     ];
     // Note: In strict mode, we should check against a comprehensive list. 
@@ -328,6 +334,9 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.ACCESS_CONTROL && <AccessControlView />}
               {page === Page.SYSTEM_LOGS && <SystemLogsView />}
               {page === Page.SQL_CONSOLE && <DatabaseQueryView />}
+              {page === Page.SUBSCRIPTIONS && <SubscriptionView />}
+              {page === Page.SECURITY_CENTER && <SecurityDashboardView />}
+              {page === Page.SUPPORT_CENTER && <SupportTicketsView />}
             </Suspense>
           </ErrorBoundary>
         </main>

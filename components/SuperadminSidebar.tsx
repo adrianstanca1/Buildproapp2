@@ -1,7 +1,7 @@
 import React from 'react';
 import {
     LayoutDashboard, Building2, Users, Shield, FileText, Settings,
-    LogOut, ChevronRight
+    LogOut, ChevronRight, CreditCard, Lock, LifeBuoy
 } from 'lucide-react';
 import { Page } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +51,21 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
             icon: FileText,
             label: 'System Logs',
             page: Page.SYSTEM_LOGS,
+        },
+        {
+            icon: CreditCard,
+            label: 'Billing & Plans',
+            page: Page.SUBSCRIPTIONS,
+        },
+        {
+            icon: Lock,
+            label: 'Security Center',
+            page: Page.SECURITY_CENTER,
+        },
+        {
+            icon: LifeBuoy,
+            label: 'Support Center',
+            page: Page.SUPPORT_CENTER,
         },
         {
             icon: Settings,
