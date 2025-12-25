@@ -835,7 +835,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Comments table for collaboration
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
       company_id TEXT NOT NULL,
@@ -854,7 +854,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Activity feed table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS activity_feed (
       id TEXT PRIMARY KEY,
       company_id TEXT NOT NULL,
@@ -871,7 +871,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Notification preferences table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS notification_preferences (
       user_id TEXT PRIMARY KEY,
       email_mentions BOOLEAN DEFAULT TRUE,
@@ -883,7 +883,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Platform System Events (Phase 11)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS system_events (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
@@ -897,7 +897,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // External Integrations table (Phase 13)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS integrations (
       id TEXT PRIMARY KEY,
       companyId TEXT NOT NULL,
@@ -912,7 +912,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Task assignments for resource allocation (Phase 9C)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS task_assignments (
       id TEXT PRIMARY KEY,
       task_id TEXT NOT NULL,
@@ -927,7 +927,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Automations Table (Phase 14)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS automations (
       id TEXT PRIMARY KEY,
       companyId TEXT NOT NULL,
