@@ -144,6 +144,9 @@ app.use('/api/platform', platformRoutes);
 app.use('/api/platform/support', supportRoutes);
 app.use('/api/platform/notifications', notificationRoutes);
 
+import pushRoutes from './routes/pushRoutes.js';
+app.use('/api/notifications', pushRoutes);
+
 const superAdminOnly = requireRole([UserRole.SUPERADMIN]);
 
 // Note: stats, health, and activity are handled by platformRoutes
