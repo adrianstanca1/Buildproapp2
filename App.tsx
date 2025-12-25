@@ -16,6 +16,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { QueryProvider } from '@/contexts/QueryProvider';
+import { SyncProvider } from '@/contexts/SyncContext';
 
 // Utility to handle chunk load errors by reloading the page
 const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
@@ -369,17 +370,19 @@ const App: React.FC = () => {
       <ThemeProvider>
         <ToastProvider>
           <AuthProvider>
-            <TenantProvider>
-              <NotificationProvider>
-                <ProjectProvider>
-                  <WebSocketProvider>
-                    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
-                      <AuthenticatedApp />
-                    </Suspense>
-                  </WebSocketProvider>
-                </ProjectProvider>
-              </NotificationProvider>
-            </TenantProvider>
+            <SyncProvider>
+              <TenantProvider>
+                <NotificationProvider>
+                  <ProjectProvider>
+                    <WebSocketProvider>
+                      <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
+                        <AuthenticatedApp />
+                      </Suspense>
+                    </WebSocketProvider>
+                  </ProjectProvider>
+                </NotificationProvider>
+              </TenantProvider>
+            </SyncProvider>
           </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
