@@ -202,6 +202,18 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
+  // Push Subscriptions
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      endpoint TEXT UNIQUE NOT NULL,
+      keys TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Memberships table (RBAC)
   await db.exec(`
     CREATE TABLE IF NOT EXISTS memberships (
