@@ -1,14 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
 import crypto from 'crypto';
-
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    console.warn('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. Auth middleware will fail.');
-}
-
-const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseKey || 'placeholder');
+import { supabaseAdmin } from '../utils/supabase.js';
 
 export const authenticateToken = async (req: any, res: any, next: any) => {
     // Allow public access to shared client portal routes
@@ -33,7 +24,11 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     // Check for Impersonation Token
     if (token.startsWith('imp_v1:')) {
         try {
-            const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dev-fallback-secret';
+            const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+            if (!secret) {
+                console.error('SUPABASE_SERVICE_ROLE_KEY missing; cannot validate impersonation tokens');
+                return res.status(500).json({ error: 'Server misconfigured' });
+            }
             const parts = token.split(':');
             // Format: imp_v1:{userId}:{timestamp}:{signature}
             // token looks like: imp_v1:userId:timestamp:signature
@@ -88,7 +83,7 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
     }
 
     try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
         if (error || !user) {
             console.error('Auth Error:', error);

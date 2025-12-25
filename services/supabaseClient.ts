@@ -1,54 +1,64 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 const getEnv = (key: string) => {
-  if (typeof process !== 'undefined' && process.env && process.env[key]) {
-    return process.env[key];
-  }
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
-    return import.meta.env[key];
-  }
+  if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env[key]) return (import.meta as any).env[key];
   return undefined;
 };
 
-// Fallback to production credentials if env vars are missing
-const DEFAULT_URL = 'https://zpbuvuxpfemldsknerew.supabase.co';
-const DEFAULT_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwYnV2dXhwZmVtbGRza25lcmV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMTQzMTcsImV4cCI6MjA3MTY5MDMxN30.4wb8_qMaJ0hpkLEv51EWh0pRtVXD3GWWOsuCmZsOx6A';
+const supabaseUrl = (getEnv('VITE_SUPABASE_URL') || getEnv('SUPABASE_URL') || '').trim();
+const supabaseAnonKey = (getEnv('VITE_SUPABASE_ANON_KEY') || getEnv('SUPABASE_ANON_KEY') || '').trim();
+const supabaseServiceRoleKey = (getEnv('SUPABASE_SERVICE_ROLE_KEY') || getEnv('SUPABASE_SERVICE_KEY') || '').trim();
 
-const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || process.env?.VITE_SUPABASE_URL || DEFAULT_URL;
-const supabaseAnonKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || process.env?.VITE_SUPABASE_ANON_KEY || DEFAULT_KEY;
-
-// Detect placeholder or invalid URLs
-const isPlaceholder = !supabaseUrl ||
-  supabaseUrl === 'your_supabase_url' ||
-  !supabaseUrl.startsWith('http');
-
-const isKeyPlaceholder = !supabaseAnonKey ||
-  supabaseAnonKey === 'your_anon_key' ||
-  supabaseAnonKey.length < 20;
-
-if (isPlaceholder || isKeyPlaceholder) {
-  console.warn('⚠️  Supabase credentials are missing (and defaults failed). Supabase features will not work.');
+if (!supabaseUrl || !supabaseAnonKey) {
+  // Do not include secrets in repo; warn clearly for developers
+  // Browser features that rely on Supabase will not work until env vars are configured
+  // Keep behavior predictable: create a lightweight stub that throws descriptive errors when used
+  // so components fail fast with actionable messages instead of obscure runtime errors.
+  // Note: Server-side helpers can still create a client using `createServerSupabaseClient` below.
+  // eslint-disable-next-line no-console
+  console.warn('⚠️  VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY not set. Supabase client will be unavailable in the browser.');
 }
 
-export const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
+const makeMissingClient = (name = 'supabase') => {
+  const handler: ProxyHandler<any> = {
+    get() {
+      throw new Error(`${name} is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your environment.`);
+    }
+  };
+  return new Proxy({}, handler) as SupabaseClient;
+};
 
-export const uploadFile = async (file: File, bucket: string = 'documents', path?: string) => {
-  if (!supabaseUrl) throw new Error("Supabase not configured");
+export const supabase: SupabaseClient = (supabaseUrl && supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : makeMissingClient('supabase');
 
-  const filePath = path ? `${path}/${file.name}` : `${Date.now()}-${file.name}`;
+/**
+ * Create a Supabase client intended for server-side use (service role key recommended).
+ * Example: const serverSupabase = createServerSupabaseClient(process.env.SUPABASE_SERVICE_ROLE_KEY)
+ */
+export const createServerSupabaseClient = (serviceKey?: string): SupabaseClient => {
+  const key = (serviceKey || supabaseServiceRoleKey).trim();
+  if (!supabaseUrl || !key) {
+    throw new Error('Server Supabase client requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SERVICE_KEY)');
+  }
+  return createClient(supabaseUrl, key, { auth: { persistSession: false } });
+};
+
+export const uploadFile = async (file: File | Blob, bucket = 'documents', filePath?: string) => {
+  if (!supabaseUrl) throw new Error('Supabase not configured (VITE_SUPABASE_URL missing)');
+  if (!supabaseAnonKey) throw new Error('Supabase anon key missing (VITE_SUPABASE_ANON_KEY)');
+
+  const name = (file as File).name || `${Date.now()}`;
+  const path = filePath ? `${filePath}/${name}` : `${Date.now()}-${name}`;
 
   const { data, error } = await supabase.storage
     .from(bucket)
-    .upload(filePath, file);
+    .upload(path, file as File, { cacheControl: '3600', upsert: false });
 
   if (error) throw error;
 
-  const { data: { publicUrl } } = supabase.storage
-    .from(bucket)
-    .getPublicUrl(filePath);
-
-  return publicUrl;
+  const { data: pub } = supabase.storage.from(bucket).getPublicUrl((data as any).path);
+  return pub.publicUrl;
 };

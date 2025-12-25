@@ -24,6 +24,9 @@ const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
 
 // Security middleware
+const SUPABASE_HOST = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_WS = SUPABASE_HOST ? SUPABASE_HOST.replace(/^https?:/, 'wss:') : '';
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -31,7 +34,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
-            connectSrc: ["'self'", "ws:", "wss:", "https://zpbuvuxpfemldsknerew.supabase.co", "wss://zpbuvuxpfemldsknerew.supabase.co"],
+            connectSrc: SUPABASE_HOST ? ["'self'", "ws:", "wss:", SUPABASE_HOST, SUPABASE_WS] : ["'self'", "ws:", "wss:"],
             fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         }
     },
@@ -120,8 +123,8 @@ app.post('/api/companies', requireRole([UserRole.SUPERADMIN]), companyController
 
 app.put('/api/companies/:id', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.updateCompany);
 app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyController.deleteCompany);
-// Self-management for Company Admins (TODO: implement updateMyCompany in companyController)
-// app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
+// Self-management for Company Admins
+app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
@@ -591,6 +594,19 @@ const startServer = async () => {
 // ... (previous code)
 
 logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`);
+
+// Startup environment validation: fail fast if core Supabase server envs are missing
+(() => {
+    const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const missing = required.filter(k => !process.env[k]);
+    if (missing.length > 0) {
+        logger.error(`Missing required environment variables: ${missing.join(', ')}. ` +
+            'These are required for server-side Supabase operations. Exiting.');
+        // Give logs a moment to flush
+        setTimeout(() => process.exit(1), 100);
+    }
+})();
+
 const serverPromise = startServer();
 
 // For testing purposes, we might want to wait for this promise

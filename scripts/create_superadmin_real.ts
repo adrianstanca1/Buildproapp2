@@ -3,7 +3,11 @@ import { Client } from 'pg';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
-const DATABASE_URL = process.env.DATABASE_URL || "postgres://postgres:Cumparavinde1@db.zpbuvuxpfemldsknerew.supabase.co:6543/postgres?pgbouncer=true";
+const DATABASE_URL = process.env.DATABASE_URL;
+if (!DATABASE_URL) {
+  console.error('DATABASE_URL is required. Set the DATABASE_URL environment variable before running this script.');
+  process.exit(1);
+}
 
 async function createSuperAdmin() {
     console.log('Connecting to database...');
@@ -16,8 +20,12 @@ async function createSuperAdmin() {
         await client.connect();
         console.log('Connected.');
 
-        const email = 'adrian.stanca1@gmail.com';
-        const password = 'Cumparavinde1';
+        const email = process.env.SUPERADMIN_EMAIL || 'adrian.stanca1@gmail.com';
+        const password = process.env.SUPERADMIN_PASSWORD;
+        if (!password) {
+          console.error('SUPERADMIN_PASSWORD environment variable is required to set the superadmin password.');
+          process.exit(1);
+        }
         const role = 'SUPERADMIN';
         const name = 'Adrian Stanca';
 

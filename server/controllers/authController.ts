@@ -341,6 +341,9 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
 };
 
 const signToken = (payload: string): string => {
-    const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dev-fallback-secret';
+    const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!secret) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for signing tokens on the server');
+    }
     return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 };

@@ -204,6 +204,7 @@ export const updateCompany = async (req: Request, res: Response, next: NextFunct
     }
 };
 
+
 export const deleteCompany = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const db = getDb();
@@ -216,6 +217,70 @@ export const deleteCompany = async (req: Request, res: Response, next: NextFunct
 
         logger.info(`Company deleted: ${id}`);
         res.json({ success: true });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const updateMyCompany = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        // Check if companyId exists in the request object (populated by middleware)
+        const companyId = (req as any).tenantId || (req as any).companyId;
+
+        if (!companyId) {
+            throw new AppError('Company context missing', 400);
+        }
+
+        // Validate Input
+        // reuse updateCompanySchema for validation
+        const validationResult = updateCompanySchema.safeParse(req.body);
+        if (!validationResult.success) {
+            const errorMessages = validationResult.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+            throw new AppError(`Validation Error: ${errorMessages}`, 400);
+        }
+
+        const updates = validationResult.data as any;
+
+        // Handle JSON fields
+        if (updates.settings) updates.settings = JSON.stringify(updates.settings);
+        if (updates.subscription) updates.subscription = JSON.stringify(updates.subscription);
+        if (updates.features) updates.features = JSON.stringify(updates.features);
+
+        // Always update timestamp
+        updates.updatedAt = new Date().toISOString();
+
+        // Sanitize: Do not allow ID or critical status changes via this endpoint if needed
+        delete updates.id;
+        delete updates.status;      // status usually managed by Super Admin
+        delete updates.plan;        // plan usually managed by Super Admin/Billing
+
+        const keys = Object.keys(updates);
+        if (keys.length === 0) {
+            throw new AppError('No fields to update', 400);
+        }
+
+        const values = Object.values(updates);
+        const setClause = keys.map(k => `${k} = ?`).join(',');
+
+        const result = await db.run(
+            `UPDATE companies SET ${setClause} WHERE id = ?`,
+            [...values, companyId]
+        );
+
+        if (result.changes === 0) {
+            throw new AppError('Company not found', 404);
+        }
+
+        await emitSystemEvent({
+            type: 'COMPANY_UPDATE',
+            level: 'info',
+            message: `Company details updated by user`,
+            source: 'CompanyController',
+            metadata: { companyId, updates }
+        });
+
+        res.json({ ...updates, id: companyId });
     } catch (e) {
         next(e);
     }
