@@ -5,7 +5,7 @@ import {
   Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
   ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
   HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-  BrainCircuit, Building2, X, Settings as SettingsIcon, Eye
+  BrainCircuit, Building2, X, Settings as SettingsIcon, Eye, Workflow, Scan, Brain
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -32,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
         { id: Page.PROJECTS, label: 'Portfolio', icon: FolderOpen, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.TASKS, label: 'Vector Ledger', icon: CheckSquare, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
         { id: Page.SCHEDULE, label: 'Timeline', icon: Calendar, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
+        { id: Page.AUTOMATIONS, label: 'Automations', icon: Workflow, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
         { id: Page.TEAM, label: 'Human Capital', icon: Users, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
         { id: Page.CHAT, label: 'Neural Assistant', icon: Bot, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR, UserRole.OPERATIVE] },
       ]
@@ -49,6 +50,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
     {
       title: 'Intelligence',
       items: [
+        { id: Page.PREDICTIVE_ANALYSIS, label: 'Predictive Risk', icon: Brain, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
+        { id: Page.SMART_DOCS, label: 'Smart Docs (OCR)', icon: Scan, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
         { id: Page.IMAGINE, label: 'Imagine Studio', icon: Wand2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.SUPERVISOR] },
         { id: Page.AI_TOOLS, label: 'AI Synthesis', icon: Cpu, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },
         { id: Page.TENANT_ANALYTICS, label: 'Entity Intel', icon: Building2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN] },

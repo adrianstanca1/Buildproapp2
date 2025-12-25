@@ -90,6 +90,11 @@ const PlatformNotificationsView = lazyWithReload(() => import('@/views/platform/
 const GlobalSettingsView = lazyWithReload(() => import('@/views/platform/GlobalSettingsView'));
 const SuperAdminCommandCenter = lazyWithReload(() => import('@/views/platform/SuperAdminCommandCenter'));
 
+// Phase 14: Automations & Intelligence
+const AutomationsView = lazyWithReload(() => import('@/views/AutomationsView'));
+const PredictiveAnalysisView = lazyWithReload(() => import('@/views/PredictiveAnalysisView'));
+const SmartDocumentCenter = lazyWithReload(() => import('@/views/SmartDocumentCenter'));
+
 
 
 const AuthenticatedApp: React.FC = () => {
@@ -345,6 +350,9 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.SUBSCRIPTIONS && <SubscriptionView />}
               {page === Page.SECURITY_CENTER && <SecurityDashboardView />}
               {page === Page.SUPPORT_CENTER && <SupportTicketsView />}
+              {page === Page.AUTOMATIONS && <AutomationsView />}
+              {page === Page.PREDICTIVE_ANALYSIS && <PredictiveAnalysisView />}
+              {page === Page.SMART_DOCS && <SmartDocumentCenter />}
             </Suspense>
           </ErrorBoundary>
         </main>
