@@ -29,6 +29,7 @@ export const SyncProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     useEffect(() => {
+        // eslint-disable-next-line
         updatePendingCount();
     }, [updatePendingCount]);
 

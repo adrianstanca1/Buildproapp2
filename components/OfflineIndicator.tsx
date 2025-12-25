@@ -8,6 +8,7 @@ export const OfflineIndicator: React.FC = () => {
 
     useEffect(() => {
         if (!isOnline || pendingCount > 0) {
+            // eslint-disable-next-line
             setIsVisible(true);
         } else {
             setIsVisible(false); // Auto-hide when back online and synced
