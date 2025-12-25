@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import SuperadminSidebar from '@/components/SuperadminSidebar';
 import TopBar from '@/components/TopBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { CommandPalette } from '@/components/CommandPalette';
 import { Page, UserRole } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
@@ -224,6 +225,7 @@ const AuthenticatedApp: React.FC = () => {
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 overflow-hidden relative">
       {/* Command Palette */}
+      <OfflineIndicator />
       <CommandPalette
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
