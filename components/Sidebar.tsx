@@ -5,7 +5,7 @@ import {
   Shield, Wrench, PoundSterling, MessageSquare, Map, Cpu, LineChart,
   ClipboardCheck, ShoppingCart, UserCheck, Package, Calendar, PieChart, FileBarChart,
   HardHat, Zap, Lock, Code, Store, Wand2, Monitor, HardHat as LogoIcon, Navigation, LogOut,
-  BrainCircuit, Building2, X, Settings as SettingsIcon, Eye, Workflow, Scan, Brain
+  BrainCircuit, Building2, X, Settings as SettingsIcon, Eye, Workflow, Scan, Brain, Download
 } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '../contexts/AuthContext';
@@ -67,6 +67,26 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
       ]
     }
   ];
+
+  const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);
+
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   return (
     <div className={`
@@ -190,7 +210,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
         </nav>
       </div>
 
-      <div className="p-6 bg-zinc-950/80 backdrop-blur-3xl border-t border-white/5 relative z-20">
+      <div className="p-6 bg-zinc-950/80 backdrop-blur-3xl border-t border-white/5 relative z-20 space-y-2">
+        {deferredPrompt && (
+          <button
+            onClick={handleInstallClick}
+            className="w-full flex items-center gap-4 px-4 py-4 text-xs font-black text-sky-400 hover:bg-sky-500/10 rounded-2xl transition-all group border border-sky-500/20"
+          >
+            <div className="group-hover:scale-110 transition-transform">
+              <Download size={18} strokeWidth={2.5} />
+            </div>
+            <span className="uppercase tracking-widest">Install App</span>
+          </button>
+        )}
         <button
           onClick={logout}
           className="w-full flex items-center gap-4 px-4 py-4 text-xs font-black text-rose-500 hover:bg-rose-500/10 rounded-2xl transition-all group"
