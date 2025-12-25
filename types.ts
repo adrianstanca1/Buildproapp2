@@ -146,6 +146,27 @@ export interface Company {
 }
 
 // Enhanced tenant management types
+
+export interface Invoice {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  number: string;
+  vendor: string;
+  vendorId?: string;
+  amount: number;
+  total: number;
+  tax?: number;
+  date: string;
+  dueDate: string;
+  status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
+  costCodeId?: string;
+  items?: string; // JSON string for backend
+  files?: string;
+  attachments?: string[];
+  // Transformed on frontend
+  lineItems?: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
+}
 export interface Tenant {
   id: string;
   companyId: string;
@@ -779,30 +800,6 @@ export interface CostCode {
   budget: number;
   spent: number;
   var?: number;
-}
-
-export interface Invoice {
-  id: string;
-  projectId: string;
-  number: string;
-  vendor: string;
-  date: string;
-  dueDate: string;
-  amount: number;
-  tax: number;
-  total: number;
-  status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
-  costCode?: string;
-  costCodeId?: string;
-  linkedPoId?: string;
-  lineItems: {
-    desc: string;
-    qty: number;
-    rate: number;
-    amount: number;
-  }[];
-  attachments?: string[];
-  companyId: string;
 }
 
 export interface ExpenseClaim {

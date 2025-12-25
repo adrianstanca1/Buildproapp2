@@ -539,7 +539,7 @@ class DatabaseService {
 
   // --- System Settings (Admin) ---
   async getSystemSettings(): Promise<any> {
-    const res = await fetch(`${API_URL}/system-settings/settings`, { headers: await this.getHeaders() });
+    const res = await fetch(`${API_URL}/system-settings`, { headers: await this.getHeaders() });
     if (!res.ok) return {}; // Fallback to empty on error
     return await res.json();
   }
@@ -560,11 +560,8 @@ class DatabaseService {
 
   async updateSystemSettings(settings: any): Promise<void> {
     try {
-      // API expects { key, value } per request, or we update one by one
-      const updates = Object.entries(settings).map(async ([key, value]) => {
-        await this.post('system-settings/settings', { key, value });
-      });
-      await Promise.all(updates);
+      // Send full config object to platform controller logic
+      await this.post('system-settings', settings);
     } catch (e) {
       console.warn("API update failed", e);
     }
@@ -823,8 +820,11 @@ class DatabaseService {
   async addInvoice(item: Invoice) {
     await this.post('invoices', item);
   }
-  async updateInvoice(id: string, u: Partial<Invoice>) {
-    await this.put('invoices', id, u);
+  async updateInvoice(id: string, updates: Partial<Invoice>) {
+    await this.put('invoices', id, updates);
+  }
+  async deleteInvoice(id: string) {
+    await this.delete('invoices', id);
   }
 
   async getExpenseClaims(): Promise<ExpenseClaim[]> {

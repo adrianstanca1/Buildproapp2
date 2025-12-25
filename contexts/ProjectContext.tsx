@@ -101,6 +101,7 @@ interface ProjectContextType {
   // Invoicing
   addInvoice: (invoice: Invoice) => Promise<void>;
   updateInvoice: (id: string, updates: Partial<Invoice>) => Promise<void>;
+  deleteInvoice: (id: string) => Promise<void>;
 
   // Expenses
   addExpenseClaim: (claim: ExpenseClaim) => Promise<void>;
@@ -678,6 +679,11 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
     await db.updateInvoice(id, updates);
   };
 
+  const deleteInvoice = async (id: string) => {
+    setInvoices(prev => prev.filter(i => i.id !== id));
+    await db.deleteInvoice(id);
+  };
+
   const addExpenseClaim = async (claim: ExpenseClaim) => {
     const itemWithTenant = { ...claim, companyId: user?.companyId || 'c1' };
     setExpenseClaims(prev => [itemWithTenant, ...prev]);
@@ -757,6 +763,7 @@ export const ProjectProvider: React.FC<{ children: ReactNode }> = ({ children })
       invoices: visibleInvoices,
       addInvoice,
       updateInvoice,
+      deleteInvoice,
       expenseClaims: visibleExpenseClaims,
       addExpenseClaim,
       updateExpenseClaim,

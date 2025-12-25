@@ -130,8 +130,8 @@ import * as rfiController from './controllers/rfiController.js';
 import * as safetyController from './controllers/safetyController.js';
 import { getVendors, createVendor, updateVendor } from './controllers/vendorController.js';
 import { getCostCodes, createCostCode, updateCostCode } from './controllers/costCodeController.js';
-app.get('/api/system-settings', systemController.getSystemSettings);
-app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), systemController.updateSystemSetting);
+app.get('/api/system-settings', platformController.getSystemConfig);
+app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemConfig);
 
 // --- Platform / SuperAdmin Routes ---
 import * as platformController from './controllers/platformController.js';
