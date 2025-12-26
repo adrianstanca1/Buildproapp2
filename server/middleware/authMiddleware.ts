@@ -1,6 +1,64 @@
 import crypto from 'crypto';
 import { supabaseAdmin } from '../utils/supabase.js';
 
+const base64UrlDecode = (value: string): string => {
+    const padded = value.replace(/-/g, '+').replace(/_/g, '/').padEnd(value.length + (4 - value.length % 4) % 4, '=');
+    return Buffer.from(padded, 'base64').toString('utf8');
+};
+
+const base64UrlEncode = (value: Buffer): string => value.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+
+const verifySupabaseJwt = (token: string, secret: string) => {
+    const parts = token.split('.');
+    if (parts.length !== 3) throw new Error('Invalid JWT format');
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+    const payloadRaw = base64UrlDecode(payloadB64);
+    const payload = JSON.parse(payloadRaw);
+
+    const data = `${headerB64}.${payloadB64}`;
+    const expected = base64UrlEncode(crypto.createHmac('sha256', secret).update(data).digest());
+
+    if (signatureB64.length !== expected.length ||
+        !crypto.timingSafeEqual(Buffer.from(signatureB64), Buffer.from(expected))) {
+        throw new Error('Invalid JWT signature');
+    }
+
+    if (payload.exp && Date.now() / 1000 > payload.exp) {
+        throw new Error('JWT expired');
+    }
+
+    return payload;
+};
+
+const applyUserContext = (req: any, res: any, user: any) => {
+    req.user = user;
+    req.userId = user.id;
+
+    const jwtTenantId = user.user_metadata?.companyId;
+    const headerTenantId = req.headers['x-company-id'];
+    req.tenantId = jwtTenantId || headerTenantId;
+
+    const isPlatformRoute = req.path.includes('/api/companies') ||
+        req.path.includes('/api/system-settings') ||
+        req.path.includes('/api/auth');
+
+    const isSuperAdmin = user.user_metadata?.role === 'super_admin' || user.user_metadata?.role === 'SUPERADMIN';
+
+    if (!req.tenantId && !isPlatformRoute && !isSuperAdmin) {
+        console.warn(`[Auth] No tenant context for user ${user.id} on path ${req.path}`);
+        return res.status(403).json({ error: 'Tenant context required' });
+    }
+
+    req.context = {
+        userId: req.userId,
+        tenantId: req.tenantId,
+        role: user.user_metadata?.role || 'user'
+    };
+
+    return null;
+};
+
 export const authenticateToken = async (req: any, res: any, next: any) => {
     // Allow public access to shared client portal routes
     // Check originalUrl because it contains the full path including /api prefix
@@ -82,6 +140,29 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
         }
     }
 
+    const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+    if (jwtSecret) {
+        try {
+            const payload = verifySupabaseJwt(token, jwtSecret);
+            const user = {
+                id: payload.sub,
+                email: payload.email,
+                user_metadata: payload.user_metadata || {},
+                app_metadata: payload.app_metadata || {}
+            };
+            const errorResponse = applyUserContext(req, res, user);
+            if (errorResponse) return;
+            return next();
+        } catch (err) {
+            // Fall back to Supabase admin validation if JWT verification fails
+        }
+    }
+
+    if (!supabaseAdmin || !supabaseAdmin.auth) {
+        console.error('Supabase admin client not configured; cannot validate tokens');
+        return res.status(500).json({ error: 'Server misconfigured' });
+    }
+
     try {
         const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
 
@@ -90,38 +171,9 @@ export const authenticateToken = async (req: any, res: any, next: any) => {
             return res.status(403).json({ error: 'Invalid or expired token' });
         }
 
-        req.user = user;
-        req.userId = user.id;
-
-        // Trust JWT metadata first, fallback to header
-        const jwtTenantId = user.user_metadata?.companyId;
-        const headerTenantId = req.headers['x-company-id'];
-
-        req.tenantId = jwtTenantId || headerTenantId;
-
-        req.tenantId = jwtTenantId || headerTenantId;
-
-        // Routes that do not require tenant context
-        const isPlatformRoute = req.path.includes('/api/companies') ||
-            req.path.includes('/api/system-settings') ||
-            req.path.includes('/api/auth');
-
-        const isSuperAdmin = user.user_metadata?.role === 'super_admin' || user.user_metadata?.role === 'SUPERADMIN';
-
-        if (!req.tenantId && !isPlatformRoute && !isSuperAdmin) {
-            // Block request if no tenant context implies security risk
-            console.warn(`[Auth] No tenant context for user ${user.id} on path ${req.path}`);
-            return res.status(403).json({ error: 'Tenant context required' });
-        }
-
-        // Setup req.context for RBAC middleware
-        req.context = {
-            userId: req.userId,
-            tenantId: req.tenantId,
-            role: user.user_metadata?.role || 'user'
-        };
-
-        next();
+        const errorResponse = applyUserContext(req, res, user);
+        if (errorResponse) return;
+        return next();
     } catch (err) {
         console.error('Auth Exception:', err);
         return res.status(500).json({ error: 'Internal auth error' });
