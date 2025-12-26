@@ -42,5 +42,5 @@ EXPOSE 8080
 
 # Start the server
 # Note: Using tsx directly if it's in dependencies/node_modules
-CMD ["npx", "tsx", "server/index.ts"]
+CMD ["./node_modules/.bin/tsx", "server/index.ts"]
 
