@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from 'express';
 import { getDb } from '../database.js';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/AppError.js';
+import { userManagementService } from '../services/userManagementService.js';
 
 
 import os from 'os';
@@ -306,13 +307,7 @@ export const updateSystemConfig = async (req: Request, res: Response, next: Next
  */
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
     try {
-        const db = getDb();
-        const users = await db.all(`
-            SELECT u.id, u.email, u.name, u.role, u.companyId, c.name as companyName, u.status, u.createdAt 
-            FROM users u 
-            LEFT JOIN companies c ON u.companyId = c.id
-            ORDER BY u.createdAt DESC
-        `);
+        const users = await userManagementService.getAllUsers();
         res.json(users);
     } catch (e) {
         next(e);
@@ -326,18 +321,9 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
     try {
         const { id } = req.params;
         const { status } = req.body;
-        const db = getDb();
+        const userId = (req as any).userId;
 
-        await db.run('UPDATE users SET status = ? WHERE id = ?', [status, id]);
-
-        // Audit log
-        const logId = (await import('uuid')).v4();
-        const now = new Date().toISOString();
-        await db.run(
-            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [logId, 'system', (req as any).userId, (req as any).userName, 'UPDATE_STATUS', 'users', id, JSON.stringify({ status }), 'success', now, req.ip, req.headers['user-agent']]
-        );
+        await userManagementService.changeUserStatus(id, status, userId);
 
         res.json({ success: true });
     } catch (e) {
@@ -352,19 +338,12 @@ export const updateUserRole = async (req: Request, res: Response, next: NextFunc
     try {
         const { id } = req.params;
         const { role } = req.body;
-        const db = getDb();
+        const userId = (req as any).userId;
 
-        // Update both user table and memberships if needed. For now users table is source of truth for global role.
-        await db.run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
-
-        // Audit log
-        const logId = (await import('uuid')).v4();
-        const now = new Date().toISOString();
-        await db.run(
-            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [logId, 'system', (req as any).userId, (req as any).userName, 'UPDATE_ROLE', 'users', id, JSON.stringify({ role }), 'success', now, req.ip, req.headers['user-agent']]
-        );
+        // For platform-level role changes, we need to update the user's role in the users table
+        // Since this is a platform route, we'll assume it's for a specific company context
+        // In a real implementation, you might need to pass the company ID as well
+        await userManagementService.changeUserRole(id, role as any, req.body.companyId || 'system', userId);
 
         res.json({ success: true });
     } catch (e) {
