@@ -1,12 +1,13 @@
 import { Router } from 'express';
 import * as companyController from '../controllers/companyController.js';
-import { requirePermission } from '../middleware/rbacMiddleware.js';
 
 const router = Router();
 
-router.get('/', requirePermission('companies', 'read'), companyController.getCompanies);
-router.post('/', requirePermission('companies', 'create'), companyController.createCompany);
-router.put('/:id', requirePermission('companies', 'update'), companyController.updateCompany);
-router.delete('/:id', requirePermission('companies', 'delete'), companyController.deleteCompany);
+router.post('/', companyController.createCompany);
+router.post('/:companyId/admins', companyController.inviteCompanyAdmin);
+router.get('/:companyId/members', companyController.getCompanyMembers);
+router.put('/:companyId/members/:userId/role', companyController.updateMemberRole);
+router.delete('/:companyId/members/:userId', companyController.removeMember);
+router.get('/', companyController.getCompanies);
 
 export default router;

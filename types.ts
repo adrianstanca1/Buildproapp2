@@ -143,7 +143,7 @@ export interface Membership {
 export interface Company {
   id: string;
   name: string;
-  plan: 'Enterprise' | 'Business' | 'Starter';
+  plan: 'Enterprise' | 'Business' | 'Starter' | 'Free' | 'Pro';
   status: 'Active' | 'Suspended' | 'Trial';
   users: number;
   projects: number;
@@ -187,7 +187,7 @@ export interface Tenant {
   state?: string;
   zipCode?: string;
   country?: string;
-  plan: 'Enterprise' | 'Business' | 'Starter' | 'Custom';
+  plan: 'Enterprise' | 'Business' | 'Starter' | 'Custom' | 'Free' | 'Pro';
   status: 'Active' | 'Suspended' | 'Trial' | 'Inactive';
   settings: {
     timezone: string;
