@@ -73,8 +73,13 @@ export async function initializeDatabase() {
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
 
       if (connectionString) {
-        logger.info('Initializing PostgreSQL connection for Production...');
-        dbInstance = new PostgresAdapter(connectionString);
+        logger.info(`Initializing PostgreSQL connection for Production (SSL: true)...`);
+        try {
+          dbInstance = new PostgresAdapter(connectionString);
+        } catch (error) {
+          logger.error('PostgreSQL Initialization Failed:', error);
+          throw error;
+        }
       } else {
         // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
         logger.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
@@ -95,8 +100,13 @@ export async function initializeDatabase() {
       // Local development fallback
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
       if (connectionString) {
-        logger.info('Initializing PostgreSQL connection...');
-        dbInstance = new PostgresAdapter(connectionString);
+        logger.info(`Initializing PostgreSQL connection...`);
+        try {
+          dbInstance = new PostgresAdapter(connectionString);
+        } catch (error) {
+          logger.error('PostgreSQL Initialization Failed:', error);
+          throw error;
+        }
       } else {
         logger.warn('Using SQLite for local development...');
         const sqlite3 = require('sqlite3');
@@ -143,7 +153,22 @@ async function initializeSchema(db: IDatabase) {
       maxUsers INTEGER DEFAULT 10,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
-      isActive BOOLEAN DEFAULT TRUE
+      isActive BOOLEAN DEFAULT TRUE,
+      subscription TEXT DEFAULT '{}',
+      features TEXT DEFAULT '[]',
+      settings TEXT DEFAULT '{}',
+      users INTEGER DEFAULT 0,
+      projects INTEGER DEFAULT 0,
+      mrr REAL DEFAULT 0,
+      joinedDate TEXT,
+      description TEXT,
+      website TEXT,
+      email TEXT,
+      phone TEXT,
+      city TEXT,
+      state TEXT,
+      zipCode TEXT,
+      country TEXT
     )
   `);
 
@@ -169,8 +194,9 @@ async function initializeSchema(db: IDatabase) {
     'updatedAt TEXT'
   ];
 
+  // No need for loop-based ALTERs if we define them in CREATE TABLE
+  // But keeping it for backward compatibility and to handle existing databases
   for (const col of companyColumns) {
-    const colName = col.split(' ')[0];
     try {
       await db.exec(`ALTER TABLE companies ADD COLUMN ${col}`);
     } catch (e) {
@@ -198,6 +224,7 @@ async function initializeSchema(db: IDatabase) {
       companyId TEXT,
       isActive BOOLEAN DEFAULT TRUE,
       createdAt TEXT NOT NULL,
+      updatedAt TEXT,
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
     )
   `);
@@ -328,6 +355,9 @@ async function initializeSchema(db: IDatabase) {
       status TEXT NOT NULL,
       priority TEXT NOT NULL,
       assignedTo TEXT,
+      assigneeId TEXT,
+      assigneeName TEXT,
+      assigneeType TEXT,
       dueDate TEXT,
       startDate TEXT,
       duration INTEGER,
@@ -335,6 +365,8 @@ async function initializeSchema(db: IDatabase) {
       progress INTEGER DEFAULT 0,
       color TEXT,
       createdBy TEXT,
+      latitude REAL,
+      longitude REAL,
       createdAt TEXT NOT NULL,
       updatedAt TEXT NOT NULL,
       FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
@@ -847,8 +879,8 @@ async function initializeSchema(db: IDatabase) {
       content TEXT NOT NULL,
       mentions TEXT,
       attachments TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP,
+      created_at TEXT NOT NULL,
+      updated_at TEXT,
       FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
@@ -865,7 +897,7 @@ async function initializeSchema(db: IDatabase) {
       entity_type TEXT NOT NULL,
       entity_id TEXT NOT NULL,
       metadata TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created_at TEXT NOT NULL,
       FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
@@ -892,7 +924,7 @@ async function initializeSchema(db: IDatabase) {
       source TEXT NOT NULL,
       metadata TEXT,
       is_read BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TEXT NOT NULL
     )
   `);
 

@@ -13,8 +13,8 @@ async function verifyDatabase() {
         logger.info('✅ Database Initialized');
 
         // 2. Simple Query
-        const now = await db.get('SELECT datetime("now") as now');
-        logger.info(`✅ Simple Query Successful: ${now.now}`);
+        const connectivityCheck = await db.get('SELECT 1 as connected');
+        logger.info(`✅ Simple Query Successful: connected=${connectivityCheck.connected}`);
 
         // 3. Check Tables
         const tables = await db.all("SELECT name FROM sqlite_master WHERE type='table'");
