@@ -17,6 +17,7 @@ import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { QueryProvider } from '@/contexts/QueryProvider';
 import { SyncProvider } from '@/contexts/SyncContext';
+import { canAccessPage } from '@/utils/routeGuards';
 
 // Utility to handle chunk load errors by reloading the page
 const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
@@ -179,34 +180,8 @@ const AuthenticatedApp: React.FC = () => {
 
   // --- STRICT ROUTE GUARD ---
   const isPageAllowed = (targetPage: Page, userRole: UserRole): boolean => {
-    // 1. Super Admin: Access everything
-    if (userRole === UserRole.SUPERADMIN) return true;
-
-    // 2. Client Portal: Only for Read-Only clients
-    if (userRole === UserRole.READ_ONLY) {
-      return targetPage === Page.CLIENT_PORTAL || targetPage === Page.LOGIN;
-    }
-
-    // 3. Platform Pages: STRICTLY FORBIDDEN for non-SuperAdmins
-    const platformPages = [
-      Page.PLATFORM_DASHBOARD,
-      Page.COMPANY_MANAGEMENT,
-      Page.PLATFORM_MEMBERS,
-      Page.ACCESS_CONTROL,
-      Page.SYSTEM_LOGS,
-      Page.SQL_CONSOLE,
-      Page.SUBSCRIPTIONS,
-      Page.SECURITY_CENTER,
-      Page.SUPPORT_CENTER,
-      Page.PLATFORM_NOTIFICATIONS,
-      Page.GLOBAL_SETTINGS,
-    ];
-
-    if (platformPages.includes(targetPage)) {
-      return false;
-    }
-
-    return true;
+    // Use the centralized route guard utility
+    return canAccessPage(userRole, targetPage);
   };
 
   if (!isPageAllowed(page, user.role)) {

@@ -16,7 +16,7 @@ interface CompanyMember {
 
 const CompanyManagementView: React.FC = () => {
   const { user } = useAuth();
-  const { tenantId } = useTenant();
+  const { currentTenant } = useTenant();
   const [members, setMembers] = useState<CompanyMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,12 +28,12 @@ const CompanyManagementView: React.FC = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, [tenantId]);
+  }, [currentTenant?.id]);
 
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const response = await db.getCompanyMembers(tenantId || '');
+      const response = await db.getCompanyMembers(currentTenant?.id || '');
       setMembers(response);
       setError(null);
     } catch (err) {
@@ -54,7 +54,7 @@ const CompanyManagementView: React.FC = () => {
     setInviteError(null);
 
     try {
-      await db.inviteCompanyAdmin(tenantId || '', newMember.email, newMember.name);
+      await db.inviteCompanyAdmin(currentTenant?.id || '', newMember.email, newMember.name);
       setShowInviteModal(false);
       setNewMember({ name: '', email: '', role: UserRole.OPERATIVE });
       fetchMembers(); // Refresh the list
@@ -68,7 +68,7 @@ const CompanyManagementView: React.FC = () => {
 
   const handleRoleChange = async (userId: string, newRole: UserRole) => {
     try {
-      await db.updateMemberRole(tenantId || '', userId, newRole);
+      await db.updateMemberRole(currentTenant?.id || '', userId, newRole);
       fetchMembers(); // Refresh the list
     } catch (err) {
       console.error('Error updating role:', err);
@@ -78,7 +78,7 @@ const CompanyManagementView: React.FC = () => {
   const handleRemoveMember = async (userId: string) => {
     if (window.confirm('Are you sure you want to remove this member?')) {
       try {
-        await db.removeMember(tenantId || '', userId);
+        await db.removeMember(currentTenant?.id || '', userId);
         fetchMembers(); // Refresh the list
       } catch (err) {
         console.error('Error removing member:', err);

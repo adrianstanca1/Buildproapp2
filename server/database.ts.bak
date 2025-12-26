@@ -67,7 +67,23 @@ export async function initializeDatabase() {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
-    // In production (Vercel), strictly require Postgres variables.
+    const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+    if (connectionString) {
+      console.log('Attempting PostgreSQL connection...');
+      try {
+        dbInstance = new PostgresAdapter(connectionString);
+        // Run a trivial query to surface SSL/cert issues early
+        await dbInstance.exec('SELECT 1');
+      } catch (pgErr) {
+        console.warn('PostgreSQL init failed (falling back to SQLite):', pgErr?.message || pgErr);
+        dbInstance = undefined as any; // ensure we fall back to SQLite
+      }
+    }
+
+    if (!dbInstance) {
+      console.log('Initializing SQLite connection...');
+      try {
+        // Use require for sqlite3 to ensure compatibility
     // We do NOT want to fall back to ephemeral SQLite in production as it leads to data loss.
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
       const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
@@ -99,6 +115,7 @@ export async function initializeDatabase() {
         dbInstance = new PostgresAdapter(connectionString);
       } else {
         logger.warn('Using SQLite for local development...');
+>>>>>>> d8ed0dbbc2b4680a0b6a223d412b293e7b74a4f0
         const sqlite3 = require('sqlite3');
         const { open } = require('sqlite');
         const db = await open({ filename: './buildpro_db.sqlite', driver: sqlite3.Database });
@@ -148,70 +165,49 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Companies Schema Migrations (Safe Add)
-  const companyColumns = [
-    'status TEXT DEFAULT \'Active\'',
-    'plan TEXT DEFAULT \'Starter\'',
-    'subscription TEXT DEFAULT \'{}\'',
-    'features TEXT DEFAULT \'[]\'',
-    'settings TEXT DEFAULT \'{}\'',
-    'users INTEGER DEFAULT 0',
-    'projects INTEGER DEFAULT 0',
-    'mrr REAL DEFAULT 0',
-    'joinedDate TEXT',
-    'description TEXT',
-    'website TEXT',
-    'email TEXT',
-    'phone TEXT',
-    'city TEXT',
-    'state TEXT',
-    'zipCode TEXT',
-    'country TEXT',
-    'updatedAt TEXT'
-  ];
-
-  for (const col of companyColumns) {
-    const colName = col.split(' ')[0];
-    try {
-      await db.exec(`ALTER TABLE companies ADD COLUMN ${col}`);
-    } catch (e) {
-      /* Column may already exist */
+  initPromise = (async () => {
+    // In production (Vercel), strictly require Postgres variables.
+    // We do NOT want to fall back to ephemeral SQLite in production as it leads to data loss.
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (connectionString) {
+        logger.info('Initializing PostgreSQL connection for Production...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
+        logger.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
+        try {
+          const sqlite3 = require('sqlite3');
+          const { open } = require('sqlite');
+          // Cloud Run filesystem is Read-Only. Must use /tmp for ephemeral DB.
+          const dbPath = '/tmp/buildpro_db.sqlite';
+          const db = await open({ filename: dbPath, driver: sqlite3.Database });
+          await db.exec('PRAGMA foreign_keys = ON;');
+          dbInstance = new SqliteAdapter(db);
+        } catch (error) {
+          logger.error('SQLite Fallback Failed:', error);
+          throw new Error('Database initialization failed: No Postgres URL and SQLite failed.');
+        }
+      }
+    } else {
+      // Local development fallback
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (connectionString) {
+        logger.info('Initializing PostgreSQL connection...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        logger.warn('Using SQLite for local development...');
+        const sqlite3 = require('sqlite3');
+        const { open } = require('sqlite');
+        const db = await open({ filename: './buildpro_db.sqlite', driver: sqlite3.Database });
+        await db.exec('PRAGMA foreign_keys = ON;');
+        dbInstance = new SqliteAdapter(db);
+      }
     }
-  }
-
-  // System Settings (Early for maintenance check)
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS system_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updatedAt TEXT NOT NULL
-    )
-  `);
-
-  // Users table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      role TEXT NOT NULL,
-      companyId TEXT,
-      isActive BOOLEAN DEFAULT TRUE,
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
-    )
-  `);
-
-  // Push Subscriptions
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions (
-      id TEXT PRIMARY KEY,
-      userId TEXT NOT NULL,
-      endpoint TEXT UNIQUE NOT NULL,
-      keys TEXT NOT NULL,
-      createdAt TEXT NOT NULL,
-      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-    )
+    // Initialize schema
+    await initializeSchema(dbInstance);
+    return dbInstance;
+  })();
   `);
 
   // Memberships table (RBAC)

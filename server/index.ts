@@ -146,7 +146,9 @@ app.use('/api/storage', storageRoutes);
 
 // --- Companies Routes ---
 import * as companyController from './controllers/companyController.js';
+import companyRoutes from './routes/companyRoutes.js';
 
+// Individual company routes for company management
 app.get('/api/companies', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.getCompanies);
 app.post('/api/companies', requireRole([UserRole.SUPERADMIN]), companyController.createCompany);
 
@@ -154,6 +156,9 @@ app.put('/api/companies/:id', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY
 app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyController.deleteCompany);
 // Self-management for Company Admins
 app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
+
+// Mount company member management routes (nested under /api/companies)
+app.use('/api/companies', companyRoutes);
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';

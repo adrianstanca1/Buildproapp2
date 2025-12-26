@@ -5,7 +5,7 @@ import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/AppError.js';
 import { membershipService } from '../services/membershipService.js';
 import { tenantService } from '../services/tenantService.js';
-import { UserRole } from '../types/rbac.js';
+import { UserRole, MembershipStatus } from '../types/rbac.js';
 import { emailService } from '../services/emailService.js';
 
 export const createCompany = async (req: Request, res: Response, next: NextFunction) => {
@@ -85,8 +85,7 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             {
                 userId: ownerUserId,
                 companyId,
-                role: UserRole.COMPANY_ADMIN,
-                status: 'active'
+                role: UserRole.COMPANY_ADMIN
             },
             actorId || ownerUserId
         );
@@ -105,7 +104,8 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             await emailService.sendEmail({
                 to: ownerEmail,
                 subject: `Welcome to BuildPro - Your Company "${name}" is Ready`,
-                htmlBody: `
+                text: `Hi ${ownerName},\n\nYour company "${name}" has been successfully created on BuildPro.\n\nAs the company owner, you now have full administrative access to manage your team, projects, and settings.\n\nAccess your dashboard: ${welcomeLink}\n\nIf you have any questions, please contact our support team.`,
+                html: `
                     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;">
                         <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
                             <div style="background: linear-gradient(135deg, #0f5c82 0%, #0c4a6e 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
@@ -142,8 +142,7 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
                             </div>
                         </div>
                     </div>
-                `,
-                textBody: `Hi ${ownerName},\n\nYour company "${name}" has been successfully created on BuildPro.\n\nAs the company owner, you now have full administrative access to manage your team, projects, and settings.\n\nAccess your dashboard: ${welcomeLink}\n\nIf you have any questions, please contact our support team.`
+                `
             });
         } catch (emailError) {
             logger.error('Failed to send welcome email', emailError);
@@ -209,9 +208,9 @@ export const inviteCompanyAdmin = async (req: Request, res: Response, next: Next
                 throw new AppError('User is already a member of this company', 409);
             } else {
                 // Update existing invitation
-                await membershipService.updateMembership(existingMembership.id, { 
+                await membershipService.updateMembership(existingMembership.id, {
                     role: UserRole.COMPANY_ADMIN,
-                    status: 'invited'
+                    status: MembershipStatus.INVITED
                 }, inviterId);
             }
         } else {
@@ -220,8 +219,7 @@ export const inviteCompanyAdmin = async (req: Request, res: Response, next: Next
                 {
                     userId,
                     companyId,
-                    role: UserRole.COMPANY_ADMIN,
-                    status: 'invited'
+                    role: UserRole.COMPANY_ADMIN
                 },
                 inviterId
             );
@@ -232,17 +230,16 @@ export const inviteCompanyAdmin = async (req: Request, res: Response, next: Next
         await db.run(
             `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [logId, companyId, inviterId, membershipService.getUserName(inviterId), 'INVITE_ADMIN', 'memberships', userId, JSON.stringify({ email, role: UserRole.COMPANY_ADMIN }), 'success', now, req.ip, req.headers['user-agent']]
+            [logId, companyId, inviterId, 'System User', 'INVITE_ADMIN', 'memberships', userId, JSON.stringify({ email, role: UserRole.COMPANY_ADMIN }), 'success', now, req.ip, req.headers['user-agent']]
         ).catch(err => logger.error('Audit log failed', err));
 
         // Send invitation email
         try {
             const inviteLink = `${process.env.APP_URL || 'http://localhost:3000'}/accept-invite?userId=${userId}&companyId=${companyId}`;
-            await emailService.sendMemberInvitation(
+            await emailService.sendInvitation(
                 email,
-                name,
-                company.name,
                 'Company Admin',
+                company.name,
                 inviteLink
             );
         } catch (emailError) {
@@ -322,7 +319,7 @@ export const updateMemberRole = async (req: Request, res: Response, next: NextFu
         await db.run(
             `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [logId, companyId, actorId, membershipService.getUserName(actorId), 'UPDATE_ROLE', 'memberships', targetUserId, JSON.stringify({ oldRole: targetMembership.role, newRole: role }), 'success', now, req.ip, req.headers['user-agent']]
+            [logId, companyId, actorId, 'System User', 'UPDATE_ROLE', 'memberships', targetUserId, JSON.stringify({ oldRole: targetMembership.role, newRole: role }), 'success', now, req.ip, req.headers['user-agent']]
         ).catch(err => logger.error('Audit log failed', err));
 
         res.json({ message: 'Member role updated successfully' });
@@ -363,7 +360,7 @@ export const removeMember = async (req: Request, res: Response, next: NextFuncti
         await db.run(
             `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [logId, companyId, actorId, membershipService.getUserName(actorId), 'REMOVE_MEMBER', 'memberships', targetUserId, JSON.stringify({ removedRole: targetMembership.role }), 'success', now, req.ip, req.headers['user-agent']]
+            [logId, companyId, actorId, 'System User', 'REMOVE_MEMBER', 'memberships', targetUserId, JSON.stringify({ removedRole: targetMembership.role }), 'success', now, req.ip, req.headers['user-agent']]
         ).catch(err => logger.error('Audit log failed', err));
 
         res.json({ message: 'Member removed successfully' });
@@ -375,7 +372,7 @@ export const removeMember = async (req: Request, res: Response, next: NextFuncti
 export const getCompanies = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const userId = (req as any).userId;
-        
+
         // Get all companies the user is a member of
         const db = getDb();
         const companies = await db.all(`
@@ -388,6 +385,150 @@ export const getCompanies = async (req: Request, res: Response, next: NextFuncti
         `, [userId]);
 
         res.json(companies);
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const updateCompany = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const updates = req.body;
+        const userId = (req as any).userId;
+
+        // Verify user has permission to update this company
+        const membership = await membershipService.getMembership(userId, id);
+        if (!membership || membership.role !== UserRole.COMPANY_ADMIN) {
+            throw new AppError('Only company admins can update company information', 403);
+        }
+
+        const db = getDb();
+        const now = new Date().toISOString();
+
+        // Prepare update fields
+        const updateFields = Object.keys(updates).filter(key =>
+            ['name', 'plan', 'status', 'settings', 'subscription'].includes(key)
+        );
+
+        if (updateFields.length === 0) {
+            throw new AppError('No valid fields to update', 400);
+        }
+
+        const setClause = updateFields.map(field => `${field} = ?`).join(', ');
+        const values = updateFields.map(field => {
+            // Stringify objects for JSON fields
+            return typeof updates[field] === 'object' ? JSON.stringify(updates[field]) : updates[field];
+        });
+
+        values.push(now); // For updatedAt
+        values.push(id); // For WHERE clause
+
+        await db.run(
+            `UPDATE companies SET ${setClause}, updatedAt = ? WHERE id = ?`,
+            values
+        );
+
+        // Audit Log
+        const logId = uuidv4();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, id, userId, 'System User', 'UPDATE_COMPANY', 'companies', id, JSON.stringify(updates), 'success', now, req.ip, req.headers['user-agent']]
+        ).catch(err => logger.error('Audit log failed', err));
+
+        res.json({ message: 'Company updated successfully' });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const deleteCompany = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const userId = (req as any).userId;
+
+        // Verify user has permission to delete this company (Superadmin only)
+        const actorMembership = await membershipService.getMembership(userId, id);
+        if (!actorMembership || actorMembership.role !== UserRole.SUPERADMIN) {
+            throw new AppError('Only superadmins can delete companies', 403);
+        }
+
+        const db = getDb();
+
+        // Delete all related data (in proper order to respect foreign keys)
+        await db.run('DELETE FROM memberships WHERE companyId = ?', [id]);
+        await db.run('DELETE FROM audit_logs WHERE companyId = ?', [id]);
+        // Add other related tables as needed
+
+        // Delete the company itself
+        await db.run('DELETE FROM companies WHERE id = ?', [id]);
+
+        // Audit Log
+        const logId = uuidv4();
+        const now = new Date().toISOString();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, id, userId, 'System User', 'DELETE_COMPANY', 'companies', id, JSON.stringify({ deleted: true }), 'success', now, req.ip, req.headers['user-agent']]
+        ).catch(err => logger.error('Audit log failed', err));
+
+        res.json({ message: 'Company deleted successfully' });
+    } catch (e) {
+        next(e);
+    }
+};
+
+export const updateMyCompany = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const userId = (req as any).userId;
+        const updates = req.body;
+
+        // Find the user's company admin membership to determine which company to update
+        const db = getDb();
+        const membership = await db.get(`
+            SELECT companyId FROM memberships
+            WHERE userId = ? AND role = ?
+            ORDER BY createdAt DESC LIMIT 1
+        `, [userId, UserRole.COMPANY_ADMIN]);
+
+        if (!membership) {
+            throw new AppError('You do not have company admin access to any company', 403);
+        }
+
+        const companyId = membership.companyId;
+
+        // Prepare update fields (only allow updating certain fields for company admins)
+        const allowedFields = ['name', 'settings'];
+        const updateFields = Object.keys(updates).filter(key => allowedFields.includes(key));
+
+        if (updateFields.length === 0) {
+            throw new AppError('No valid fields to update', 400);
+        }
+
+        const setClause = updateFields.map(field => `${field} = ?`).join(', ');
+        const values = updateFields.map(field => {
+            // Stringify objects for JSON fields
+            return typeof updates[field] === 'object' ? JSON.stringify(updates[field]) : updates[field];
+        });
+
+        const now = new Date().toISOString();
+        values.push(now); // For updatedAt
+        values.push(companyId); // For WHERE clause
+
+        await db.run(
+            `UPDATE companies SET ${setClause}, updatedAt = ? WHERE id = ?`,
+            values
+        );
+
+        // Audit Log
+        const logId = uuidv4();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, companyId, userId, 'System User', 'UPDATE_MY_COMPANY', 'companies', companyId, JSON.stringify(updates), 'success', now, req.ip, req.headers['user-agent']]
+        ).catch(err => logger.error('Audit log failed', err));
+
+        res.json({ message: 'Company updated successfully' });
     } catch (e) {
         next(e);
     }

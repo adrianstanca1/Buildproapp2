@@ -384,8 +384,8 @@ const SuperAdminCommandCenter: React.FC = () => {
                                                     </span>
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit ${comp.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                                                        <span className={`w-1.5 h-1.5 rounded-full ${comp.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                                    <span className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium w-fit ${comp.status.toLowerCase() === 'active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
+                                                        <span className={`w-1.5 h-1.5 rounded-full ${comp.status.toLowerCase() === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
                                                         {comp.status}
                                                     </span>
                                                 </td>

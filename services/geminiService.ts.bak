@@ -127,8 +127,36 @@ export const generateImage = async (prompt: string, aspectRatio: string = "1:1")
 
 export const runRawPrompt = async (prompt: string, config?: ChatConfig, imageData?: string, mimeType?: string): Promise<string> => {
   try {
+<<<<<<< HEAD
+    let operation = await ai.models.generateVideos({
+      model: 'veo-3.1-fast-generate-preview',
+      prompt: prompt,
+      config: {
+        numberOfVideos: 1,
+        resolution: '720p',
+        aspectRatio: aspectRatio
+      }
+    });
+
+    // Poll for completion
+    while (!operation.done) {
+      await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5s
+      operation = await ai.operations.getVideosOperation({operation: operation});
+    }
+
+    const videoUri = operation.response?.generatedVideos?.[0]?.video?.uri;
+    if (!videoUri) throw new Error("No video URI returned");
+
+    // Fetch the actual video bytes using the API key
+    const videoResponse = await fetch(`${videoUri}&key=${apiKey}`);
+    if (!videoResponse.ok) throw new Error("Failed to download video");
+
+    const blob = await videoResponse.blob();
+    return URL.createObjectURL(blob);
+=======
     const res = await streamChatResponse([], prompt, imageData, mimeType, undefined, config);
     return res.candidates?.[0]?.content?.parts?.[0]?.text || "";
+>>>>>>> d8ed0dbbc2b4680a0b6a223d412b293e7b74a4f0
   } catch (e) {
     console.error("runRawPrompt failed", e);
     return "";
