@@ -80,7 +80,7 @@ const MaintenanceView = lazyWithReload(() => import('@/views/MaintenanceView'));
 // Platform/Superadmin Views
 const PlatformDashboardView = lazyWithReload(() => import('@/views/platform/PlatformDashboardView'));
 const DatabaseQueryView = lazyWithReload(() => import('@/views/platform/DatabaseQueryView'));
-const CompanyManagementView = lazyWithReload(() => import('@/views/platform/CompanyManagementView'));
+const CompanyManagementView = lazyWithReload(() => import('@/views/CompanyManagementView'));
 
 const PlatformMembersView = lazyWithReload(() => import('@/views/platform/PlatformMembersView'));
 const AccessControlView = lazyWithReload(() => import('@/views/platform/AccessControlView'));

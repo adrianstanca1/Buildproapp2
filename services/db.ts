@@ -419,6 +419,14 @@ class DatabaseService {
     await this.delete('companies', id);
   }
 
+  async createCompany(companyData: { name: string; ownerEmail: string; ownerName: string; plan?: string }): Promise<any> {
+    if (this.useMock) {
+      console.log('Mock: Creating company', companyData);
+      return { companyId: 'mock-company-id', ownerUserId: 'mock-user-id' };
+    }
+    return this.post('companies', companyData);
+  }
+
   // --- Tenant Analytics & Security ---
   async getTenantUsage(tenantId: string): Promise<TenantUsage> {
     const res = await fetch(`${API_URL}/tenants/${tenantId}/usage`, {
@@ -574,6 +582,42 @@ class DatabaseService {
   // --- User Management ---
   async inviteUser(email: string, role: string, companyId: string): Promise<void> {
     await this.post('auth/invite', { email, role, companyId });
+  }
+
+  async getCompanyMembers(companyId: string): Promise<any[]> {
+    if (this.useMock) {
+      // Mock data for testing
+      return [
+        { id: 'user1', name: 'John Doe', email: 'john@example.com', role: 'COMPANY_ADMIN', status: 'active', createdAt: '2025-01-01' },
+        { id: 'user2', name: 'Jane Smith', email: 'jane@example.com', role: 'PROJECT_MANAGER', status: 'active', createdAt: '2025-01-02' },
+        { id: 'user3', name: 'Bob Johnson', email: 'bob@example.com', role: 'OPERATIVE', status: 'pending', createdAt: '2025-01-03' }
+      ];
+    }
+    return this.fetch<any[]>(`companies/${companyId}/members`);
+  }
+
+  async inviteCompanyAdmin(companyId: string, email: string, name: string): Promise<void> {
+    if (this.useMock) {
+      console.log('Mock: Inviting company admin', { companyId, email, name });
+      return;
+    }
+    await this.post(`companies/${companyId}/admins`, { email, name, role: 'COMPANY_ADMIN' });
+  }
+
+  async updateMemberRole(companyId: string, userId: string, role: string): Promise<void> {
+    if (this.useMock) {
+      console.log('Mock: Updating member role', { companyId, userId, role });
+      return;
+    }
+    await this.put(`companies/${companyId}/members/${userId}/role`, userId, { role });
+  }
+
+  async removeMember(companyId: string, userId: string): Promise<void> {
+    if (this.useMock) {
+      console.log('Mock: Removing member', { companyId, userId });
+      return;
+    }
+    await this.delete(`companies/${companyId}/members`, userId);
   }
 
   async getCompanyDetails(id: string): Promise<any> {
