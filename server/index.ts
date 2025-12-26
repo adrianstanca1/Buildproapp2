@@ -277,6 +277,38 @@ app.delete('/api/tasks/:id', requirePermission('tasks', 'delete'), taskControlle
 app.patch('/api/tasks/:id/assign', requirePermission('tasks', 'update'), taskController.assignTask);
 app.patch('/api/tasks/:id/status', requirePermission('tasks', 'update'), taskController.updateTaskStatus);
 
+// Signed document URL for secure access to local uploads
+app.get('/api/documents/:id/signed-url', authenticateToken, requirePermission('documents', 'read'), async (req: any, res: any) => {
+    try {
+        const { id } = req.params;
+        const tenantId = req.context?.tenantId || req.tenantId;
+        if (!tenantId) {
+            return res.status(401).json({ error: 'Tenant context required' });
+        }
+
+        const db = getDb();
+        const doc = await db.get('SELECT id, companyId, url, name FROM documents WHERE id = ? AND companyId = ?', [id, tenantId]);
+        if (!doc) {
+            return res.status(404).json({ error: 'Document not found' });
+        }
+
+        const signingSecret = process.env.FILE_SIGNING_SECRET;
+        if (!signingSecret || !doc.url || !doc.url.startsWith('/uploads/')) {
+            return res.json({ url: doc.url });
+        }
+
+        const relativePath = doc.url.replace(/^\/uploads\//, '');
+        const expiresAt = Date.now() + 3600 * 1000; // 1 hour default
+        const payload = `${tenantId}:${relativePath}:${expiresAt}`;
+        const signature = crypto.createHmac('sha256', signingSecret).update(payload).digest('hex');
+        const signedUrl = `${doc.url}?expires=${expiresAt}&sig=${signature}`;
+
+        return res.json({ url: signedUrl, expiresAt });
+    } catch (error: any) {
+        return res.status(500).json({ error: error.message || 'Failed to generate signed URL' });
+    }
+});
+
 // --- Client Portal Routes ---
 import clientPortalRoutes from './routes/clientPortalRoutes.js';
 app.use('/api/client-portal', clientPortalRoutes);
