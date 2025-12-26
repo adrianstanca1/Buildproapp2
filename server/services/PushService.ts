@@ -1,8 +1,8 @@
 import webpush from 'web-push';
 
-// In a real app, these should be environment variables
-const VAPID_PUBLIC_KEY = 'BIlt3bJbrihkU-C59ai6O7HTkHv2DDxBQYqCmTf21HXtvnz4AtQoFDNY1Yp-NjkKiZx1EsJmAzvKjXDDsvbJec0';
-const VAPID_PRIVATE_KEY = 'WeOUiG99HErtbuK-nDQhlRw4dVwdmfa4usBoFWCWSCE';
+// VAPID keys should be stored in environment variables
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BIlt3bJbrihkU-C59ai6O7HTkHv2DDxBQYqCmTf21HXtvnz4AtQoFDNY1Yp-NjkKiZx1EsJmAzvKjXDDsvbJec0';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'WeOUiG99HErtbuK-nDQhlRw4dVwdmfa4usBoFWCWSCE';
 
 // Configure web-push
 webpush.setVapidDetails(

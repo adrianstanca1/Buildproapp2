@@ -262,25 +262,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
-    // 1. Clear Supabase Session
-    if (user && user.id.length > 10 && isSupabaseConnected) {
-      await supabase.auth.signOut();
+    try {
+      // 1. Clear Supabase Session
+      if (user && user.id.length > 10 && isSupabaseConnected) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error("Supabase sign out error:", error);
+        }
+      }
+
+      // 2. Clear Local State
+      setUser(null);
+      setToken(null);
+      setOriginalSession(null);
+
+      // 3. Clear Storage (Clean Slate)
+      localStorage.removeItem('sb-access-token');
+      localStorage.removeItem('sb-refresh-token');
+      // Clear any potential app-specific keys
+      sessionStorage.clear();
+
+      // 4. Force Reload to clear in-memory sensitive data (Redux/Context/Zustand)
+      // This prevents "back button" access to protected pages
+      window.location.reload();
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if there's an error, still clear local state and reload
+      setUser(null);
+      setToken(null);
+      setOriginalSession(null);
+      localStorage.removeItem('sb-access-token');
+      localStorage.removeItem('sb-refresh-token');
+      sessionStorage.clear();
+      window.location.reload();
     }
-
-    // 2. Clear Local State
-    setUser(null);
-    setToken(null);
-    setOriginalSession(null);
-
-    // 3. Clear Storage (Clean Slate)
-    localStorage.removeItem('sb-access-token');
-    localStorage.removeItem('sb-refresh-token');
-    // Clear any potential app-specific keys
-    sessionStorage.clear();
-
-    // 4. Force Reload to clear in-memory sensitive data (Redux/Context/Zustand)
-    // This prevents "back button" access to protected pages
-    window.location.reload();
   };
 
   const hasPermission = (permission: string) => {

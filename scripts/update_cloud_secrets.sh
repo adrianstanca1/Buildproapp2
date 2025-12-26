@@ -48,7 +48,7 @@ if command -v gcloud &> /dev/null; then
     gcloud run services update $SERVICE_NAME \
         --platform managed \
         --region $REGION \
-        --update-env-vars SENDGRID_API_KEY=$SENDGRID_API_KEY,GEMINI_API_KEY=$GEMINI_API_KEY,EMAIL_FROM=$EMAIL_FROM,SUPABASE_URL=$SUPABASE_URL
+        --update-env-vars "SENDGRID_API_KEY=$SENDGRID_API_KEY,GEMINI_API_KEY=$GEMINI_API_KEY,EMAIL_FROM=$EMAIL_FROM,SUPABASE_URL=$SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY,SUPABASE_JWT_SECRET=$SUPABASE_JWT_SECRET,DATABASE_URL=$DATABASE_URL"
 
     if [ $? -eq 0 ]; then
         echo "✅ Cloud Run secrets updated successfully!"
