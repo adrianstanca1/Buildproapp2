@@ -186,6 +186,7 @@ async function initializeSchema(db: IDatabase) {
       updatedAt TEXT NOT NULL
     )
   `);
+  try { await db.exec(`ALTER TABLE system_settings ADD COLUMN updatedBy TEXT;`); } catch (e) { /* Column may already exist */ }
 
   // Users table
   await db.exec(`
@@ -702,16 +703,6 @@ async function initializeSchema(db: IDatabase) {
       timestamp TEXT NOT NULL,
       ipAddress TEXT,
       userAgent TEXT
-    )
-  `);
-
-  // System Settings (Global Config)
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS system_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
-      updatedBy TEXT
     )
   `);
 
