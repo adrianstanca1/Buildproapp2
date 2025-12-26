@@ -50,7 +50,15 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Middleware to ensure DB is initialized before handling requests (removed)
+// Middleware to ensure DB is initialized before handling requests
+app.use(async (req, res, next) => {
+    try {
+        await ensureDbInitialized();
+        next();
+    } catch (err) {
+        next(err);
+    }
+});
 
 // Serve local uploads with optional HMAC signature verification
 const verifySignedUpload = (req: any, res: any, next: any) => {
@@ -634,6 +642,8 @@ const startServer = async () => {
     try {
         logger.info('Starting DB initialization...');
         await ensureDbInitialized();
+        const db = getDb();
+        await db.get('SELECT 1');
         logger.info('DB Initialized. Seeding...');
         await seedDatabase();
         logger.info('DB Ready.');
