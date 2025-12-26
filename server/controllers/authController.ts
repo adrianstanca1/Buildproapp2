@@ -70,7 +70,8 @@ export const assignUserRole = async (req: Request, res: Response, next: NextFunc
             throw new AppError('User membership not found for this company', 404);
         }
 
-        const updated = await membershipService.updateMembership(membership.id, { role: role as UserRole });
+        const actorId = (req as any).userId || 'system';
+        const updated = await membershipService.updateMembership(membership.id, { role: role as UserRole }, actorId);
 
         // Audit Log (Simplified inline)
         const db = getDb();
@@ -215,7 +216,7 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
                 throw new AppError('User is already a member of this company', 409);
             }
             // Add membership
-            await membershipService.addMember({ userId: existingUser.id, companyId, role });
+            await membershipService.addMember({ userId: existingUser.id, companyId, role }, inviterId);
             res.status(200).json({ message: 'User added to company', userId: existingUser.id });
             return; // stop execution
         }
@@ -229,7 +230,7 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
             [newUserId, email, email.split('@')[0], 'invited', now, now]
         );
 
-        await membershipService.addMember({ userId: newUserId, companyId, role });
+        await membershipService.addMember({ userId: newUserId, companyId, role }, inviterId);
 
         // 3. Log Audit
         const logId = uuidv4();
@@ -327,11 +328,14 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
         }
 
         // 3. Add Membership (COMPANY_ADMIN)
-        await membershipService.addMember({
-            userId,
-            companyId,
-            role: UserRole.COMPANY_ADMIN
-        });
+        await membershipService.addMember(
+            {
+                userId,
+                companyId,
+                role: UserRole.COMPANY_ADMIN
+            },
+            userId
+        );
 
         res.status(201).json({ message: 'User and Company registered successfully', companyId });
 

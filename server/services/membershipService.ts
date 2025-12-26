@@ -16,7 +16,7 @@ export class MembershipService extends BaseTenantService {
     /**
      * Add a new member to a company
      */
-    async addMember(data: CreateMembershipDto): Promise<Membership> {
+    async addMember(data: CreateMembershipDto, actorId: string = 'system'): Promise<Membership> {
         const db = this.getDb();
         const id = uuidv4();
         const now = new Date().toISOString();
@@ -35,7 +35,8 @@ export class MembershipService extends BaseTenantService {
             [id, data.userId, data.companyId, data.role, permissions, 'active', now, data.invitedBy, now, now]
         );
 
-        await this.auditAction('addMember', data.invitedBy || 'system', data.companyId, 'memberships', id, {
+        const auditActor = actorId || data.invitedBy || 'system';
+        await this.auditAction('addMember', auditActor, data.companyId, 'memberships', id, {
             user: data.userId,
             role: data.role
         });
@@ -48,7 +49,11 @@ export class MembershipService extends BaseTenantService {
     /**
      * Update a member's role or permissions
      */
-    async updateMembership(membershipId: string, updates: UpdateMembershipDto): Promise<Membership> {
+    async updateMembership(
+        membershipId: string,
+        updates: UpdateMembershipDto,
+        actorId: string = 'system'
+    ): Promise<Membership> {
         const db = this.getDb();
         const now = new Date().toISOString();
 
@@ -107,7 +112,7 @@ export class MembershipService extends BaseTenantService {
 
         // Actually, let's keep it simple. If I can't easily get the actor, I will use 'system'.
 
-        await this.auditAction('updateMembership', 'system', membership.companyId, 'memberships', membershipId, updates);
+        await this.auditAction('updateMembership', actorId || 'system', membership.companyId, 'memberships', membershipId, updates);
 
         logger.info(`Membership updated: ${membershipId}`);
 
@@ -117,7 +122,7 @@ export class MembershipService extends BaseTenantService {
     /**
      * Remove a member from a company
      */
-    async removeMember(membershipId: string): Promise<void> {
+    async removeMember(membershipId: string, actorId: string = 'system'): Promise<void> {
         const db = this.getDb();
 
         const membership = await this.getMembershipById(membershipId); // Get it before delete for auditing
@@ -128,7 +133,7 @@ export class MembershipService extends BaseTenantService {
             throw new AppError('Membership not found', 404);
         }
 
-        await this.auditAction('removeMember', 'system', membership.companyId, 'memberships', membershipId);
+        await this.auditAction('removeMember', actorId || 'system', membership.companyId, 'memberships', membershipId);
 
         logger.info(`Membership removed: ${membershipId}`);
     }

@@ -4,6 +4,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import helmet from 'helmet';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -51,8 +52,36 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to ensure DB is initialized before handling requests (removed)
 
-// Serve local uploads
-app.use('/uploads', express.static(resolve('uploads')));
+// Serve local uploads with optional HMAC signature verification
+const verifySignedUpload = (req: any, res: any, next: any) => {
+    const signingSecret = process.env.FILE_SIGNING_SECRET;
+    if (!signingSecret) return next(); // Allow unsigned access in dev/local
+
+    const { expires, sig } = req.query;
+    if (!expires || !sig) {
+        return res.status(403).json({ error: 'Signed URL required' });
+    }
+
+    const expiresAt = Number(expires);
+    if (!expiresAt || Date.now() > expiresAt) {
+        return res.status(403).json({ error: 'Signed URL expired' });
+    }
+
+    // Path looks like /uploads/tenants/{tenantId}/...
+    const relativePath = req.path.replace(/^\/+/, ''); // remove leading slash
+    const parts = relativePath.split('/');
+    const tenantId = parts.length >= 2 && parts[0] === 'tenants' ? parts[1] : 'unknown';
+    const payload = `${tenantId}:${relativePath}:${expiresAt}`;
+    const expectedSig = crypto.createHmac('sha256', signingSecret).update(payload).digest('hex');
+
+    if (expectedSig !== sig) {
+        return res.status(403).json({ error: 'Invalid signature' });
+    }
+
+    return next();
+};
+
+app.use('/uploads', verifySignedUpload, express.static(resolve('uploads')));
 
 
 // --- Middleware ---
