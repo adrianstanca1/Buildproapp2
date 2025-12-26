@@ -182,6 +182,8 @@ app.use('/api/platform/support', supportRoutes);
 app.use('/api/platform/notifications', notificationRoutes);
 
 import pushRoutes from './routes/pushRoutes.js';
+import userManagementRoutes from './routes/userManagementRoutes.js';
+app.use('/api/users', userManagementRoutes);
 app.use('/api/notifications', pushRoutes);
 
 const superAdminOnly = requireRole([UserRole.SUPERADMIN]);

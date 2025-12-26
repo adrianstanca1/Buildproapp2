@@ -91,12 +91,12 @@ const UserManagementView: React.FC<UserManagementViewProps> = ({ tenantId }) => 
 
     setIsSubmitting(true);
     try {
-      await db.createUser(formData.companyId, {
+      await db.createUser({
         name: formData.name,
         email: formData.email,
         role: formData.role,
         password: formData.password || undefined,
-      });
+      }, formData.companyId);
       addToast(`User ${formData.name} created successfully`, 'success');
       setShowAddModal(false);
       setFormData({ 
