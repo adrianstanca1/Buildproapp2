@@ -35,9 +35,14 @@ export const getDashboardStats = async (req: Request, res: Response, next: NextF
             totalUsers: usersResult?.count || 0,
             totalProjects: projectsResult?.count || 0,
             monthlyRevenue: revenueResult?.total || 0,
-            systemStatus: 'healthy', // Hardcoded for now, could be dynamic
+            systemStatus: 'healthy', // Default to healthy if code execution reached here
             environment: process.env.NODE_ENV || 'development'
         };
+
+        // Simple check if any major query failed (though they would likely throw)
+        if (!companiesResult || !usersResult) {
+            stats.systemStatus = 'degraded';
+        }
 
         res.json(stats);
     } catch (e) {
@@ -166,7 +171,7 @@ export const broadcastMessage = async (req: Request, res: Response, next: NextFu
 };
 
 /**
- * Get Advanced Metrics (mocked for now if no Prometheus/etc)
+ * Get Advanced Metrics (OS and Process stats)
  */
 export const getAdvancedMetrics = async (req: Request, res: Response, next: NextFunction) => {
     try {

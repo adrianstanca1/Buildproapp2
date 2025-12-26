@@ -69,6 +69,13 @@ export class PredictiveService {
         }
 
         // Fallback simple logic
+        if (!process.env.GEMINI_API_KEY) {
+            // Import logger dynamically or assume global logger if available. 
+            // Since we didn't import logger at top, let's stick to console.warn or import it.
+            // Better to be safe and just log to console here as this is a service class.
+            console.warn('[PredictiveService] GEMINI_API_KEY missing. Using heuristic fallback.');
+        }
+
         predictedDelayDays = overdueTasks.length * 1.5 + (safetyIncidentCount * 2);
         const delayProbability = Math.min(100, (overdueTasks.length / tasks.length) * 100 + (safetyIncidentCount * 5));
 

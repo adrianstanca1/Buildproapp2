@@ -8,6 +8,7 @@ import { permissionService } from '../services/permissionService.js';
 import { membershipService } from '../services/membershipService.js';
 import { tenantService, getTenantUsage } from '../services/tenantService.js';
 import { UserRole } from '../types/rbac.js';
+import { emailService } from '../services/emailService.js';
 
 export const getRoles = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -230,8 +231,17 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
             [logId, companyId, inviterId, 'Inviter', 'INVITE_USER', 'users', newUserId, JSON.stringify({ email, role }), 'success', now, req.ip, req.headers['user-agent']]
         ).catch(err => logger.error('Audit log failed', err));
 
-        // 4. Send Email (Mock)
-        logger.info(`[MOCK EMAIL] Invitation sent to ${email} for company ${companyId} with role ${role}`);
+        // 4. Send Email
+        const company = await db.get('SELECT name FROM companies WHERE id = ?', [companyId]);
+        const companyName = company?.name || 'the company';
+        const inviteLink = `${process.env.APP_URL || 'http://localhost:3000'}/accept-invite?userId=${newUserId}&companyId=${companyId}`;
+
+        try {
+            await emailService.sendInvitation(email, role, companyName, inviteLink);
+        } catch (emailError) {
+            logger.error('Failed to send invitation email', emailError);
+            // Verify if we should rollback or just warn. For now, we warn.
+        }
 
         res.status(201).json({ message: 'Invitation sent', userId: newUserId });
     } catch (e) {
