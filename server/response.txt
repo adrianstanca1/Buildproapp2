@@ -1,0 +1,42 @@
+* Host localhost:3002 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:3002...
+* connect to ::1 port 3002 from ::1 port 55850 failed: Connection refused
+*   Trying 127.0.0.1:3002...
+* Connected to localhost (127.0.0.1) port 3002
+> GET /api/projects HTTP/1.1
+> Host: localhost:3002
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Authorization: Bearer null
+> x-company-id: c1
+> 
+* Request completely sent off
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0< HTTP/1.1 200 OK
+< Content-Security-Policy: default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self';img-src 'self' data: https: blob:;connect-src 'self' ws: wss:;font-src 'self' data:;base-uri 'self';form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Origin-Agent-Cluster: ?1
+< Referrer-Policy: no-referrer
+< Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+< X-Content-Type-Options: nosniff
+< X-DNS-Prefetch-Control: off
+< X-Download-Options: noopen
+< X-Frame-Options: SAMEORIGIN
+< X-Permitted-Cross-Domain-Policies: none
+< X-XSS-Protection: 0
+< Access-Control-Allow-Origin: *
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 1604
+< ETag: W/"644-VgE1hwDG6RcSh0acaseqRC8cB0A"
+< Date: Tue, 23 Dec 2025 15:33:32 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [1604 bytes data]
+100  1604  100  1604    0     0   1999      0 --:--:-- --:--:-- --:--:--  1997
+* Connection #0 to host localhost left intact
+[{"id":"p1","companyid":"c1","code":"CCP-2025","name":"City Centre Plaza Development","description":"A mixed-use development featuring 40 stories of office space and a luxury retail podium.","location":"Downtown Metro","type":"Commercial","status":"Active","health":"Good","progress":74,"budget":25000000,"spent":18500000,"startdate":"2025-01-15","enddate":"2026-12-31","manager":"John Anderson","image":"https://images.unsplash.com/photo-1541888946425-d81bb19240f5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80","teamsize":24,"weatherlocation":"{\"city\":\"New York\",\"temp\":\"72°\",\"condition\":\"Sunny\"}","aianalysis":"Project is progressing ahead of schedule. Structural steel completion is imminent.","zones":[],"phases":[],"timelineoptimizations":"[]","createdat":null,"updatedat":null,"timelineOptimizations":[],"weatherLocation":null},{"id":"p2","companyid":"c1","code":"RCP-002","name":"Residential Complex - Phase 2","description":"Three tower residential complex with 400 units and shared amenities.","location":"Westside Heights","type":"Residential","status":"Active","health":"At Risk","progress":45,"budget":18000000,"spent":16500000,"startdate":"2025-02-01","enddate":"2025-11-30","manager":"Sarah Mitchell","image":"https://images.unsplash.com/photo-1590069261209-f8e9b8642343?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80","teamsize":18,"weatherlocation":"{\"city\":\"Chicago\",\"temp\":\"65°\",\"condition\":\"Windy\"}","aianalysis":null,"zones":[],"phases":[],"timelineoptimizations":"[]","createdat":null,"updatedat":null,"timelineOptimizations":[],"weatherLocation":null}]

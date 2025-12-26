@@ -14,6 +14,70 @@ export async function seedDatabase() {
 
   console.log('Seeding database...');
 
+  // --- Companies ---
+  const companies = [
+    {
+      id: 'c1',
+      name: 'BuildCorp Solutions',
+      subscriptionTier: 'ENTERPRISE',
+      maxProjects: 100,
+      maxUsers: 50,
+      isActive: true,
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  for (const c of companies) {
+    await db.run(
+      `INSERT INTO companies (id, name, subscriptionTier, maxProjects, maxUsers, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [c.id, c.name, c.subscriptionTier, c.maxProjects, c.maxUsers, c.isActive ? 1 : 0, c.createdAt, c.createdAt]
+    );
+  }
+
+  // --- Users ---
+  const users = [
+    {
+      id: 'demo-user',
+      email: 'demo@buildpro.app',
+      password: 'demo-password-hash',
+      name: 'Demo User',
+      role: 'admin',
+      companyId: 'c1',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'u1',
+      email: 'john@buildcorp.com',
+      password: 'password-hash',
+      name: 'John Anderson',
+      role: 'admin',
+      companyId: 'c1',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    },
+    {
+      id: 'u2',
+      email: 'sarah@buildcorp.com',
+      password: 'password-hash',
+      name: 'Sarah Mitchell',
+      role: 'admin',
+      companyId: 'c1',
+      isActive: true,
+      createdAt: new Date().toISOString()
+    }
+  ];
+
+  for (const u of users) {
+    await db.run(
+      `INSERT INTO users (id, email, password, name, role, companyId, isActive, createdAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [u.id, u.email, u.password, u.name, u.role, u.companyId, u.isActive ? 1 : 0, u.createdAt]
+    );
+  }
+
+
   const projects = [
     {
       id: 'p1',
@@ -60,22 +124,22 @@ export async function seedDatabase() {
 
   for (const p of projects) {
     await db.run(
-      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, p.weatherLocation, p.aiAnalysis, '[]', '[]', '[]']
+      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, p.weatherLocation, p.aiAnalysis, '[]', '[]', '[]', new Date().toISOString(), new Date().toISOString()]
     );
   }
 
   const tasks = [
-    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', status: 'To Do', priority: 'High', assigneeId: 'u1', assigneeName: 'Mike Thompson', assigneeType: 'user', dueDate: '2025-11-12', latitude: 40.7128, longitude: -74.0060, dependencies: '[]' },
-    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium.', projectId: 'p1', status: 'Blocked', priority: 'Critical', assigneeId: 'role-operative', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', latitude: 40.7135, longitude: -74.0055, dependencies: '["t1"]' }
+    { id: 't1', title: 'Safety inspection - Site A', description: 'Conduct full perimeter safety check.', projectId: 'p1', companyId: 'c1', status: 'To Do', priority: 'High', assigneeId: 'u1', assigneeName: 'Mike Thompson', assigneeType: 'user', dueDate: '2025-11-12', latitude: 40.7128, longitude: -74.0060, dependencies: '[]' },
+    { id: 't2', title: 'Concrete pouring - Level 2', description: 'Pour and finish slab for level 2 podium.', projectId: 'p1', companyId: 'c1', status: 'Blocked', priority: 'Critical', assigneeId: 'role-operative', assigneeName: 'All Operatives', assigneeType: 'role', dueDate: '2025-11-20', latitude: 40.7135, longitude: -74.0055, dependencies: '["t1"]' }
   ];
 
   for (const t of tasks) {
     await db.run(
-      `INSERT INTO tasks (id, title, description, projectId, status, priority, assigneeId, assigneeName, assigneeType, dueDate, latitude, longitude, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [t.id, t.title, t.description, t.projectId, t.status, t.priority, t.assigneeId, t.assigneeName, t.assigneeType, t.dueDate, t.latitude, t.longitude, t.dependencies]
+      `INSERT INTO tasks (id, title, description, projectId, companyId, status, priority, assignedTo, dueDate, dependencies, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.title, t.description, t.projectId, t.companyId, t.status, t.priority, t.assigneeId, t.dueDate, t.dependencies, new Date().toISOString(), new Date().toISOString()]
     );
   }
 
@@ -122,22 +186,22 @@ export async function seedDatabase() {
 
   const dayworks = [
     {
-        id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
-        labor: JSON.stringify([{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }]),
-        materials: JSON.stringify([{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }]),
-        attachments: '[]',
-        totalLaborCost: 360,
-        totalMaterialCost: 275,
-        grandTotal: 635
+      id: 'dw-1', projectId: 'p1', date: '2025-11-08', description: 'Emergency cleanup after storm. Removed debris from north access road to allow delivery trucks.', status: 'Approved', createdAt: '2025-11-08',
+      labor: JSON.stringify([{ name: 'Adrian', trade: 'Laborer', hours: 12, rate: 30 }]),
+      materials: JSON.stringify([{ item: 'Sandbags', quantity: 50, unit: 'bags', cost: 5.50 }]),
+      attachments: '[]',
+      totalLaborCost: 360,
+      totalMaterialCost: 275,
+      grandTotal: 635
     },
     {
-        id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
-        labor: JSON.stringify([{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }]),
-        materials: JSON.stringify([{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }]),
-        attachments: '[]',
-        totalLaborCost: 360,
-        totalMaterialCost: 160,
-        grandTotal: 520
+      id: 'dw-2', projectId: 'p1', date: '2025-11-10', description: 'Extra excavation for utility line reroute due to unforeseen obstruction.', status: 'Pending', createdAt: '2025-11-10',
+      labor: JSON.stringify([{ name: 'Team A', trade: 'Groundworks', hours: 8, rate: 45 }]),
+      materials: JSON.stringify([{ item: 'Gravel', quantity: 2, unit: 'ton', cost: 80 }]),
+      attachments: '[]',
+      totalLaborCost: 360,
+      totalMaterialCost: 160,
+      grandTotal: 520
     },
   ];
 
@@ -146,6 +210,53 @@ export async function seedDatabase() {
       `INSERT INTO dayworks (id, projectId, date, description, status, createdAt, labor, materials, attachments, totalLaborCost, totalMaterialCost, grandTotal)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [dw.id, dw.projectId, dw.date, dw.description, dw.status, dw.createdAt, dw.labor, dw.materials, dw.attachments, dw.totalLaborCost, dw.totalMaterialCost, dw.grandTotal]
+    );
+  }
+
+  // --- Memberships (Demo Users) ---
+  const memberships = [
+    { id: 'm1', userId: 'u1', companyId: 'c1', role: 'SUPERADMIN', status: 'active' },
+    { id: 'm2', userId: 'u2', companyId: 'c1', role: 'COMPANY_ADMIN', status: 'active' },
+    { id: 'm3', userId: 'demo-user', companyId: 'c1', role: 'SUPERADMIN', status: 'active' }
+  ];
+  for (const m of memberships) {
+    await db.run(
+      `INSERT INTO memberships (id, userId, companyId, role, status, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [m.id, m.userId, m.companyId, m.role, m.status, new Date().toISOString(), new Date().toISOString()]
+    );
+  }
+
+  // --- Permissions & Role Permissions ---
+  const perms = [
+    { id: 'p1', name: 'projects.read', resource: 'projects', action: 'read' },
+    { id: 'p2', name: 'projects.create', resource: 'projects', action: 'create' },
+    { id: 'p3', name: 'projects.update', resource: 'projects', action: 'update' },
+    { id: 'p4', name: 'projects.delete', resource: 'projects', action: 'delete' },
+    { id: 'p5', name: 'tasks.read', resource: 'tasks', action: 'read' },
+    { id: 'p6', name: 'tasks.create', resource: 'tasks', action: 'create' },
+    { id: 'p7', name: 'tasks.update', resource: 'tasks', action: 'update' },
+    { id: 'p8', name: 'tasks.delete', resource: 'tasks', action: 'delete' },
+    { id: 'p9', name: 'users.read', resource: 'users', action: 'read' },
+    { id: 'p10', name: 'users.manage', resource: 'users', action: 'manage' },
+    { id: 'p11', name: 'companies.read', resource: 'companies', action: 'read' },
+    { id: 'p12', name: 'companies.create', resource: 'companies', action: 'create' },
+    { id: 'p13', name: 'companies.update', resource: 'companies', action: 'update' },
+    { id: 'p14', name: 'companies.delete', resource: 'companies', action: 'delete' },
+    { id: 'p15', name: 'documents.read', resource: 'documents', action: 'read' },
+    { id: 'p16', name: 'documents.create', resource: 'documents', action: 'create' },
+    { id: 'p17', name: 'documents.update', resource: 'documents', action: 'update' },
+    { id: 'p18', name: 'documents.delete', resource: 'documents', action: 'delete' }
+  ];
+  for (const p of perms) {
+    await db.run(
+      `INSERT INTO permissions (id, name, resource, action, createdAt) VALUES (?, ?, ?, ?, ?)`,
+      [p.id, p.name, p.resource, p.action, new Date().toISOString()]
+    );
+    // Grant all to SUPERADMIN
+    await db.run(
+      `INSERT INTO role_permissions (roleId, permissionId) VALUES (?, ?)`,
+      ['SUPERADMIN', p.id]
     );
   }
 
@@ -256,6 +367,21 @@ export async function seedDatabase() {
     await db.run(
       `INSERT INTO team_messages (id, channelId, senderId, senderName, senderRole, senderAvatar, content, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [m.id, m.channelId, m.senderId, m.senderName, m.senderRole, m.senderAvatar, m.content, m.createdAt]
+    );
+  }
+
+  // --- Transactions ---
+  const transactions = [
+    { id: 'tx1', companyId: 'c1', projectId: 'p1', date: '2025-12-01', description: 'Monthly Retainer - Phase 1', amount: 150000, type: 'income', category: 'Project Fee', status: 'completed' },
+    { id: 'tx2', companyId: 'c1', projectId: 'p1', date: '2025-12-05', description: 'Concrete Supply - Level 4', amount: -45000, type: 'expense', category: 'Materials', status: 'completed' },
+    { id: 'tx3', companyId: 'c1', projectId: 'p1', date: '2025-12-08', description: 'Site Security Services', amount: -12000, type: 'expense', category: 'Services', status: 'completed' },
+    { id: 'tx4', companyId: 'c1', projectId: 'p2', date: '2025-12-02', description: 'Initial Mobilization Fee', amount: 85000, type: 'income', category: 'Project Fee', status: 'completed' }
+  ];
+  for (const t of transactions) {
+    await db.run(
+      `INSERT INTO transactions (id, companyId, projectId, date, description, amount, type, category, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.companyId, t.projectId, t.date, t.description, t.amount, t.type, t.category, t.status]
     );
   }
 }

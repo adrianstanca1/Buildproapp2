@@ -1,5 +1,39 @@
-
 import React from 'react';
+
+
+export interface SystemHealth {
+  api: 'healthy' | 'degraded' | 'down';
+  database: 'healthy' | 'degraded' | 'down';
+  databaseLatency?: string;
+  uptime: number;
+  timestamp: string;
+  memoryUsage?: {
+    rss: number;
+    heapTotal: number;
+    heapUsed: number;
+    external: number;
+  };
+  osLoad?: number[];
+  freeMem?: number;
+  totalMem?: number;
+}
+
+export interface PlatformStats {
+  totalCompanies: number;
+  totalUsers: number;
+  totalProjects: number;
+  monthlyRevenue: number;
+  systemStatus: string;
+  environment: string;
+}
+
+export interface SystemSettings {
+  maintenance: boolean;
+  maintenanceMode?: boolean; // For legacy/frontend compatibility
+  betaFeatures: boolean;
+  registrations: boolean;
+  aiEngine: boolean;
+}
 
 export enum Page {
   LOGIN = 'LOGIN',
@@ -36,25 +70,227 @@ export enum Page {
   IMAGINE = 'IMAGINE',
   MY_DESKTOP = 'MY_DESKTOP',
   LIVE_PROJECT_MAP = 'LIVE_PROJECT_MAP',
-  PROJECT_LAUNCHPAD = 'PROJECT_LAUNCHPAD'
+  PROJECT_LAUNCHPAD = 'PROJECT_LAUNCHPAD',
+  TENANT_MANAGEMENT = 'TENANT_MANAGEMENT',
+  TENANT_ANALYTICS = 'TENANT_ANALYTICS',
+  RESOURCE_OPTIMIZATION = 'RESOURCE_OPTIMIZATION',
+  DAILY_LOGS = 'DAILY_LOGS',
+  RFI = 'RFI',
+  CLIENT_PORTAL = 'CLIENT_PORTAL',
+  MAINTENANCE = 'MAINTENANCE',
+
+  // Phase 14
+  AUTOMATIONS = 'AUTOMATIONS',
+  PREDICTIVE_ANALYSIS = 'PREDICTIVE_ANALYSIS',
+  SMART_DOCS = 'SMART_DOCS',
+  PLATFORM_DASHBOARD = 'PLATFORM_DASHBOARD',
+  COMPANY_MANAGEMENT = 'COMPANY_MANAGEMENT',
+  COMPANY_SETTINGS = 'COMPANY_SETTINGS', // New Company Admin settings page
+  PLATFORM_MEMBERS = 'PLATFORM_MEMBERS',
+  ACCESS_CONTROL = 'ACCESS_CONTROL',
+  SYSTEM_LOGS = 'SYSTEM_LOGS',
+  SQL_CONSOLE = 'SQL_CONSOLE',
+  REGISTER = 'REGISTER',
+  SUBSCRIPTIONS = 'SUBSCRIPTIONS',
+  SECURITY_CENTER = 'SECURITY_CENTER',
+  SUPPORT_CENTER = 'SUPPORT_CENTER',
+  PLATFORM_NOTIFICATIONS = 'PLATFORM_NOTIFICATIONS',
+  GLOBAL_SETTINGS = 'GLOBAL_SETTINGS'
 }
 
 export enum UserRole {
-  SUPER_ADMIN = 'super_admin',
-  COMPANY_ADMIN = 'company_admin',
-  SUPERVISOR = 'supervisor',
-  OPERATIVE = 'operative'
+  CLIENT = 'CLIENT',
+  READ_ONLY = 'READ_ONLY',
+  OPERATIVE = 'OPERATIVE',
+  SUPERVISOR = 'SUPERVISOR',
+  FINANCE = 'FINANCE',
+  PROJECT_MANAGER = 'PROJECT_MANAGER',
+  COMPANY_ADMIN = 'COMPANY_ADMIN',
+  SUPERADMIN = 'SUPERADMIN',
+}
+
+/**
+ * Role hierarchy for privilege comparison
+ */
+export const ROLE_HIERARCHY: Record<UserRole, number> = {
+  [UserRole.CLIENT]: -1,
+  [UserRole.READ_ONLY]: 0,
+  [UserRole.OPERATIVE]: 1,
+  [UserRole.SUPERVISOR]: 2,
+  [UserRole.FINANCE]: 3,
+  [UserRole.PROJECT_MANAGER]: 4,
+  [UserRole.COMPANY_ADMIN]: 5,
+  [UserRole.SUPERADMIN]: 6,
+};
+
+export interface Permission {
+  id: string;
+  name: string; // e.g., 'projects.create'
+  resource: string;
+  action: string;
+  description?: string;
+}
+
+export interface Membership {
+  id: string;
+  userId: string;
+  companyId: string;
+  role: UserRole;
+  permissions?: string[];
+  status: 'active' | 'suspended' | 'invited' | 'inactive';
 }
 
 export interface Company {
   id: string;
   name: string;
-  plan: 'Enterprise' | 'Business' | 'Starter';
+  plan: 'Enterprise' | 'Business' | 'Starter' | 'Free' | 'Pro';
   status: 'Active' | 'Suspended' | 'Trial';
   users: number;
   projects: number;
   mrr: number;
   joinedDate: string;
+}
+
+// Enhanced tenant management types
+
+export interface Invoice {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  number: string;
+  vendor: string;
+  vendorId?: string;
+  amount: number;
+  total: number;
+  tax?: number;
+  date: string;
+  dueDate: string;
+  status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
+  costCodeId?: string;
+  items?: string; // JSON string for backend
+  files?: string;
+  attachments?: string[];
+  // Transformed on frontend
+  lineItems?: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
+}
+export interface Tenant {
+  id: string;
+  companyId: string;
+  name: string;
+  description?: string;
+  logo?: string;
+  website?: string;
+  email: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  plan: 'Enterprise' | 'Business' | 'Starter' | 'Custom' | 'Free' | 'Pro';
+  status: 'Active' | 'Suspended' | 'Trial' | 'Inactive';
+  settings: {
+    timezone: string;
+    language: string;
+    dateFormat: string;
+    currency: string;
+    emailNotifications: boolean;
+    dataRetention: number;
+    twoFactorAuth: boolean;
+    ipWhitelist?: string[];
+    sso: boolean;
+    customBranding: boolean;
+    primaryColor?: string;
+    accentColor?: string;
+  };
+  subscription: TenantSubscription;
+  createdAt: string;
+  updatedAt: string;
+  maxUsers?: number;
+  maxProjects?: number;
+  features?: TenantFeature[];
+  // Enhanced stats types
+  users?: number;
+  projects?: number;
+  mrr?: number;
+  joinedDate?: string;
+  members?: Array<{ id: string; name: string; email: string; role?: string; lastActive?: string; }>;
+}
+export interface TenantSubscription {
+  id: string;
+  planId: string;
+  status: 'active' | 'cancelled' | 'suspended' | 'past_due' | 'trialing';
+  currentPeriodStart: string;
+  currentPeriodEnd: string;
+  canceledAt?: string;
+  billingEmail: string;
+  billingAddress?: string;
+  paymentMethod?: string;
+}
+
+export interface TenantFeature {
+  id: string;
+  name: string;
+  enabled: boolean;
+  limit?: number; // e.g., max users, projects
+  usedCount?: number;
+}
+
+export interface TenantAuditLog {
+  id: string;
+  tenantId: string;
+  userId: string;
+  userName: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  changes?: Record<string, any>;
+  ipAddress?: string;
+  userAgent?: string;
+  status: 'success' | 'failure';
+  message?: string;
+  timestamp: string;
+}
+
+export interface TenantMember {
+  id: string;
+  tenantId: string;
+  userId: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'admin' | 'member' | 'viewer';
+  joinedAt: string;
+  lastActive?: string;
+  isActive: boolean;
+}
+
+export interface TenantUsage {
+  tenantId: string;
+  currentUsers: number;
+  currentProjects: number;
+  currentStorage: number; // MB
+  currentApiCalls: number;
+  period: string; // YYYY-MM
+  limit: {
+    users?: number;
+    projects?: number;
+    storage?: number; // MB
+    apiCalls?: number;
+  };
+}
+
+export interface TenantAnalytics {
+  tenantId: string;
+  period: string;
+  usage: TenantUsage;
+  trends: {
+    usersGrowth: number;
+    projectsGrowth: number;
+    storageGrowth: number;
+    apiCallsGrowth: number;
+  };
+  activityHeatmap: Record<string, number>;
+  securityScore: number;
 }
 
 export interface Zone {
@@ -129,6 +365,10 @@ export interface Task {
   dependencies?: string[]; // Array of Task IDs that must be completed before this task. Used for blocking logic.
   latitude?: number;
   longitude?: number;
+  startDate?: string; // ISO date string
+  duration?: number; // Number of days
+  progress?: number; // 0-100 percentage for Gantt chart
+  color?: string; // Hex color for Gantt visualization
 }
 
 export interface Certification {
@@ -145,13 +385,32 @@ export interface Certification {
   fileData?: string; // Base64 encoded string
 }
 
+export interface Skill {
+  name: string;
+  level: 1 | 2 | 3 | 4 | 5; // 1=Novice, 5=Expert
+  verified: boolean;
+}
+
+export interface PayRates {
+  standard: number;
+  overtime: number;
+  currency: string;
+}
+
+export interface EmergencyContact {
+  name: string;
+  relationship: string;
+  phone: string;
+  email?: string;
+}
+
 export interface TeamMember {
   id: string;
   companyId: string; // Multi-tenant segregation
   name: string;
   initials: string;
   role: string;
-  status: 'On Site' | 'Off Site' | 'On Break' | 'Leave';
+  status: 'On Site' | 'Off Site' | 'On Break' | 'Leave' | 'Invited';
   projectId?: string; // Current assignment
   projectName?: string; // Denormalized
   phone: string;
@@ -161,17 +420,34 @@ export interface TeamMember {
   bio?: string;
   location?: string;
   joinDate?: string;
-  skills?: string[];
+  skills?: Skill[];
   certifications?: Certification[];
   performanceRating?: number; // 0-100
   completedProjects?: number;
-  hourlyRate?: number;
+  rates?: PayRates; // Replaces hourlyRate
+  hourlyRate?: number; // Deprecated, kept for backward compat temporarily
+  // Enhanced Workforce Metrics
+  experience?: number; // Years
+  safetyIncidents?: number;
+  hoursWorked?: number;
+  availability?: string; // Denormalized status label if needed, or alias for status
+  emergencyContact?: EmergencyContact;
+  department?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
 }
 
 export interface ProjectDocument {
   id: string;
   name: string;
   type: 'PDF' | 'Spreadsheet' | 'Document' | 'Image' | 'CAD' | 'Other';
+  externalId?: string;
+  number?: string;
+  version?: string;
   projectId: string;
   projectName?: string;
   size: string;
@@ -180,6 +456,18 @@ export interface ProjectDocument {
   url?: string;
   linkedTaskIds?: string[]; // Linked tasks for easy reference
   linkedDayworkId?: string; // Link to Daywork for auto-generated docs
+  // Version Control
+  currentVersion: number;
+  versions?: {
+    id: string; // unique version ID
+    version: number;
+    url: string;
+    date: string;
+    author: string;
+    size: string;
+  }[];
+  // Markup
+  markupLayers?: string; // JSON string for Fabric.js/Canvas data containing annotations
 }
 
 export interface Client {
@@ -208,6 +496,7 @@ export interface InventoryItem {
   status: 'In Stock' | 'Low Stock' | 'Out of Stock';
   lastOrderDate?: string;
   costPerUnit?: number;
+  image?: string;
 }
 
 export interface UserProfile {
@@ -216,6 +505,8 @@ export interface UserProfile {
   email: string;
   phone: string;
   role: UserRole;
+  permissions: string[];
+  memberships: Membership[];
   companyId?: string;
   projectIds?: string[];
   avatarInitials: string;
@@ -247,6 +538,12 @@ export interface MarketplaceApp {
   installed: boolean;
 }
 
+export interface PlanMetadata {
+  documentId: string;
+  x: number;
+  y: number;
+}
+
 export interface RFI {
   id: string;
   projectId: string;
@@ -254,10 +551,11 @@ export interface RFI {
   subject: string;
   question: string;
   assignedTo: string;
-  status: 'Open' | 'Closed';
+  status: 'Draft' | 'Open' | 'Closed';
   dueDate: string;
   createdAt: string;
   answer?: string;
+  planMetadata?: PlanMetadata;
 }
 
 export interface PunchItem {
@@ -270,6 +568,7 @@ export interface PunchItem {
   status: 'Open' | 'Closed' | 'Resolved';
   createdAt: string;
   assignedTo?: string;
+  planMetadata?: PlanMetadata;
 }
 
 export interface DailyLog {
@@ -282,6 +581,11 @@ export interface DailyLog {
   notes?: string;
   author: string;
   createdAt: string;
+  // Signature Fields
+  status: 'Draft' | 'Signed';
+  signedBy?: string;
+  signedAt?: string;
+  attachments?: { url: string; name: string }[];
 }
 
 export interface DayworkLabor {
@@ -345,6 +649,7 @@ export interface SafetyHazard {
   regulation?: string; // e.g. OSHA 1926.501
   box_2d?: [number, number, number, number]; // [ymin, xmin, ymax, xmax] 0-1000 scale
   timestamp?: number | string;
+  projectId?: string;
 }
 
 export interface Equipment {
@@ -391,4 +696,158 @@ export interface TeamMessage {
   senderAvatar: string;
   content: string;
   createdAt: string;
+}
+
+export interface Transaction {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  date: string;
+  description: string;
+  amount: number;
+  type: 'income' | 'expense';
+  category: string;
+  status: 'completed' | 'pending';
+  invoice?: string;
+  linkedPurchaseOrderId?: string;
+  costCodeId?: string;
+  isExported?: boolean;
+  exportDate?: string;
+}
+
+// --- Procurement & Supply Chain ---
+export interface OrderItem {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface Approver {
+  id: string;
+  name: string;
+  role: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp?: string;
+  comment?: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  projectId?: string;
+  number: string;
+  vendor: string;
+  date: string;
+  amount: number;
+  status: 'draft' | 'pending_approval' | 'approved' | 'rejected' | 'completed' | 'received';
+  items: OrderItem[];
+  createdBy: string;
+  approvers: Approver[];
+  notes: string;
+  estimatedDeliveryDate?: string;
+  actualDeliveryDate?: string;
+  createdAt?: string;
+  companyId?: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  category: string;
+  contact: string;
+  email: string;
+  rating: number;
+  performance: number;
+  activeOrders: number;
+  spend: string;
+  status: 'Preferred' | 'Active' | 'Review';
+  reliabilityScore: number;
+  averageDeliveryDays: number;
+  lat?: number;
+  lng?: number;
+}
+// --- Quality Control & Defects ---
+export interface Defect {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string;
+  severity: 'High' | 'Medium' | 'Low' | 'Critical';
+  status: 'Open' | 'Resolved' | 'Remediating' | 'Closed';
+  location: string;
+  category: string;
+  createdAt: string;
+  resolvedAt?: string;
+  image?: string;
+  remediationTaskId?: string;
+  recommendation?: string;
+  companyId?: string;
+  box_2d?: [number, number, number, number];
+}
+
+// --- Project Health Forecasting ---
+export interface ProjectRisk {
+  id: string;
+  projectId: string;
+  riskLevel: 'High' | 'Medium' | 'Low' | 'Critical';
+  predictedDelayDays: number;
+  factors: string[];
+  recommendations: string[];
+  timestamp: string;
+  trend: 'Improving' | 'Degrading' | 'Stable';
+}
+
+export interface CostCode {
+  id: string;
+  projectId: string;
+  companyId: string;
+  code: string;
+  description: string;
+  budget: number;
+  spent: number;
+  var?: number;
+}
+
+export interface ExpenseClaim {
+  id: string;
+  projectId: string;
+  userId: string;
+  userName: string;
+  date: string;
+  category: 'Travel' | 'Materials' | 'Food' | 'Accommodation' | 'Other';
+  description: string;
+  amount: number;
+  receiptUrl?: string; // Image/PDF
+  status: 'Pending' | 'Approved' | 'Rejected' | 'Paid';
+  costCodeId?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  companyId: string;
+}
+
+export interface AccessLog {
+  id: number;
+  user: string;
+  event: string;
+  ip: string;
+  time: string;
+  status: 'success' | 'fail' | 'warning';
+}
+
+/**
+ * Shared Link for Client Portal Access
+ * Enables secure, token-based access to projects for external clients
+ */
+export interface SharedLink {
+  id: string;
+  projectId: string;
+  companyId: string;
+  token: string; // Cryptographically secure token for URL
+  password?: string; // Optional password protection (hashed)
+  expiresAt: string; // ISO timestamp
+  createdBy: string; // User ID who created the link
+  createdAt: string;
+  lastAccessedAt?: string;
+  accessCount: number;
+  isActive: boolean; // Can be manually revoked
 }

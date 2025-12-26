@@ -1,0 +1,42 @@
+* Host localhost:3002 was resolved.
+* IPv6: ::1
+* IPv4: 127.0.0.1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0*   Trying [::1]:3002...
+* connect to ::1 port 3002 from ::1 port 55857 failed: Connection refused
+*   Trying 127.0.0.1:3002...
+* Connected to localhost (127.0.0.1) port 3002
+> GET /api/user/permissions HTTP/1.1
+> Host: localhost:3002
+> User-Agent: curl/8.7.1
+> Accept: */*
+> Authorization: Bearer null
+> x-company-id: c1
+> 
+* Request completely sent off
+< HTTP/1.1 500 Internal Server Error
+< Content-Security-Policy: default-src 'self';style-src 'self' 'unsafe-inline';script-src 'self';img-src 'self' data: https: blob:;connect-src 'self' ws: wss:;font-src 'self' data:;base-uri 'self';form-action 'self';frame-ancestors 'self';object-src 'none';script-src-attr 'none';upgrade-insecure-requests
+< Cross-Origin-Opener-Policy: same-origin
+< Cross-Origin-Resource-Policy: same-origin
+< Origin-Agent-Cluster: ?1
+< Referrer-Policy: no-referrer
+< Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+< X-Content-Type-Options: nosniff
+< X-DNS-Prefetch-Control: off
+< X-Download-Options: noopen
+< X-Frame-Options: SAMEORIGIN
+< X-Permitted-Cross-Domain-Policies: none
+< X-XSS-Protection: 0
+< Access-Control-Allow-Origin: *
+< Content-Type: application/json; charset=utf-8
+< Content-Length: 57
+< ETag: W/"39-Ud0i4g07D442gAT71XHbRDcWC10"
+< Date: Tue, 23 Dec 2025 15:33:48 GMT
+< Connection: keep-alive
+< Keep-Alive: timeout=5
+< 
+{ [57 bytes data]
+100    57  100    57    0     0     72      0 --:--:-- --:--:-- --:--:--    72100    57  100    57    0     0     72      0 --:--:-- --:--:-- --:--:--    72
+* Connection #0 to host localhost left intact
+{"status":"error","message":"Something went very wrong!"}

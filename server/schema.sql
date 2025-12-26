@@ -24,9 +24,39 @@ CREATE TABLE IF NOT EXISTS projects (
   timelineOptimizations TEXT -- JSON array
 );
 
+-- Companies Table (Tenants)
+CREATE TABLE IF NOT EXISTS companies (
+  id TEXT PRIMARY KEY,
+  name TEXT,
+  plan TEXT,
+  status TEXT,
+  users INTEGER DEFAULT 0,
+  projects INTEGER DEFAULT 0,
+  mrr REAL DEFAULT 0,
+  joinedDate TEXT,
+  description TEXT,
+  logo TEXT,
+  website TEXT,
+  email TEXT,
+  phone TEXT,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  zipCode TEXT,
+  country TEXT,
+  settings TEXT, -- JSON string
+  subscription TEXT, -- JSON string
+  features TEXT, -- JSON array
+  maxUsers INTEGER,
+  maxProjects INTEGER,
+  createdAt TEXT,
+  updatedAt TEXT
+);
+
 -- Tasks Table
 CREATE TABLE IF NOT EXISTS tasks (
   id TEXT PRIMARY KEY,
+  companyId TEXT,
   title TEXT,
   description TEXT,
   projectId TEXT,
@@ -71,6 +101,7 @@ CREATE TABLE IF NOT EXISTS documents (
   name TEXT,
   type TEXT,
   projectId TEXT,
+  companyId TEXT,
   projectName TEXT,
   size TEXT,
   date TEXT,
@@ -113,6 +144,7 @@ CREATE TABLE IF NOT EXISTS inventory (
 CREATE TABLE IF NOT EXISTS rfis (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   number TEXT,
   subject TEXT,
   question TEXT,
@@ -127,6 +159,7 @@ CREATE TABLE IF NOT EXISTS rfis (
 CREATE TABLE IF NOT EXISTS punch_items (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   title TEXT,
   location TEXT,
   description TEXT,
@@ -140,6 +173,7 @@ CREATE TABLE IF NOT EXISTS punch_items (
 CREATE TABLE IF NOT EXISTS daily_logs (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   date TEXT,
   weather TEXT,
   notes TEXT,
@@ -153,6 +187,7 @@ CREATE TABLE IF NOT EXISTS daily_logs (
 CREATE TABLE IF NOT EXISTS dayworks (
   id TEXT PRIMARY KEY,
   projectId TEXT,
+  companyId TEXT,
   date TEXT,
   description TEXT,
   status TEXT,
@@ -171,6 +206,7 @@ CREATE TABLE IF NOT EXISTS safety_incidents (
   title TEXT,
   project TEXT,
   projectId TEXT,
+  companyId TEXT,
   severity TEXT,
   status TEXT,
   date TEXT,
@@ -226,4 +262,66 @@ CREATE TABLE IF NOT EXISTS team_messages (
   content TEXT,
   createdAt TEXT,
   FOREIGN KEY(channelId) REFERENCES channels(id)
+);
+
+-- Transactions Table
+CREATE TABLE IF NOT EXISTS transactions (
+  id TEXT PRIMARY KEY,
+  companyId TEXT,
+  projectId TEXT,
+  date TEXT,
+  description TEXT,
+  amount REAL,
+  type TEXT, -- 'income', 'expense'
+  category TEXT,
+  status TEXT, -- 'completed', 'pending'
+  invoice TEXT
+);
+
+-- Purchase Orders Table
+CREATE TABLE IF NOT EXISTS purchase_orders (
+  id TEXT PRIMARY KEY,
+  number TEXT,
+  vendor TEXT,
+  date TEXT,
+  amount REAL,
+  status TEXT,
+  createdBy TEXT,
+  items TEXT, -- JSON array of line items
+  approvers TEXT, -- JSON array of approvers
+  notes TEXT,
+  projectId TEXT,
+  companyId TEXT,
+  createdAt TEXT
+);
+
+-- Defects Table
+CREATE TABLE IF NOT EXISTS defects (
+  id TEXT PRIMARY KEY,
+  projectId TEXT,
+  companyId TEXT,
+  title TEXT,
+  description TEXT,
+  severity TEXT,
+  status TEXT,
+  location TEXT,
+  category TEXT,
+  createdAt TEXT,
+  resolvedAt TEXT,
+  image TEXT,
+  remediationTaskId TEXT,
+  recommendation TEXT,
+  box_2d TEXT -- JSON array
+);
+
+-- Project Risks Table
+CREATE TABLE IF NOT EXISTS project_risks (
+  id TEXT PRIMARY KEY,
+  projectId TEXT,
+  riskLevel TEXT,
+  predictedDelayDays INTEGER,
+  factors TEXT, -- JSON array
+  recommendations TEXT, -- JSON array
+  timestamp TEXT,
+  trend TEXT
 );

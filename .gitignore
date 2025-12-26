@@ -20,7 +20,6 @@ dist-ssr
 # Environment files
 .env
 .env.test
-.env.production
 
 # Server environment
 server/.env
@@ -35,3 +34,4 @@ server/.env
 *.njsproj
 *.sln
 *.sw?
+.vercel

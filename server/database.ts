@@ -2,12 +2,14 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const { Pool } = require('pg');
 const dotenv = require('dotenv');
+import { logger } from './utils/logger.js';
 
 dotenv.config();
 
 // Interface for our DB adapter to support both SQLite and Postgres
 export interface IDatabase {
   all<T = any>(sql: string, params?: any[]): Promise<T[]>;
+  get<T = any>(sql: string, params?: any[]): Promise<T | undefined>;
   run(sql: string, params?: any[]): Promise<any>;
   exec(sql: string): Promise<void>;
 }
@@ -19,6 +21,7 @@ class SqliteAdapter implements IDatabase {
   private db: any; // Type as any to avoid importing sqlite types at top level
   constructor(db: any) { this.db = db; }
   async all<T = any>(sql: string, params?: any[]) { return this.db.all(sql, params); }
+  async get<T = any>(sql: string, params?: any[]) { return this.db.get(sql, params); }
   async run(sql: string, params?: any[]) { return this.db.run(sql, params); }
   async exec(sql: string) { return this.db.exec(sql); }
 }
@@ -44,6 +47,11 @@ class PostgresAdapter implements IDatabase {
     return res.rows;
   }
 
+  async get<T = any>(sql: string, params?: any[]) {
+    const res = await this.pool.query(this.normalizeSql(sql), params);
+    return res.rows[0];
+  }
+
   async run(sql: string, params?: any[]) {
     const res = await this.pool.query(this.normalizeSql(sql), params);
     return { changes: res.rowCount };
@@ -59,6 +67,7 @@ export async function initializeDatabase() {
   if (initPromise) return initPromise;
 
   initPromise = (async () => {
+<<<<<<< HEAD
     const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
     if (connectionString) {
       console.log('Attempting PostgreSQL connection...');
@@ -76,59 +85,200 @@ export async function initializeDatabase() {
       console.log('Initializing SQLite connection...');
       try {
         // Use require for sqlite3 to ensure compatibility
+=======
+    // In production (Vercel), strictly require Postgres variables.
+    // We do NOT want to fall back to ephemeral SQLite in production as it leads to data loss.
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+
+      if (connectionString) {
+        logger.info('Initializing PostgreSQL connection for Production...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
+        logger.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
+        try {
+          const sqlite3 = require('sqlite3');
+          const { open } = require('sqlite');
+          // Cloud Run filesystem is Read-Only. Must use /tmp for ephemeral DB.
+          const dbPath = '/tmp/buildpro_db.sqlite';
+          const db = await open({ filename: dbPath, driver: sqlite3.Database });
+          await db.exec('PRAGMA foreign_keys = ON;');
+          dbInstance = new SqliteAdapter(db);
+        } catch (error) {
+          logger.error('SQLite Fallback Failed:', error);
+          throw new Error('Database initialization failed: No Postgres URL and SQLite failed.');
+        }
+      }
+    } else {
+      // Local development fallback
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (connectionString) {
+        logger.info('Initializing PostgreSQL connection...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        logger.warn('Using SQLite for local development...');
+>>>>>>> d8ed0dbbc2b4680a0b6a223d412b293e7b74a4f0
         const sqlite3 = require('sqlite3');
         const { open } = require('sqlite');
-
-        // Use /tmp on Vercel (ephemeral) or local file otherwise
-        const dbPath = process.env.VERCEL ? '/tmp/buildpro_db.sqlite' : './buildpro_db.sqlite';
-
-        const db = await open({
-          filename: dbPath,
-          driver: sqlite3.Database
-        });
+        const db = await open({ filename: './buildpro_db.sqlite', driver: sqlite3.Database });
         await db.exec('PRAGMA foreign_keys = ON;');
         dbInstance = new SqliteAdapter(db);
-      } catch (error) {
-        console.error('Failed to load SQLite:', error);
-        throw new Error('SQLite initialization failed. Ensure sqlite3 is installed or use DATABASE_URL.');
       }
     }
 
-    await initSchema(dbInstance);
-    console.log('Database initialized');
+    // Initialize schema
+    await initializeSchema(dbInstance);
     return dbInstance;
   })();
 
   return initPromise;
 }
 
-export async function ensureDbInitialized() {
+export async function ensureDbInitialized(): Promise<IDatabase> {
+  return initializeDatabase();
+}
+
+export function getDb(): IDatabase {
   if (!dbInstance) {
-    await initializeDatabase();
+    throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
   return dbInstance;
 }
 
-export function getDb() {
-  if (!dbInstance) {
-    throw new Error('Database not initialized. Call ensureDbInitialized() first.');
-  }
-  return dbInstance;
-}
+async function initializeSchema(db: IDatabase) {
+  logger.info('Initializing database schema...');
 
-async function initSchema(db: IDatabase) {
+  // Companies table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS companies (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      status TEXT DEFAULT 'Active',
+      plan TEXT DEFAULT 'Starter',
+      logo TEXT,
+      address TEXT,
+      subscriptionTier TEXT DEFAULT 'FREE',
+      maxProjects INTEGER DEFAULT 5,
+      maxUsers INTEGER DEFAULT 10,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      isActive BOOLEAN DEFAULT TRUE
+    )
+  `);
+
+  // Companies Schema Migrations (Safe Add)
+  initPromise = (async () => {
+    // In production (Vercel), strictly require Postgres variables.
+    // We do NOT want to fall back to ephemeral SQLite in production as it leads to data loss.
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (connectionString) {
+        logger.info('Initializing PostgreSQL connection for Production...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        // Fallback to SQLite if no Postgres URL is provided (e.g. Cloud Run Demo)
+        logger.warn('WARNING: DATABASE_URL missing in production. Falling back to SQLite (Ephemeral).');
+        try {
+          const sqlite3 = require('sqlite3');
+          const { open } = require('sqlite');
+          // Cloud Run filesystem is Read-Only. Must use /tmp for ephemeral DB.
+          const dbPath = '/tmp/buildpro_db.sqlite';
+          const db = await open({ filename: dbPath, driver: sqlite3.Database });
+          await db.exec('PRAGMA foreign_keys = ON;');
+          dbInstance = new SqliteAdapter(db);
+        } catch (error) {
+          logger.error('SQLite Fallback Failed:', error);
+          throw new Error('Database initialization failed: No Postgres URL and SQLite failed.');
+        }
+      }
+    } else {
+      // Local development fallback
+      const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+      if (connectionString) {
+        logger.info('Initializing PostgreSQL connection...');
+        dbInstance = new PostgresAdapter(connectionString);
+      } else {
+        logger.warn('Using SQLite for local development...');
+        const sqlite3 = require('sqlite3');
+        const { open } = require('sqlite');
+        const db = await open({ filename: './buildpro_db.sqlite', driver: sqlite3.Database });
+        await db.exec('PRAGMA foreign_keys = ON;');
+        dbInstance = new SqliteAdapter(db);
+      }
+    }
+    // Initialize schema
+    await initializeSchema(dbInstance);
+    return dbInstance;
+  })();
+  `);
+
+  // Memberships table (RBAC)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS memberships (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      companyId TEXT NOT NULL,
+      role TEXT NOT NULL,
+      permissions TEXT,
+      status TEXT DEFAULT 'active',
+      joinedAt TEXT,
+      invitedBy TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Permissions table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS permissions (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL UNIQUE,
+      description TEXT,
+      resource TEXT NOT NULL,
+      action TEXT NOT NULL,
+      createdAt TEXT,
+      updatedAt TEXT
+    )
+  `);
+
+  // Roles table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS roles (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT,
+      permissions TEXT,
+      createdAt TEXT,
+      updatedAt TEXT
+    )
+  `);
+
+  // Role Permissions table
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS role_permissions (
+      roleId TEXT NOT NULL,
+      permissionId TEXT NOT NULL,
+      PRIMARY KEY (roleId, permissionId),
+      FOREIGN KEY (permissionId) REFERENCES permissions(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Projects table
   await db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
-      companyId TEXT,
-      name TEXT,
+      companyId TEXT NOT NULL,
       code TEXT,
+      name TEXT NOT NULL,
       description TEXT,
       location TEXT,
       type TEXT,
       status TEXT,
       health TEXT,
-      progress INTEGER,
+      progress REAL,
       budget REAL,
       spent REAL,
       startDate TEXT,
@@ -136,241 +286,675 @@ async function initSchema(db: IDatabase) {
       manager TEXT,
       image TEXT,
       teamSize INTEGER,
-      weatherLocation TEXT, -- JSON string
+      weatherLocation TEXT,
       aiAnalysis TEXT,
-      zones TEXT, -- JSON array
-      phases TEXT, -- JSON array
-      timelineOptimizations TEXT -- JSON array
-    );
+      zones TEXT,
+      phases TEXT,
+      timelineOptimizations TEXT,
+      createdAt TEXT,
+      updatedAt TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
 
+  // Shared Links table (NEW for Client Portal)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS shared_links (
+      id TEXT PRIMARY KEY,
+      projectId TEXT NOT NULL,
+      companyId TEXT NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      password TEXT,
+      expiresAt TEXT NOT NULL,
+      createdBy TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      lastAccessedAt TEXT,
+      accessCount INTEGER DEFAULT 0,
+      isActive BOOLEAN DEFAULT TRUE,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Tasks
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS tasks (
       id TEXT PRIMARY KEY,
-      title TEXT,
+      projectId TEXT NOT NULL,
+      companyId TEXT NOT NULL,
+      title TEXT NOT NULL,
       description TEXT,
-      projectId TEXT,
-      status TEXT,
-      priority TEXT,
-      assigneeId TEXT,
-      assigneeName TEXT,
-      assigneeType TEXT,
+      status TEXT NOT NULL,
+      priority TEXT NOT NULL,
+      assignedTo TEXT,
       dueDate TEXT,
-      latitude REAL,
-      longitude REAL,
-      dependencies TEXT, -- JSON array string
-      FOREIGN KEY(projectId) REFERENCES projects(id)
-    );
+      startDate TEXT,
+      duration INTEGER,
+      dependencies TEXT,
+      progress INTEGER DEFAULT 0,
+      color TEXT,
+      createdBy TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
 
+  // Tasks Schema Migration (Safe Add - wrapped in try-catch for SQLite compatibility)
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN startDate TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN duration INTEGER;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN dependencies TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN progress INTEGER DEFAULT 0;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN color TEXT;`); } catch (e) { /* Column may already exist */ }
+
+  // Team
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS team (
       id TEXT PRIMARY KEY,
-      companyId TEXT,
-      name TEXT,
-      initials TEXT,
-      role TEXT,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT,
+      role TEXT NOT NULL,
+      phone TEXT,
+      skills TEXT,
+      certifications TEXT,
       status TEXT,
       projectId TEXT,
-      projectName TEXT,
-      phone TEXT,
-      color TEXT,
-      email TEXT,
-      bio TEXT,
+      availability TEXT,
       location TEXT,
-      skills TEXT, -- JSON array
-      certifications TEXT, -- JSON array
-      performanceRating INTEGER,
-      completedProjects INTEGER,
-      joinDate TEXT,
-      hourlyRate REAL
-    );
+      avatar TEXT,
+      hourlyRate REAL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
 
+  // Documents
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS documents (
       id TEXT PRIMARY KEY,
-      name TEXT,
-      type TEXT,
-      projectId TEXT,
+      companyId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
       projectName TEXT,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL,
       size TEXT,
       date TEXT,
       status TEXT,
       url TEXT,
-      linkedTaskIds TEXT -- JSON array
-    );
+      linkedTaskIds TEXT,
+      currentVersion INTEGER,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
 
+  // Clients
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY,
-      companyId TEXT,
-      name TEXT,
-      contactPerson TEXT,
-      role TEXT,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      company TEXT,
       email TEXT,
       phone TEXT,
+      projects TEXT,
+      totalValue REAL,
       status TEXT,
-      tier TEXT,
-      activeProjects INTEGER,
-      totalValue TEXT
-    );
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
 
+  // Inventory
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS inventory (
       id TEXT PRIMARY KEY,
-      companyId TEXT,
-      name TEXT,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
       category TEXT,
-      stock INTEGER,
+      quantity INTEGER,
       unit TEXT,
-      threshold INTEGER,
+      location TEXT,
+      reorderLevel INTEGER,
+      status TEXT,
+      supplier TEXT,
+      unitCost REAL,
+      totalValue REAL,
+      lastRestocked TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Equipment
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS equipment (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT,
+      model TEXT,
+      serialNumber TEXT,
       status TEXT,
       location TEXT,
-      lastOrderDate TEXT,
-      costPerUnit REAL
-    );
+      assignedTo TEXT,
+      purchaseDate TEXT,
+      nextMaintenance TEXT,
+      utilizationRate INTEGER,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
 
+  // RFIs
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS rfis (
       id TEXT PRIMARY KEY,
-      projectId TEXT,
-      number TEXT,
-      subject TEXT,
-      question TEXT,
-      answer TEXT,
+      companyId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
+      number TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      description TEXT,
+      raisedBy TEXT,
+      assignedTo TEXT,
+      priority TEXT,
+      status TEXT,
+      dueDate TEXT,
+      createdAt TEXT,
+      response TEXT,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Punch Items
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS punch_items (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
+      location TEXT,
+      description TEXT,
+      priority TEXT,
       assignedTo TEXT,
       status TEXT,
       dueDate TEXT,
-      createdAt TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS punch_items (
-      id TEXT PRIMARY KEY,
-      projectId TEXT,
-      title TEXT,
-      location TEXT,
-      description TEXT,
-      status TEXT,
-      priority TEXT,
-      assignedTo TEXT,
-      createdAt TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS daily_logs (
-      id TEXT PRIMARY KEY,
-      projectId TEXT,
-      date TEXT,
-      weather TEXT,
-      notes TEXT,
-      workPerformed TEXT,
-      crewCount INTEGER,
-      author TEXT,
-      createdAt TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS dayworks (
-      id TEXT PRIMARY KEY,
-      projectId TEXT,
-      date TEXT,
-      description TEXT,
-      status TEXT,
       createdAt TEXT,
-      labor TEXT, -- JSON array
-      materials TEXT, -- JSON array
-      attachments TEXT, -- JSON array
-      totalLaborCost REAL,
-      totalMaterialCost REAL,
-      grandTotal REAL
-    );
-
-    CREATE TABLE IF NOT EXISTS safety_incidents (
-      id TEXT PRIMARY KEY,
-      title TEXT,
-      project TEXT,
-      projectId TEXT,
-      severity TEXT,
-      status TEXT,
-      date TEXT,
-      type TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS equipment (
-      id TEXT PRIMARY KEY,
-      name TEXT,
-      type TEXT,
-      status TEXT,
-      projectId TEXT,
-      projectName TEXT,
-      lastService TEXT,
-      nextService TEXT,
-      companyId TEXT,
-      image TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS timesheets (
-      id TEXT PRIMARY KEY,
-      employeeId TEXT,
-      employeeName TEXT,
-      projectId TEXT,
-      projectName TEXT,
-      date TEXT,
-      hours REAL,
-      startTime TEXT,
-      endTime TEXT,
-      status TEXT,
-      companyId TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS channels (
-      id TEXT PRIMARY KEY,
-      companyId TEXT,
-      name TEXT,
-      type TEXT,
-      unreadCount INTEGER DEFAULT 0
-    );
-
-    CREATE TABLE IF NOT EXISTS team_messages (
-      id TEXT PRIMARY KEY,
-      channelId TEXT,
-      senderId TEXT,
-      senderName TEXT,
-      senderRole TEXT,
-      senderAvatar TEXT,
-      content TEXT,
-      createdAt TEXT,
-      FOREIGN KEY(channelId) REFERENCES channels(id)
-    );
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
   `);
 
-  // Migration: Add timelineOptimizations if not exists
-  try {
-    await db.exec('ALTER TABLE projects ADD COLUMN timelineOptimizations TEXT');
-  } catch (e) {
-    // Column likely exists
+  // Daily Logs
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS daily_logs (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
+      date TEXT,
+      weather TEXT,
+      temperature TEXT,
+      workforce INTEGER,
+      activities TEXT,
+      equipment TEXT,
+      delays TEXT,
+      safetyIssues TEXT,
+      notes TEXT,
+      createdBy TEXT,
+      status TEXT DEFAULT 'Draft',
+      signedBy TEXT,
+      signedAt TEXT,
+      attachments TEXT,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies (id) ON DELETE CASCADE
+    )
+  `);
+
+  // Daily Logs Schema Migration (Safe Add)
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN status TEXT DEFAULT 'Draft';`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN signedBy TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN signedAt TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN attachments TEXT;`); } catch (e) { /* Column may already exist */ }
+
+  // Dayworks
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS dayworks (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
+      date TEXT,
+      description TEXT,
+      labor TEXT,
+      materials TEXT,
+      grandTotal REAL,
+      status TEXT,
+      attachments TEXT,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Safety Incidents
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS safety_incidents (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      type TEXT,
+      title TEXT,
+      severity TEXT,
+      date TEXT,
+      location TEXT,
+      description TEXT,
+      personInvolved TEXT,
+      actionTaken TEXT,
+      status TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Safety Hazards
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS safety_hazards (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      type TEXT,
+      severity TEXT,
+      riskScore REAL,
+      description TEXT,
+      recommendation TEXT,
+      regulation TEXT,
+      box_2d TEXT,
+      timestamp TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Timesheets
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS timesheets (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      userId TEXT,
+      userName TEXT,
+      date TEXT,
+      projectId TEXT,
+      projectName TEXT,
+      hoursWorked REAL,
+      task TEXT,
+      status TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Channels
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS channels (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      isPrivate BOOLEAN,
+      memberIds TEXT,
+      createdAt TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Team Messages
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS team_messages (
+      id TEXT PRIMARY KEY,
+      channelId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      userName TEXT NOT NULL,
+      message TEXT NOT NULL,
+      timestamp TEXT NOT NULL,
+      avatar TEXT,
+      attachments TEXT,
+      FOREIGN KEY (channelId) REFERENCES channels(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Transactions
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS transactions (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      type TEXT NOT NULL,
+      amount REAL NOT NULL,
+      description TEXT,
+      category TEXT,
+      date TEXT,
+      status TEXT,
+      costCodeId TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Purchase Orders
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      poNumber TEXT UNIQUE NOT NULL,
+      vendor TEXT NOT NULL,
+      items TEXT NOT NULL,
+      total REAL NOT NULL,
+      status TEXT NOT NULL,
+      requestedBy TEXT,
+      approvers TEXT,
+      dateCreated TEXT,
+      dateRequired TEXT,
+      notes TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Defects
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS defects (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      severity TEXT,
+      status TEXT,
+      reportedBy TEXT,
+      assignedTo TEXT,
+      location TEXT,
+      box_2d TEXT,
+      createdAt TEXT,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Project Risks
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS project_risks (
+      id TEXT PRIMARY KEY,
+      projectId TEXT NOT NULL,
+      riskLevel TEXT,
+      predictedDelayDays INTEGER,
+      factors TEXT,
+      recommendations TEXT,
+      timestamp TEXT,
+      trend TEXT,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Audit Logs
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      userName TEXT,
+      action TEXT NOT NULL,
+      resource TEXT,
+      resourceId TEXT,
+      changes TEXT,
+      status TEXT,
+      timestamp TEXT NOT NULL,
+      ipAddress TEXT,
+      userAgent TEXT
+    )
+  `);
+
+  // System Settings (Global Config)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      updatedBy TEXT
+    )
+  `);
+
+  // Support Tickets
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'OPEN',
+      priority TEXT NOT NULL DEFAULT 'MEDIUM',
+      category TEXT,
+      lastMessageAt TEXT,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Ticket Messages
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS ticket_messages (
+      id TEXT PRIMARY KEY,
+      ticketId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      userName TEXT NOT NULL,
+      message TEXT NOT NULL,
+      isAdmin BOOLEAN DEFAULT FALSE,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (ticketId) REFERENCES support_tickets(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Vendors (Supply Chain)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS vendors (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT,
+      contact TEXT,
+      email TEXT,
+      phone TEXT,
+      rating REAL,
+      status TEXT,
+      company_id TEXT,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Cost Codes (Financials)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS cost_codes (
+      id TEXT PRIMARY KEY,
+      project_id TEXT,
+      company_id TEXT,
+      code TEXT,
+      description TEXT,
+      budget REAL,
+      spent REAL DEFAULT 0,
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Invoices
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      number TEXT,
+      vendorId TEXT,
+      amount REAL,
+      date TEXT,
+      dueDate TEXT,
+      status TEXT,
+      costCodeId TEXT,
+      items TEXT,
+      files TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Expense Claims
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS expense_claims (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      userId TEXT,
+      description TEXT,
+      amount REAL,
+      date TEXT,
+      category TEXT,
+      status TEXT,
+      costCodeId TEXT,
+      receiptUrl TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Notifications
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      link TEXT,
+      isRead BOOLEAN DEFAULT FALSE,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Comments table for collaboration
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      parent_id TEXT,
+      content TEXT NOT NULL,
+      mentions TEXT,
+      attachments TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Activity feed table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS activity_feed (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      project_id TEXT,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      action TEXT NOT NULL,
+      entity_type TEXT NOT NULL,
+      entity_id TEXT NOT NULL,
+      metadata TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Notification preferences table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notification_preferences (
+      user_id TEXT PRIMARY KEY,
+      email_mentions BOOLEAN DEFAULT TRUE,
+      email_assignments BOOLEAN DEFAULT TRUE,
+      email_comments BOOLEAN DEFAULT TRUE,
+      email_digest_frequency TEXT DEFAULT 'daily',
+      push_enabled BOOLEAN DEFAULT FALSE
+    )
+  `);
+
+  // Platform System Events (Phase 11)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS system_events (
+      id TEXT PRIMARY KEY,
+      type TEXT NOT NULL,
+      level TEXT NOT NULL,
+      message TEXT NOT NULL,
+      source TEXT NOT NULL,
+      metadata TEXT,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // External Integrations table (Phase 13)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS integrations (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      type TEXT NOT NULL,
+      status TEXT NOT NULL,
+      accessToken TEXT,
+      refreshToken TEXT,
+      lastSyncedAt TEXT,
+      settings TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Task assignments for resource allocation (Phase 9C)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS task_assignments (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      user_name TEXT,
+      role TEXT,
+      allocated_hours REAL,
+      actual_hours REAL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Automations Table (Phase 14)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS automations (
+      id TEXT PRIMARY KEY,
+      companyId TEXT NOT NULL,
+      name TEXT NOT NULL,
+      triggerType TEXT NOT NULL, -- e.g., 'task_completed', 'safety_incident_high', 'rfi_created'
+      actionType TEXT NOT NULL,  -- e.g., 'send_notification', 'update_status', 'email_pm'
+      configuration TEXT,        -- JSON string of settings
+      enabled BOOLEAN DEFAULT TRUE,
+      createdAt TEXT,
+      updatedAt TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Initialize default maintenance mode (OFF) if not exists
+  const maintenanceSetting = await db.get('SELECT key FROM system_settings WHERE key = ?', ['maintenance_mode']);
+  if (!maintenanceSetting) {
+    await db.run(
+      `INSERT INTO system_settings (key, value, updatedAt, updatedBy) VALUES (?, ?, ?, ?)`,
+      ['maintenance_mode', 'false', new Date().toISOString(), 'system']
+    );
   }
 
-  // Migration: Add image to equipment
-  try {
-    await db.exec('ALTER TABLE equipment ADD COLUMN image TEXT');
-  } catch (e) {
-    // Column likely exists
-  }
-
-  // Migration: Add joinDate and hourlyRate to team
-  try {
-    await db.exec('ALTER TABLE team ADD COLUMN joinDate TEXT');
-  } catch (e) {
-    // Column likely exists
-  }
-  try {
-    await db.exec('ALTER TABLE team ADD COLUMN hourlyRate REAL');
-  } catch (e) {
-    // Column likely exists
-  }
-
-  // Migration: Add employeeId to timesheets
-  try {
-    await db.exec('ALTER TABLE timesheets ADD COLUMN employeeId TEXT');
-  } catch (e) {
-    // Column likely exists
-  }
-
-  // Migration: Add assigneeId to tasks
-  try {
-    await db.exec('ALTER TABLE tasks ADD COLUMN assigneeId TEXT');
-  } catch (e) {
-    // Column likely exists
-  }
+  logger.info('Database schema initialized successfully');
 }
+
+export default {
+  initializeDatabase,
+  ensureDbInitialized,
+  getDb
+};

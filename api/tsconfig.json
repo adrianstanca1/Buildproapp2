@@ -5,7 +5,8 @@
     "moduleResolution": "NodeNext",
     "noEmit": false,
     "outDir": "../dist/api",
-    "target": "ES2022"
+    "target": "ES2022",
+    "allowImportingTsExtensions": false
   },
   "include": [
     "index.ts",
