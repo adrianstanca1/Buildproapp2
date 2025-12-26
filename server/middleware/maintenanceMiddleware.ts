@@ -1,4 +1,3 @@
-
 import { Request, Response, NextFunction } from 'express';
 import { getDb } from '../database.js';
 import { UserRole } from '../../types.js';
@@ -8,25 +7,36 @@ export const maintenanceMiddleware = async (req: Request, res: Response, next: N
     try {
         const db = getDb();
         const maintenanceSetting = await db.get('SELECT value FROM system_settings WHERE key = ?', ['maintenance_mode']);
+        const maintenanceSettingCamel = await db.get('SELECT value FROM system_settings WHERE key = ?', ['maintenanceMode']);
         const globalConfig = await db.get('SELECT value FROM system_settings WHERE key = ?', ['global_config']);
 
         let isMaintenance = false;
 
+        // Check snake_case key
         if (maintenanceSetting) {
             try {
                 const val = JSON.parse(maintenanceSetting.value);
                 if (val && typeof val === 'object' && val.enabled === true) isMaintenance = true;
-                if (maintenanceSetting.value === 'true') isMaintenance = true;
-            } catch (e) {
-                if (maintenanceSetting.value === 'true') isMaintenance = true;
-            }
+            } catch (error) { /* ignore */ }
+            if (maintenanceSetting.value === 'true') isMaintenance = true;
+        }
+
+        // Check camelCase key (Frontend default)
+        if (maintenanceSettingCamel && !isMaintenance) {
+            if (maintenanceSettingCamel.value === 'true' || maintenanceSettingCamel.value === '1') isMaintenance = true;
+            try {
+                const val = JSON.parse(maintenanceSettingCamel.value);
+                if (val === true) isMaintenance = true;
+            } catch (e) { /* ignore */ }
         }
 
         if (globalConfig && !isMaintenance) {
             try {
                 const config = JSON.parse(globalConfig.value);
                 if (config && config.maintenanceMode === true) isMaintenance = true;
-            } catch (e) { }
+            } catch (e) {
+                // Ignore parsing errors for global config
+            }
         }
 
         if (!isMaintenance) {

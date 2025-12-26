@@ -5,7 +5,7 @@ import {
     MoreHorizontal, Shield, DollarSign, Users, Briefcase, HardHat, CheckSquare, Map as MapIcon,
     FileText, PlusSquare, UserCheck, GitPullRequest, MessageSquare, FileBarChart, Settings, RotateCcw,
     Clipboard, Camera, Pin, Search, List, BookOpen, Plus, Video, Aperture, Link,
-    ChevronRight, PieChart, AlertTriangle, Wrench, Loader2
+    ChevronRight, PieChart, AlertTriangle, Wrench, Loader2, CheckIcon, Terminal, Lock, Navigation, Zap
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -52,8 +52,7 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
     const generateBriefing = async () => {
         setLoading(true);
         try {
-            // SafetyHazard has no status, assume all in list are "active" hazards or filter by severity/risk
-            const openHazards = safetyHazards; // .filter(h => h.status === 'Open');
+            const openHazards = safetyHazards;
             const maintenanceDone = equipment.filter(e => e.status === 'Maintenance').length;
             const overdueService = equipment.filter(e => {
                 if (!e.nextService) return false;
@@ -79,17 +78,19 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
             const userName = user?.name || 'User';
             const userRole = role || 'Admin';
             const contextStr = JSON.stringify(context);
-            const prompt = "Act as a Chief of Staff AI for a Construction Executive.\n" +
-                "Generate a personalized 'Daily Briefing' for " + userName + " in the role of " + userRole + ".\n\n" +
-                "Data context: " + contextStr + "\n\n" +
-                "Return JSON:\n" +
-                "{\n" +
-                '  "greeting": "Personalized morning greeting",\n' +
-                '  "agenda": ["Item 1", "Item 2", "Item 3"],\n' +
-                '  "risks": ["Risk 1", "Risk 2"],\n' +
-                '  "wins": ["Recent win or positive trend"],\n' +
-                '  "quote": "Motivational construction/leadership quote"\n' +
-                "}";
+            const prompt = `Act as a Chief of Staff AI for a Construction Executive.
+Generate a personalized 'Daily Briefing' for ${userName} in the role of ${userRole}.
+
+Data context: ${contextStr}
+
+Return JSON:
+{
+  "greeting": "Personalized morning greeting",
+  "agenda": ["Item 1", "Item 2", "Item 3"],
+  "risks": ["Risk 1", "Risk 2"],
+  "wins": ["Recent win or positive trend"],
+  "quote": "Motivational construction/leadership quote"
+}`;
 
 
             const res = await runRawPrompt(prompt, {
@@ -110,9 +111,9 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
     }, [role]);
 
     if (loading) return (
-        <div className="bg-white/40 backdrop-blur-md border border-white/20 rounded-[2rem] p-8 animate-pulse flex items-center justify-center gap-4 min-h-[160px]">
-            <Loader2 className="animate-spin text-[#0f5c82]" />
-            <span className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Assembling your daily briefing...</span>
+        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8 animate-pulse flex items-center justify-center gap-4 min-h-[220px]">
+            <Loader2 className="animate-spin text-sky-400" />
+            <span className="font-bold text-zinc-400 uppercase tracking-widest text-xs">Assembling Intelligent Briefing...</span>
         </div>
     );
 
@@ -120,47 +121,50 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
 
     return (
         <div className="relative group overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0f5c82]/10 to-blue-400/5 rounded-[2.5rem] -z-10 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
-            <div className="bg-white/60 backdrop-blur-xl border border-white/40 rounded-[2.5rem] p-8 shadow-2xl shadow-[#0f5c82]/5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-                    <Sparkles size={120} />
+            {/* Ambient Background Glow */}
+            <div className="absolute -top-24 -left-24 w-96 h-96 bg-sky-500/10 rounded-full blur-[100px] -z-10 group-hover:bg-sky-400/20 transition-all duration-700"></div>
+            <div className="absolute -bottom-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-[100px] -z-10 group-hover:bg-indigo-400/20 transition-all duration-700"></div>
+
+            <div className="bg-white/5 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden transition-all duration-500 hover:border-white/20">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity">
+                    <Sparkles size={160} className="text-white" />
                 </div>
 
-                <div className="flex flex-col md:flex-row gap-10 items-start">
-                    <div className="flex-1 space-y-6">
+                <div className="flex flex-col md:flex-row gap-12 items-start relative z-10">
+                    <div className="flex-1 space-y-8">
                         <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 bg-[#0f5c82] text-white rounded-xl shadow-lg shadow-[#0f5c82]/20">
-                                    <Sparkles size={18} />
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-gradient-to-br from-sky-400 to-indigo-600 rounded-xl shadow-lg shadow-sky-500/20">
+                                    <Sparkles size={20} className="text-white" />
                                 </div>
-                                <h3 className="text-sm font-black text-[#0f5c82] uppercase tracking-[0.2em]">AI Intelligence Briefing</h3>
+                                <h3 className="text-[10px] font-black text-sky-400 uppercase tracking-[0.3em]">AI Intelligence Briefing</h3>
                             </div>
-                            <h2 className="text-3xl font-black text-zinc-900 tracking-tight">{briefing.greeting}</h2>
+                            <h2 className="text-4xl font-black text-white tracking-tight leading-[1.1]">{briefing.greeting}</h2>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                            <div className="space-y-5">
                                 <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                                    <Clock size={12} className="text-blue-500" /> Focus for Today
+                                    <Clock size={14} className="text-sky-400" /> Strategic Priorities
                                 </h4>
-                                <ul className="space-y-2">
+                                <ul className="space-y-4">
                                     {briefing.agenda?.map((item: string, i: number) => (
-                                        <li key={i} className="flex items-start gap-3 text-sm font-bold text-zinc-700">
-                                            <div className="mt-1 w-1.5 h-1.5 bg-blue-400 rounded-full" />
-                                            {item}
+                                        <li key={i} className="flex items-start gap-4 transition-transform hover:translate-x-1 duration-300">
+                                            <div className="mt-1.5 w-1.5 h-1.5 bg-sky-400 rounded-full shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                                            <span className="text-sm font-semibold text-zinc-300 leading-relaxed">{item}</span>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
-                            <div className="space-y-4">
+                            <div className="space-y-5">
                                 <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-                                    <AlertCircle size={12} className="text-orange-500" /> Critical Risks
+                                    <AlertCircle size={14} className="text-rose-500" /> Critical Risk Vectors
                                 </h4>
-                                <ul className="space-y-2">
+                                <ul className="space-y-4">
                                     {briefing.risks?.map((risk: string, i: number) => (
-                                        <li key={i} className="flex items-start gap-3 text-sm font-bold text-zinc-700">
-                                            <div className="mt-1 w-1.5 h-1.5 bg-orange-400 rounded-full" />
-                                            {risk}
+                                        <li key={i} className="flex items-start gap-4 transition-transform hover:translate-x-1 duration-300">
+                                            <div className="mt-1.5 w-1.5 h-1.5 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)]" />
+                                            <span className="text-sm font-semibold text-zinc-300 leading-relaxed">{risk}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -168,15 +172,15 @@ const AIDailyBriefing: React.FC<{ role: UserRole }> = ({ role }) => {
                         </div>
                     </div>
 
-                    <div className="w-full md:w-64 space-y-6">
-                        <div className="p-6 bg-zinc-900 rounded-3xl text-white shadow-xl shadow-zinc-900/10">
-                            <TrendingUp size={24} className="text-green-400 mb-4" />
-                            <p className="text-[10px] font-black text-zinc-500 uppercase mb-2">Key Win</p>
-                            <p className="text-sm font-bold italic">&quot;{briefing.wins?.[0]}&quot;</p>
+                    <div className="w-full md:w-72 space-y-6">
+                        <div className="p-6 bg-gradient-to-br from-zinc-900/80 to-zinc-900 rounded-[2rem] border border-white/5 shadow-2xl">
+                            <TrendingUp size={28} className="text-emerald-400 mb-4" />
+                            <p className="text-[10px] font-black text-zinc-500 uppercase mb-3 tracking-widest">Global Traction</p>
+                            <p className="text-sm font-bold text-white leading-snug italic tracking-tight">&quot;{briefing.wins?.[0]}&quot;</p>
                         </div>
-                        <div className="px-6 border-l-4 border-[#0f5c82]/20 py-2">
-                            <p className="text-[10px] text-zinc-400 font-bold mb-1 uppercase tracking-tighter">Daily Wisdom</p>
-                            <p className="text-xs text-zinc-500 font-medium italic">&quot;{briefing.quote}&quot;</p>
+                        <div className="px-6 py-4 border-l-2 border-sky-500/30 bg-white/5 rounded-r-2xl transform transition-transform hover:scale-[1.02]">
+                            <p className="text-[10px] text-sky-400 font-black mb-2 uppercase tracking-widest">Leadership Insight</p>
+                            <p className="text-xs text-zinc-400 font-medium italic leading-relaxed">&quot;{briefing.quote}&quot;</p>
                         </div>
                     </div>
                 </div>
@@ -250,7 +254,7 @@ const QuickActionsGrid: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
 // --- 2. COMPANY ADMIN DASHBOARD ---
 const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
     const { projects, safetyHazards, equipment } = useProjects();
-    const { canAddResource, currentTenant, checkFeature } = useTenant();
+    const { canAddResource, currentTenant } = useTenant();
 
     const totalRevenue = useMemo(() => projects.reduce((sum, p) => sum + (p.budget || 0), 0), [projects]);
     const activeProjectsCount = projects.length;
@@ -258,177 +262,249 @@ const CompanyAdminDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ se
     const healthPercentage = activeProjectsCount > 0 ? Math.round((healthyProjects / activeProjectsCount) * 100) : 100;
 
     return (
-        <div className="p-8 max-w-7xl mx-auto space-y-10">
-            <div className="flex justify-between items-start">
-                <div>
-                    <h1 className="text-4xl font-black text-zinc-900 tracking-tight">Portfolio Engine</h1>
-                    <p className="text-zinc-500 font-medium text-lg">Strategic financial visibility and high-level project trajectory.</p>
+        <div className="p-8 max-w-7xl mx-auto space-y-12 min-h-screen bg-zinc-950 text-white">
+            <header className="flex justify-between items-end">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-pulse shadow-[0_0_10px_#38bdf8]" />
+                        <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.4em]">Strategic Control Center</span>
+                    </div>
+                    <h1 className="text-5xl font-black text-white tracking-tighter">Portfolio Engine</h1>
+                    <p className="text-zinc-400 font-medium text-lg max-w-2xl">High-fidelity strategic visibility into mission-critical project trajectories.</p>
                 </div>
-                <div className="p-2 bg-blue-50 text-[#0f5c82] rounded-2xl border border-blue-100 font-black text-[10px] uppercase px-4 tracking-widest">
-                    Corporate Admin
+                <div className="flex flex-col items-end gap-3">
+                    <div className="p-2 bg-white/5 backdrop-blur-xl text-sky-400 rounded-2xl border border-white/10 font-black text-[10px] uppercase px-6 py-3 tracking-widest shadow-2xl">
+                        Corporate Admin Mode
+                    </div>
                 </div>
-            </div>
+            </header>
 
             {!canAddResource('projects') && (
-                <div className="bg-red-50 border border-red-200 p-4 rounded-xl flex items-center gap-3 text-red-800 shadow-sm animate-pulse">
-                    <AlertCircle size={20} />
+                <div className="bg-rose-500/10 backdrop-blur-xl border border-rose-500/20 p-6 rounded-[2rem] flex items-center gap-5 text-rose-200 shadow-2xl">
+                    <div className="p-3 bg-rose-500 rounded-2xl text-white shadow-lg shadow-rose-500/30">
+                        <AlertCircle size={24} />
+                    </div>
                     <div>
-                        <p className="text-sm font-bold">Project Limit Reached</p>
-                        <p className="text-xs">Your current plan ({currentTenant?.plan}) allows max {currentTenant?.maxProjects || 5} projects. Upgrade to Enterprise for unlimited.</p>
+                        <p className="text-lg font-black tracking-tight">System Constraint: Project Limit Reached</p>
+                        <p className="text-zinc-400 font-medium">Your current {currentTenant?.plan} allocation allows for {currentTenant?.maxProjects || 5} active nodes. Contact infrastructure for Enterprise scaling.</p>
                     </div>
                 </div>
             )}
 
             <AIDailyBriefing role={UserRole.COMPANY_ADMIN} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                 <div className="lg:col-span-2">
                     <QuickActionsGrid setPage={setPage} />
                 </div>
-                <div className="lg:col-span-1 border-l border-zinc-100 pl-4 space-y-6">
+                <div className="lg:col-span-1 space-y-8">
                     {projects.length > 0 && (
-                        <PredictiveInsights projectId={projects[0].id} />
+                        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-4">
+                            <PredictiveInsights projectId={projects[0].id} />
+                        </div>
                     )}
-                    <TenantUsageWidget />
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-4 invisible md:visible">
+                        <TenantUsageWidget />
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-br from-[#0f5c82] to-[#0c4a6e] rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                    <div className="relative z-10">
-                        <h3 className="text-blue-200 font-medium text-sm uppercase tracking-wider mb-1">Total Budget (YTD)</h3>
-                        <div className="text-4xl font-bold mb-4">£{(totalRevenue / 1000000).toFixed(1)} Million</div>
-                        <div className="flex gap-4">
-                            <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
-                                <div className="text-xs text-blue-200">Active Projects</div>
-                                <div className="font-bold text-xl">{activeProjectsCount}</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {/* Core Financial Metric */}
+                <div className="bg-gradient-to-br from-sky-500 to-indigo-700 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-4 opacity-70">
+                                <DollarSign size={16} />
+                                <h3 className="font-black text-[10px] uppercase tracking-widest">Total Capital Portfolio (YTD)</h3>
                             </div>
-                            <div className="bg-white/10 px-4 py-2 rounded-lg backdrop-blur-sm">
-                                <div className="text-xs text-blue-200">Win Rate</div>
-                                <div className="font-bold text-xl">64%</div>
+                            <div className="text-5xl font-black mb-6 tracking-tighter">£{(totalRevenue / 1000000).toFixed(1)}M</div>
+                        </div>
+                        <div className="flex gap-4">
+                            <div className="bg-white/10 px-5 py-3 rounded-2xl backdrop-blur-md border border-white/10 flex-1">
+                                <div className="text-[10px] font-black text-sky-200 uppercase mb-1">Active Nodes</div>
+                                <div className="font-black text-2xl tracking-tighter">{activeProjectsCount}</div>
+                            </div>
+                            <div className="bg-white/10 px-5 py-3 rounded-2xl backdrop-blur-md border border-white/10 flex-1">
+                                <div className="text-[10px] font-black text-sky-200 uppercase mb-1">Win Velocity</div>
+                                <div className="font-black text-2xl tracking-tighter">64%</div>
                             </div>
                         </div>
                     </div>
-                    <Sparkles className="absolute top-0 right-0 text-white/10 w-64 h-64 -mr-10 -mt-10" />
+                    <Sparkles className="absolute top-0 right-0 text-white/5 w-80 h-80 -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-1000" />
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-2xl p-6">
-                    <h3 className="font-bold text-zinc-900 mb-4 flex items-center justify-between">
-                        Project Health
-                        <Activity size={16} className="text-zinc-400" />
+                {/* Health Gauge */}
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 relative overflow-hidden group">
+                    <h3 className="font-black text-[10px] uppercase tracking-widest text-zinc-500 mb-6 flex items-center justify-between">
+                        Pulse Integrity
+                        <Activity size={16} className="text-emerald-400 animate-pulse" />
                     </h3>
-                    <div className="flex items-center justify-center h-40 relative">
-                        <div className="text-center">
-                            <div className={"text-3xl font-bold " + (healthPercentage >= 70 ? 'text-green-600' : 'text-orange-600')}>{healthPercentage}%</div>
-                            <div className="text-xs text-zinc-500 font-bold uppercase tracking-tighter">On Track</div>
+                    <div className="flex items-center justify-center h-48 relative">
+                        <div className="text-center z-10">
+                            <div className={`text-4xl font-black tracking-tighter ${healthPercentage >= 70 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                {healthPercentage}%
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest mt-1">On Path</div>
                         </div>
-                        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                            <circle cx="50" cy="50" r="40" fill="none" stroke="#f4f4f5" strokeWidth="8" />
+                        <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
                             <circle
                                 cx="50"
                                 cy="50"
-                                r="40"
+                                r="42"
                                 fill="none"
-                                stroke={healthPercentage >= 70 ? "#10b981" : "#f97316"}
-                                strokeWidth="8"
-                                strokeDasharray="251"
-                                strokeDashoffset={251 - (251 * healthPercentage) / 100}
+                                stroke={healthPercentage >= 70 ? "#10b981" : "#f59e0b"}
+                                strokeWidth="6"
+                                strokeDasharray="264"
+                                strokeDashoffset={264 - (264 * healthPercentage) / 100}
                                 strokeLinecap="round"
+                                className="transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(16,185,129,0.5)]"
+                                style={{
+                                    filter: `drop-shadow(0 0 8px ${healthPercentage >= 70 ? '#10b98166' : '#f59e0b66'})`
+                                }}
                             />
                         </svg>
                     </div>
                 </div>
 
-                <div className="bg-white border border-zinc-200 rounded-2xl p-6 flex flex-col justify-between">
+                {/* Risk Distribution */}
+                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-8 flex flex-col justify-between group">
                     <div>
-                        <h3 className="font-bold text-zinc-900 mb-4 flex items-center justify-between">
-                            Operational Health
-                            <Shield size={16} className="text-zinc-400" />
+                        <h3 className="font-black text-[10px] uppercase tracking-widest text-zinc-500 mb-8 flex items-center justify-between">
+                            Risk Vector Analysis
+                            <Shield size={16} className="text-rose-400" />
                         </h3>
-                        <div className="space-y-4">
+                        <div className="space-y-6">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <AlertTriangle size={14} className="text-amber-500" />
-                                    <span className="text-xs font-bold text-zinc-600">Active Hazards</span>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-amber-500/10 rounded-xl">
+                                        <AlertTriangle size={14} className="text-amber-400" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Hazards</span>
                                 </div>
-                                <span className="text-sm font-black text-zinc-900">{safetyHazards.length}</span>
+                                <span className="text-lg font-black text-white tracking-tighter">{safetyHazards.length}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Wrench size={14} className="text-blue-500" />
-                                    <span className="text-xs font-bold text-zinc-600">Maint. Overdue</span>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-sky-500/10 rounded-xl">
+                                        <Wrench size={14} className="text-sky-400" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Maintenance</span>
                                 </div>
-                                <span className="text-sm font-black text-zinc-900">{equipment.filter(e => e.nextService && new Date(e.nextService) < new Date()).length}</span>
+                                <span className="text-lg font-black text-white tracking-tighter">{equipment.filter(e => e.nextService && new Date(e.nextService) < new Date()).length}</span>
                             </div>
                         </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-zinc-50">
-                        <div className="flex justify-between items-center text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">
-                            <span>Risk Exposure</span>
-                            <span className="text-red-500">Medium</span>
+                    <div className="mt-8 pt-8 border-t border-white/5">
+                        <div className="flex justify-between items-center text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3">
+                            <span>System Exposure</span>
+                            <span className="text-amber-400 font-black">Moderate</span>
                         </div>
-                        <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-amber-500 w-1/3" />
+                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-emerald-500 to-amber-500 w-1/3 shadow-[0_0_10px_rgba(245,158,11,0.5)]" />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-white border border-zinc-200 rounded-xl overflow-hidden">
-                <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
-                    <h3 className="font-bold text-zinc-900">Active Projects</h3>
-                    <button onClick={() => setPage(Page.PROJECTS)} className="text-sm text-[#0f5c82] font-medium hover:underline">View All</button>
+            {/* High-Fidelity Project Table */}
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl">
+                <div className="p-8 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                    <div className="flex items-center gap-3">
+                        <Briefcase size={20} className="text-sky-400" />
+                        <h3 className="font-black text-lg tracking-tight">Active Nodes</h3>
+                    </div>
+                    <button
+                        onClick={() => setPage(Page.PROJECTS)}
+                        className="text-[10px] font-black text-sky-400 uppercase tracking-widest hover:text-white transition-colors"
+                    >
+                        Access Archive
+                    </button>
                 </div>
-                <table className="w-full text-left text-sm">
-                    <thead className="bg-zinc-50 text-zinc-500 uppercase text-xs">
-                        <tr>
-                            <th className="px-6 py-3">Project Name</th>
-                            <th className="px-6 py-3">Budget</th>
-                            <th className="px-6 py-3">Progress</th>
-                            <th className="px-6 py-3">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100">
-                        {projects.length > 0 ? projects.map((p, i) => (
-                            <tr key={i} className="hover:bg-zinc-50">
-                                <td className="px-6 py-4 font-medium text-zinc-900">{p.name}</td>
-                                <td className="px-6 py-4 text-zinc-600">£{(p.budget / 1000000).toFixed(1)}M</td>
-                                <td className="px-6 py-4">
-                                    <div className="w-24 bg-zinc-200 h-1.5 rounded-full">
-                                        <div className={"h-full rounded-full " + ((p.health || '').toLowerCase() === 'good' ? 'bg-green-500' : 'bg-orange-500')} style={{ width: p.progress + '%' }}></div>
-                                    </div>
-                                </td>
-                                <td className="px-6 py-4">
-                                    <span className={"px-2 py-1 rounded text-xs font-bold " + ((p.health || '').toLowerCase() === 'good' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700')}>{p.health || 'Neutral'}</span>
-                                </td>
-                            </tr>
-                        )) : (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-white/[0.03] text-[10px] font-black text-zinc-500 uppercase tracking-widest">
                             <tr>
-                                <td colSpan={4} className="px-6 py-10 text-center text-zinc-500">No active projects found.</td>
+                                <th className="px-8 py-4">Node Identity</th>
+                                <th className="px-8 py-4 text-right">Capital Value</th>
+                                <th className="px-8 py-4">Velocity</th>
+                                <th className="px-8 py-4">Integrity</th>
                             </tr>
-                        )}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {projects.length > 0 ? projects.map((p, i) => (
+                                <tr key={i} className="hover:bg-white/[0.02] transition-colors group cursor-pointer">
+                                    <td className="px-8 py-6">
+                                        <div className="font-black text-white text-base tracking-tight group-hover:text-sky-400 transition-colors">{p.name}</div>
+                                        <div className="text-[10px] text-zinc-500 uppercase font-black tracking-widest mt-1">Regional: London HQ</div>
+                                    </td>
+                                    <td className="px-8 py-6 text-right font-black text-zinc-300 tracking-tighter text-lg">
+                                        £{(p.budget / 1000000).toFixed(1)}M
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-32 bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-1000 ${(p.health || '').toLowerCase() === 'good'
+                                                        ? 'bg-sky-400 shadow-[0_0_8px_#38bdf8]'
+                                                        : 'bg-amber-400 shadow-[0_0_8px_#f59e0b]'
+                                                        }`}
+                                                    style={{ width: p.progress + '%' }}
+                                                />
+                                            </div>
+                                            <span className="text-xs font-black text-zinc-400">{p.progress}%</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${(p.health || '').toLowerCase() === 'good'
+                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                            : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                            }`}>
+                                            <div className={`w-1 h-1 rounded-full animate-pulse ${(p.health || '').toLowerCase() === 'good' ? 'bg-emerald-400' : 'bg-amber-400'
+                                                }`} />
+                                            {p.health || 'Neutral'}
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan={4} className="px-8 py-20 text-center">
+                                        <div className="text-zinc-500 font-black uppercase text-xs tracking-[0.3em]">No Active Nodes Found</div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     );
 };
 
 const FieldCard = ({ title, icon: Icon, onClick, addAction }: any) => (
-    <div onClick={onClick} className="bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-all cursor-pointer group relative flex flex-col justify-between min-h-[140px]">
-        <div className="flex justify-between items-start">
-            <div className="p-2.5 bg-zinc-50 rounded-xl group-hover:bg-blue-50 group-hover:text-[#0f5c82] transition-colors text-zinc-600">
-                <Icon size={24} />
+    <div
+        onClick={onClick}
+        className="bg-white/5 backdrop-blur-xl p-5 rounded-2xl border border-white/10 shadow-lg hover:shadow-sky-500/10 hover:border-sky-400/30 transition-all cursor-pointer group relative flex flex-col justify-between min-h-[140px] overflow-hidden"
+    >
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-400/0 to-sky-400/0 group-hover:from-sky-400/5 group-hover:to-transparent transition-all duration-500" />
+        <div className="flex justify-between items-start relative z-10">
+            <div className="p-3 bg-white/5 rounded-xl group-hover:bg-sky-400 group-hover:text-white transition-all duration-300 text-sky-400 shadow-inner">
+                <Icon size={24} strokeWidth={1.5} />
             </div>
             {addAction && (
-                <button onClick={(e) => { e.stopPropagation(); addAction(); }} className="p-1.5 bg-zinc-100 hover:bg-[#0f5c82] hover:text-white rounded-lg text-zinc-400 transition-colors">
+                <button
+                    onClick={(e) => { e.stopPropagation(); addAction(); }}
+                    className="p-1.5 bg-white/5 hover:bg-sky-400 hover:text-white rounded-lg text-zinc-500 transition-all border border-white/5"
+                >
                     <Plus size={16} />
                 </button>
             )}
         </div>
-        <div>
-            <h3 className="font-bold text-zinc-900 text-sm mb-1">{title}</h3>
-            <p className="text-[10px] text-zinc-400 uppercase font-medium tracking-wide group-hover:text-[#0f5c82] transition-colors">View All</p>
+        <div className="relative z-10">
+            <h3 className="font-black text-white text-sm mb-1 tracking-tight group-hover:text-sky-400 transition-colors">{title}</h3>
+            <p className="text-[9px] text-zinc-500 uppercase font-black tracking-[0.2em] group-hover:text-sky-300/50 transition-colors">Initialize Module</p>
         </div>
     </div>
 );
@@ -438,31 +514,34 @@ const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
     const { user } = useAuth();
     const { projects } = useProjects();
 
-
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-6">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#0f5c82] to-[#1f7d98] flex items-center justify-center text-white font-bold text-lg border-2 border-white shadow-md">
-                        {user?.avatarInitials}
+        <div className="p-8 max-w-7xl mx-auto space-y-10 bg-zinc-950 text-white min-h-screen">
+            <header className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-5">
+                    <div className="relative group">
+                        <div className="absolute inset-0 bg-sky-400 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity"></div>
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center text-white font-black text-xl border border-white/20 shadow-2xl relative z-10 transform transition-transform group-hover:scale-105">
+                            {user?.avatarInitials}
+                        </div>
                     </div>
                     <div>
-                        <div className="text-xs text-zinc-500 font-medium uppercase">Marksman Roofing and Cladding Ltd.</div>
-                        <div className="text-lg font-bold text-zinc-900 flex items-center gap-2">
-                            St Georges Hospital <RotateCcw size={14} className="text-zinc-400" />
+                        <div className="text-[10px] text-sky-400 font-black uppercase tracking-[0.3em] mb-1">Site Command</div>
+                        <div className="text-2xl font-black text-white flex items-center gap-3 tracking-tighter">
+                            Active Operations <Navigation size={18} className="text-sky-500 animate-pulse" />
                         </div>
                     </div>
                 </div>
-                <button className="p-3 bg-zinc-100 hover:bg-zinc-200 rounded-xl text-zinc-600">
-                    <Search size={20} />
-                </button>
-            </div>
+                <div className="flex gap-4">
+                    <button className="p-4 bg-white/5 backdrop-blur-xl hover:bg-white/10 rounded-2xl text-white border border-white/10 transition-all">
+                        <Search size={20} />
+                    </button>
+                </div>
+            </header>
 
             <AIDailyBriefing role={UserRole.SUPERVISOR} />
 
-            {/* Predictive Intelligence (Phase 14) */}
             {projects.length > 0 && (
-                <div className="w-full">
+                <div className="w-full bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-4">
                     <PredictiveInsights projectId={projects[0].id} />
                 </div>
             )}
@@ -470,52 +549,52 @@ const SupervisorDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setP
             {/* HERO: LIVE FIELD MODE */}
             <div
                 onClick={() => setPage(Page.LIVE)}
-                className="bg-zinc-900 rounded-3xl p-6 text-white relative overflow-hidden cursor-pointer group shadow-xl transition-transform hover:scale-[1.01]"
+                className="bg-zinc-900 rounded-[2.5rem] p-8 text-white relative overflow-hidden cursor-pointer group shadow-2xl transition-all border border-white/5 hover:border-sky-400/30"
             >
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20" />
-                <div className="absolute right-0 bottom-0 w-64 h-64 bg-[#0f5c82] rounded-full blur-[80px] opacity-40 group-hover:opacity-60 transition-opacity" />
+                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10" />
+                <div className="absolute right-0 bottom-0 w-96 h-96 bg-sky-500/10 rounded-full blur-[100px] opacity-40 group-hover:opacity-60 transition-opacity" />
 
-                <div className="relative z-10 flex items-center justify-between">
-                    <div>
-                        <div className="flex items-center gap-2 mb-2">
-                            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-                            <span className="text-xs font-bold tracking-widest uppercase text-red-400">Live Mode</span>
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
+                            <span className="text-[10px] font-black tracking-[0.4em] uppercase text-rose-400">Tactical Live Stream</span>
                         </div>
-                        <h2 className="text-2xl font-bold mb-1">Launch Field Assistant</h2>
-                        <p className="text-zinc-400 text-sm max-w-md">
-                            Multimodal video session with snapshot analysis. Point your camera at site issues for instant AI inspection.
+                        <h2 className="text-4xl font-black tracking-tighter">Spatial Field Assistant</h2>
+                        <p className="text-zinc-400 font-medium max-w-md leading-relaxed">
+                            Neural-link video session with real-time site analysis. Instant AI-driven defect detection and progress tracking.
                         </p>
                     </div>
-                    <div className="flex gap-3">
-                        <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center group-hover:bg-white group-hover:text-black transition-all backdrop-blur-sm">
-                            <Video size={28} />
+                    <div className="flex gap-5">
+                        <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:bg-sky-400 group-hover:text-white transition-all duration-500 backdrop-blur-xl border border-white/10 shadow-2xl">
+                            <Video size={36} strokeWidth={1.5} />
                         </div>
-                        <div className="w-14 h-14 bg-white/5 rounded-full flex items-center justify-center group-hover:bg-white/20 text-white transition-all backdrop-blur-sm border border-white/10">
-                            <Aperture size={24} />
+                        <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center group-hover:bg-white/10 text-white transition-all duration-500 backdrop-blur-xl border border-white/5">
+                            <Aperture size={32} strokeWidth={1.5} />
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                <FieldCard title="Inspections" icon={Clipboard} onClick={() => setPage(Page.SAFETY)} addAction={() => { }} />
-                <FieldCard title="Locations" icon={MapPin} onClick={() => setPage(Page.LIVE_PROJECT_MAP)} />
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+                <FieldCard title="Digital Safety" icon={Shield} onClick={() => setPage(Page.SAFETY)} addAction={() => { }} />
+                <FieldCard title="Spatial Map" icon={MapIcon} onClick={() => setPage(Page.LIVE_PROJECT_MAP)} />
                 <FieldCard title="Observations" icon={BookOpen} onClick={() => setPage(Page.SAFETY)} addAction={() => { }} />
-                <FieldCard title="Photos" icon={Camera} onClick={() => setPage(Page.PROJECT_DETAILS)} addAction={() => { }} />
-                <FieldCard title="Snag List" icon={Pin} onClick={() => setPage(Page.TASKS)} addAction={() => { }} />
-                <FieldCard title="RFIs" icon={AlertCircle} onClick={() => setPage(Page.PROJECT_DETAILS)} addAction={() => { }} />
-                <FieldCard title="Programme" icon={Calendar} onClick={() => setPage(Page.SCHEDULE)} />
-                <FieldCard title="Specifications" icon={FileText} onClick={() => setPage(Page.DOCUMENTS)} />
+                <FieldCard title="Capture" icon={Camera} onClick={() => setPage(Page.PROJECT_DETAILS)} addAction={() => { }} />
+                <FieldCard title="Vector Ledger" icon={Pin} onClick={() => setPage(Page.TASKS)} addAction={() => { }} />
+                <FieldCard title="Query (RFI)" icon={AlertCircle} onClick={() => setPage(Page.PROJECT_DETAILS)} addAction={() => { }} />
+                <FieldCard title="Timeline" icon={Calendar} onClick={() => setPage(Page.SCHEDULE)} />
+                <FieldCard title="Knowledge" icon={FileText} onClick={() => setPage(Page.DOCUMENTS)} />
                 <FieldCard title="Tasks" icon={CheckSquare} onClick={() => setPage(Page.TASKS)} addAction={() => { }} />
+                <FieldCard title="Workforce" icon={Users} onClick={() => setPage(Page.TEAM)} />
             </div>
 
-            {/* Floating Action Button for easy mobile access */}
-            <div className="fixed bottom-8 right-8">
+            <div className="fixed bottom-10 right-10">
                 <button
                     onClick={() => setPage(Page.TASKS)}
-                    className="w-14 h-14 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-2xl shadow-xl flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+                    className="w-16 h-16 bg-gradient-to-br from-sky-400 to-indigo-600 hover:from-sky-300 hover:to-indigo-500 text-white rounded-[2rem] shadow-[0_0_30px_rgba(56,189,248,0.3)] flex items-center justify-center transition-all hover:scale-110 active:scale-95 border border-white/20"
                 >
-                    <Plus size={28} />
+                    <Plus size={32} />
                 </button>
             </div>
         </div>
@@ -531,98 +610,115 @@ const OperativeDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPa
         if (!user) return [];
         return tasks.filter(t => {
             if (t.status === 'Done') return false;
-
-            // Role check
             if (t.assigneeType === 'role') {
                 if (user.role === UserRole.SUPERADMIN && t.assigneeName === 'Operative') return true;
+                if (user.role === UserRole.OPERATIVE && t.assigneeName === 'Operative') return true;
             }
-            // User check
             if (t.assigneeType === 'user' && t.assigneeName === user.name) return true;
             return false;
         });
     }, [tasks, user]);
 
     return (
-        <div className="p-6 max-w-3xl mx-auto space-y-6">
-            <div className="mb-6">
-                <h1 className="text-xl font-bold text-zinc-900">My Work Portal</h1>
-                <p className="text-zinc-500">Welcome back, {user?.name.split(' ')[0]}.</p>
-            </div>
+        <div className="p-8 max-w-4xl mx-auto space-y-10 bg-zinc-950 text-white min-h-screen">
+            <header className="mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">Field Operative Node</span>
+                </div>
+                <h1 className="text-4xl font-black text-white tracking-tighter">Worker Portal</h1>
+                <p className="text-zinc-500 font-medium text-lg mt-1 tracking-tight">Active protocols for {user?.name.split(' ')[0]}.</p>
+            </header>
 
             <AIDailyBriefing role={UserRole.OPERATIVE} />
 
             {/* Time Clock Card */}
-            <div className="bg-white border border-zinc-200 rounded-2xl p-6 shadow-sm flex flex-col items-center text-center">
-                <div className="text-zinc-400 text-sm font-medium uppercase tracking-wider mb-2">Current Status</div>
-                <div className="text-3xl font-bold text-green-600 mb-1">Clocked In</div>
-                <div className="text-zinc-500 mb-6">Since 07:30 AM</div>
+            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-10 flex flex-col items-center text-center shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-400 to-transparent opacity-30" />
+                <div className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Pulse Integrity</div>
+                <div className="text-5xl font-black text-emerald-400 mb-2 tracking-tighter">Clocked In</div>
+                <div className="text-zinc-400 font-bold text-sm mb-10 tracking-tight">Active since 07:30 AM (GMT)</div>
 
-                <div className="flex gap-4 w-full max-w-xs">
-                    <button className="flex-1 bg-red-50 text-red-600 py-3 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-100">
+                <div className="flex gap-6 w-full max-w-md">
+                    <button className="flex-1 bg-rose-500/10 text-rose-400 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20 text-xs shadow-lg">
                         Clock Out
                     </button>
-                    <button className="flex-1 bg-zinc-100 text-zinc-600 py-3 rounded-xl font-bold hover:bg-zinc-200 transition-colors">
-                        Take Break
+                    <button className="flex-1 bg-white/5 text-zinc-400 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-white/10 transition-all border border-white/5 text-xs">
+                        Interval / Break
                     </button>
                 </div>
             </div>
 
             {/* Assigned Tasks */}
-            <div>
-                <h3 className="font-bold text-zinc-900 mb-4">My Tasks for Today ({myTasks.length})</h3>
-                <div className="space-y-3">
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <CheckSquare size={20} className="text-sky-400" />
+                        <h3 className="font-black text-lg text-white tracking-tight">Assigned Protocols ({myTasks.length})</h3>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
                     {myTasks.length > 0 ? myTasks.map((task) => (
-                        <div key={task.id} className="bg-white p-4 rounded-xl border border-zinc-200 shadow-sm flex items-start gap-3 group hover:border-[#0f5c82] transition-colors">
-                            <button className="mt-1 w-5 h-5 rounded border-2 border-zinc-300 hover:border-[#0f5c82] flex items-center justify-center text-transparent hover:text-[#0f5c82] transition-all">
-                                <CheckCircle2 size={12} />
-                            </button>
-                            <div className="flex-1">
-                                <div className="font-medium text-zinc-900 flex justify-between">
-                                    <span>{task.title}</span>
-                                    {task.assigneeType === 'role' && (
-                                        <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-bold uppercase">
-                                            {task.assigneeName}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="text-xs text-zinc-500 mt-2 flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <span className="flex items-center gap-1"><Clock size={12} /> Due {task.dueDate}</span>
-                                        {task.dependencies && task.dependencies.length > 0 && (
-                                            <span className="text-[10px] text-zinc-400 flex items-center gap-0.5 bg-zinc-50 px-1.5 rounded border border-zinc-100">
-                                                <Link size={10} /> {task.dependencies.length}
+                        <div key={task.id} className="bg-white/5 backdrop-blur-xl p-6 rounded-[2rem] border border-white/5 hover:border-sky-400/30 transition-all group shadow-xl">
+                            <div className="flex items-center gap-5">
+                                <button className="w-8 h-8 rounded-xl border-2 border-white/10 group-hover:border-sky-400 flex items-center justify-center text-transparent group-hover:text-sky-400 transition-all bg-white/5 shadow-inner">
+                                    <CheckCircle2 size={16} />
+                                </button>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <div className="font-black text-white text-lg tracking-tight group-hover:text-sky-400 transition-colors">{task.title}</div>
+                                        {task.assigneeType === 'role' && (
+                                            <span className="text-[9px] bg-sky-500/20 text-sky-400 px-3 py-1 rounded-full font-black uppercase tracking-widest border border-sky-500/10">
+                                                {task.assigneeName}
                                             </span>
                                         )}
                                     </div>
-                                    <span className={"px-2 py-0.5 rounded text-[10px] font-bold uppercase " + (
-                                        task.status === 'Blocked' ? 'bg-red-100 text-red-600' :
-                                            task.status === 'In Progress' ? 'bg-blue-100 text-blue-600' :
-                                                task.status === 'Done' ? 'bg-green-100 text-green-600' :
-                                                    'bg-zinc-100 text-zinc-500'
-                                    )}>
-                                        {task.status}
-                                    </span>
+                                    <div className="flex items-center justify-between mt-4">
+                                        <div className="flex items-center gap-6">
+                                            <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold">
+                                                <Clock size={14} className="text-sky-400" /> Due {task.dueDate}
+                                            </div>
+                                            {task.dependencies && task.dependencies.length > 0 && (
+                                                <div className="flex items-center gap-2 text-zinc-500 text-xs font-bold px-3 py-1 bg-white/5 rounded-lg border border-white/5">
+                                                    <Link size={12} className="text-indigo-400" />
+                                                    {task.dependencies.length} Chains
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border ${task.status === 'Blocked' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                            task.status === 'In Progress' ? 'bg-sky-500/10 text-sky-400 border-sky-500/20' :
+                                                'bg-zinc-800/50 text-zinc-500 border-white/5'
+                                            }`}>
+                                            {task.status}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     )) : (
-                        <div className="text-center py-8 text-zinc-400 bg-zinc-50 rounded-xl border border-dashed border-zinc-200">
-                            <CheckSquare size={32} className="mx-auto mb-2 opacity-20" />
-                            <p>No tasks assigned to you or your role.</p>
+                        <div className="text-center py-20 bg-white/5 rounded-[2.5rem] border border-dashed border-white/10 shadow-inner">
+                            <Zap size={48} className="mx-auto mb-4 text-zinc-700" />
+                            <p className="font-black text-zinc-500 uppercase tracking-[0.3em] text-[10px]">No Assigned Vectors</p>
                         </div>
                     )}
                 </div>
             </div>
 
             {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setPage(Page.SAFETY)} className="p-4 bg-white border border-zinc-200 rounded-xl hover:bg-zinc-50 text-left transition-colors">
-                    <AlertCircle className="text-red-500 mb-2" size={24} />
-                    <div className="font-bold text-zinc-900">Report Safety Issue</div>
+            <div className="grid grid-cols-2 gap-6 pb-10">
+                <button onClick={() => setPage(Page.SAFETY)} className="p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] hover:bg-rose-500/10 hover:border-rose-500/30 group transition-all text-left shadow-2xl">
+                    <div className="p-3 bg-rose-500 rounded-2xl w-fit mb-6 shadow-lg shadow-rose-500/20 transition-transform group-hover:scale-110">
+                        <AlertCircle className="text-white" size={24} />
+                    </div>
+                    <div className="font-black text-white text-lg tracking-tight mb-1">Signal Hazard</div>
+                    <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Immediate Safety Protocol</div>
                 </button>
-                <button onClick={() => setPage(Page.LIVE_PROJECT_MAP)} className="p-4 bg-white border border-zinc-200 rounded-xl hover:bg-zinc-50 text-left transition-colors">
-                    <MapIcon className="text-[#0f5c82] mb-2" size={24} />
-                    <div className="font-bold text-zinc-900">View Site Map</div>
+                <button onClick={() => setPage(Page.LIVE_PROJECT_MAP)} className="p-8 bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] hover:bg-sky-500/10 hover:border-sky-500/30 group transition-all text-left shadow-2xl">
+                    <div className="p-3 bg-sky-500 rounded-2xl w-fit mb-6 shadow-lg shadow-sky-500/20 transition-transform group-hover:scale-110">
+                        <MapIcon className="text-white" size={24} />
+                    </div>
+                    <div className="font-black text-white text-lg tracking-tight mb-1">Grid Map</div>
+                    <div className="text-[10px] text-zinc-500 font-black uppercase tracking-widest">Tactical Site Orientation</div>
                 </button>
             </div>
         </div>
@@ -631,17 +727,17 @@ const OperativeDashboard: React.FC<{ setPage: (page: Page) => void }> = ({ setPa
 
 // Helper Component
 const StatCard = ({ icon: Icon, label, value, trend, color }: any) => (
-    <div className="bg-white p-6 rounded-xl border border-zinc-200 shadow-sm">
-        <div className="flex items-start justify-between mb-4">
-            <div className={"p-2 rounded-lg bg-" + color + "-50 text-" + color + "-600"}>
+    <div className="bg-white/5 backdrop-blur-xl p-6 rounded-[2rem] border border-white/10 shadow-xl group hover:border-sky-400/30 transition-all">
+        <div className="flex items-start justify-between mb-6">
+            <div className={`p-3 rounded-2xl bg-white/5 text-sky-400 shadow-inner group-hover:bg-sky-400 group-hover:text-white transition-all`}>
                 <Icon size={20} />
             </div>
+            <div className={`text-[10px] font-black bg-white/5 text-zinc-400 px-3 py-1 rounded-full border border-white/5 uppercase tracking-widest`}>
+                {trend}
+            </div>
         </div>
-        <div className="text-2xl font-bold text-zinc-900 mb-1">{value}</div>
-        <div className="flex items-center justify-between">
-            <div className="text-sm text-zinc-500">{label}</div>
-            <div className={"text-[10px] font-bold bg-" + color + "-50 text-" + color + "-700 px-2 py-0.5 rounded"}>{trend}</div>
-        </div>
+        <div className="text-3xl font-black text-white mb-1 tracking-tighter">{value}</div>
+        <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest leading-none">{label}</div>
     </div>
 );
 

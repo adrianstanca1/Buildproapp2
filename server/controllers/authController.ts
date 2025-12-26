@@ -71,7 +71,8 @@ export const assignUserRole = async (req: Request, res: Response, next: NextFunc
             throw new AppError('User membership not found for this company', 404);
         }
 
-        const updated = await membershipService.updateMembership(membership.id, { role: role as UserRole });
+        const actorId = (req as any).userId || 'system';
+        const updated = await membershipService.updateMembership(membership.id, { role: role as UserRole }, actorId);
 
         // Audit Log (Simplified inline)
         const db = getDb();
@@ -136,9 +137,18 @@ export const getRolePermissions = async (req: Request, res: Response, next: Next
 export const getCurrentUserPermissions = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { userId, tenantId } = (req as any).context || {};
+        const authUser = (req as any).user;
 
         if (!userId) throw new AppError('Authentication required', 401);
-        if (!tenantId) throw new AppError('Company selection required', 400);
+
+        // Superadmin Bypass
+        if (!tenantId) {
+            const globalRole = await permissionService.getUserGlobalRole(userId);
+            if (globalRole === 'SUPERADMIN' || authUser?.user_metadata?.role === 'super_admin') {
+                return res.json(['*']);
+            }
+            throw new AppError('Company selection required', 400);
+        }
 
         const permissions = await permissionService.getUserPermissions(userId, tenantId);
         res.json(permissions);
@@ -207,7 +217,7 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
                 throw new AppError('User is already a member of this company', 409);
             }
             // Add membership
-            await membershipService.addMember({ userId: existingUser.id, companyId, role });
+            await membershipService.addMember({ userId: existingUser.id, companyId, role }, inviterId);
             res.status(200).json({ message: 'User added to company', userId: existingUser.id });
             return; // stop execution
         }
@@ -221,7 +231,7 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
             [newUserId, email, email.split('@')[0], 'invited', now, now]
         );
 
-        await membershipService.addMember({ userId: newUserId, companyId, role });
+        await membershipService.addMember({ userId: newUserId, companyId, role }, inviterId);
 
         // 3. Log Audit
         const logId = uuidv4();
@@ -328,11 +338,14 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
         }
 
         // 3. Add Membership (COMPANY_ADMIN)
-        await membershipService.addMember({
-            userId,
-            companyId,
-            role: UserRole.COMPANY_ADMIN
-        });
+        await membershipService.addMember(
+            {
+                userId,
+                companyId,
+                role: UserRole.COMPANY_ADMIN
+            },
+            userId
+        );
 
         res.status(201).json({ message: 'User and Company registered successfully', companyId });
 
@@ -342,6 +355,9 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
 };
 
 const signToken = (payload: string): string => {
-    const secret = process.env.SUPABASE_SERVICE_ROLE_KEY || 'dev-fallback-secret';
+    const secret = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!secret) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for signing tokens on the server');
+    }
     return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 };

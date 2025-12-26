@@ -1,4 +1,4 @@
-/// <reference path="../types/express.d.ts" />
+import '../types/express.d.ts';
 import { Request, Response } from 'express';
 import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -47,8 +47,8 @@ export const createComment = async (req: Request, res: Response) => {
 
         const db = getDb();
         const companyId = req.tenantId;
-        const userId = req.userId;
-        const userName = req.userName;
+        const userId = (req as any).userId;
+        const userName = (req as any).userName;
         const id = uuidv4();
 
         await db.run(`
@@ -101,7 +101,7 @@ export const updateComment = async (req: Request, res: Response) => {
     try {
         const db = getDb();
         const companyId = req.tenantId;
-        const userId = req.userId;
+        const userId = (req as any).userId;
         const { id } = req.params;
         const { content } = req.body;
 
@@ -134,7 +134,7 @@ export const deleteComment = async (req: Request, res: Response) => {
     try {
         const db = getDb();
         const companyId = req.tenantId;
-        const userId = req.userId;
+        const userId = (req as any).userId;
         const { id } = req.params;
 
         // Verify the comment belongs to the user

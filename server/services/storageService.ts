@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
@@ -33,23 +32,12 @@ class LocalFileAdapter {
 
 const localAdapter = new LocalFileAdapter();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { getSupabaseAdmin, supabaseAdmin } from '../utils/supabase.js';
 
-if (!supabaseUrl || !supabaseKey) {
-    logger.warn('Supabase credentials missing. Storage service will fail.');
-}
+let supabase: any = supabaseAdmin || null;
 
-let supabase: any;
-
-try {
-    if (supabaseUrl && supabaseKey) {
-        supabase = createClient(supabaseUrl, supabaseKey);
-    } else {
-        throw new Error('Missing credentials');
-    }
-} catch (e) {
-    logger.warn('Supabase Not Configured. Using Local Filesystem Storage.');
+if (!supabase) {
+    logger.warn('Supabase admin client not available. Falling back to local filesystem storage.');
     supabase = {
         storage: {
             from: (bucket: string) => ({
@@ -61,6 +49,12 @@ try {
             getBucket: async (name: string) => ({ data: null, error: { message: 'Not found' } })
         }
     };
+} else {
+    // If a client wasn't exported at import time, attempt a factory call
+    if (!supabase.storage && typeof getSupabaseAdmin === 'function') {
+        const maybe = getSupabaseAdmin();
+        if (maybe) supabase = maybe;
+    }
 }
 
 /**

@@ -4,6 +4,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import helmet from 'helmet';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -24,15 +25,18 @@ const app = express();
 const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
 
 // Security middleware
+const SUPABASE_HOST = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
+const SUPABASE_WS = SUPABASE_HOST ? SUPABASE_HOST.replace(/^https?:/, 'wss:') : '';
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            scriptSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "https:", "blob:"],
-            connectSrc: ["'self'", "ws:", "wss:"],
-            fontSrc: ["'self'", "data:"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
+            connectSrc: SUPABASE_HOST ? ["'self'", "ws:", "wss:", SUPABASE_HOST, SUPABASE_WS] : ["'self'", "ws:", "wss:"],
+            fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         }
     },
     hsts: {
@@ -48,8 +52,36 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Middleware to ensure DB is initialized before handling requests (removed)
 
-// Serve local uploads
-app.use('/uploads', express.static(resolve('uploads')));
+// Serve local uploads with optional HMAC signature verification
+const verifySignedUpload = (req: any, res: any, next: any) => {
+    const signingSecret = process.env.FILE_SIGNING_SECRET;
+    if (!signingSecret) return next(); // Allow unsigned access in dev/local
+
+    const { expires, sig } = req.query;
+    if (!expires || !sig) {
+        return res.status(403).json({ error: 'Signed URL required' });
+    }
+
+    const expiresAt = Number(expires);
+    if (!expiresAt || Date.now() > expiresAt) {
+        return res.status(403).json({ error: 'Signed URL expired' });
+    }
+
+    // Path looks like /uploads/tenants/{tenantId}/...
+    const relativePath = req.path.replace(/^\/+/, ''); // remove leading slash
+    const parts = relativePath.split('/');
+    const tenantId = parts.length >= 2 && parts[0] === 'tenants' ? parts[1] : 'unknown';
+    const payload = `${tenantId}:${relativePath}:${expiresAt}`;
+    const expectedSig = crypto.createHmac('sha256', signingSecret).update(payload).digest('hex');
+
+    if (expectedSig !== sig) {
+        return res.status(403).json({ error: 'Invalid signature' });
+    }
+
+    return next();
+};
+
+app.use('/uploads', verifySignedUpload, express.static(resolve('uploads')));
 
 
 // --- Middleware ---
@@ -120,8 +152,8 @@ app.post('/api/companies', requireRole([UserRole.SUPERADMIN]), companyController
 
 app.put('/api/companies/:id', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.updateCompany);
 app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyController.deleteCompany);
-// Self-management for Company Admins (TODO: implement updateMyCompany in companyController)
-// app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
+// Self-management for Company Admins
+app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
 
 // --- System Settings Routes ---
 import * as systemController from './controllers/systemController.js';
@@ -130,8 +162,8 @@ import * as rfiController from './controllers/rfiController.js';
 import * as safetyController from './controllers/safetyController.js';
 import { getVendors, createVendor, updateVendor } from './controllers/vendorController.js';
 import { getCostCodes, createCostCode, updateCostCode } from './controllers/costCodeController.js';
-app.get('/api/system-settings', systemController.getSystemSettings);
-app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), systemController.updateSystemSetting);
+app.get('/api/system-settings', platformController.getSystemConfig);
+app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemConfig);
 
 // --- Platform / SuperAdmin Routes ---
 import * as platformController from './controllers/platformController.js';
@@ -143,6 +175,9 @@ import notificationRoutes from './routes/notificationRoutes.js';
 app.use('/api/platform', platformRoutes);
 app.use('/api/platform/support', supportRoutes);
 app.use('/api/platform/notifications', notificationRoutes);
+
+import pushRoutes from './routes/pushRoutes.js';
+app.use('/api/notifications', pushRoutes);
 
 const superAdminOnly = requireRole([UserRole.SUPERADMIN]);
 
@@ -329,8 +364,18 @@ app.post('/api/cost_codes', authenticateToken, requirePermission('financials', '
 app.put('/api/cost_codes/:id', authenticateToken, requirePermission('financials', 'update'), updateCostCode);
 
 // --- Generic CRUD Helper ---
-const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
-    app.get(`/api/${tableName}`, async (req: any, res) => {
+// --- Generic CRUD Helper ---
+const createCrudRoutes = (tableName: string, jsonFields: string[] = [], permissionResource?: string) => {
+    // Helper to get middleware array (Authenticate + Context + Optional Permission)
+    const getMiddleware = (action: 'read' | 'create' | 'update' | 'delete') => {
+        const middlewares: any[] = [authenticateToken, contextMiddleware];
+        if (permissionResource) {
+            middlewares.push(requirePermission(permissionResource, action));
+        }
+        return middlewares;
+    };
+
+    app.get(`/api/${tableName}`, ...getMiddleware('read'), async (req: any, res: any) => {
         try {
             const db = getDb();
             let sql = `SELECT * FROM ${tableName}`;
@@ -342,14 +387,12 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
                 sql += ` WHERE companyId = ?`;
                 params.push(req.tenantId);
             } else if (!req.tenantId && tenantTables.includes(tableName) && tableName !== 'companies') {
-                // Strict isolation: if it's a tenant table but no header, return empty or error
-                // For dev flexibility we return all, but for prod we'd error.
-                // Let's stick with the current logic but add a warning.
                 logger.warn(`Accessing tenant table ${tableName} without companyId header!`);
+                // In strict mode, we might return [] or error, but keeping legacy behavior for now
             }
 
             const items = await db.all(sql, params);
-            const parsed = items.map(item => {
+            const parsed = items.map((item: any) => {
                 const newItem = { ...item };
                 jsonFields.forEach(field => {
                     if (newItem[field]) {
@@ -368,7 +411,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 
-    app.post(`/api/${tableName}`, async (req: any, res) => {
+    app.post(`/api/${tableName}`, ...getMiddleware('create'), async (req: any, res: any) => {
         try {
             const db = getDb();
             const item = req.body;
@@ -404,7 +447,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 
-    app.put(`/api/${tableName}/:id`, async (req: any, res) => {
+    app.put(`/api/${tableName}/:id`, ...getMiddleware('update'), async (req: any, res: any) => {
         try {
             const db = getDb();
             const { id } = req.params;
@@ -438,7 +481,7 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = []) => {
         }
     });
 
-    app.delete(`/api/${tableName}/:id`, async (req: any, res) => {
+    app.delete(`/api/${tableName}/:id`, ...getMiddleware('delete'), async (req: any, res: any) => {
         try {
             const db = getDb();
             const { id } = req.params;
@@ -473,26 +516,26 @@ app.put('/api/roles/:id/permissions', rbacController.updateRolePermissions);
 app.get('/api/permissions', rbacController.getPermissions);
 app.get('/api/roles/:id/permissions', rbacController.getRolePermissions);
 
-// Register Routes for other entities
-createCrudRoutes('team', ['skills', 'certifications']);
-createCrudRoutes('documents', ['linkedTaskIds']);
-createCrudRoutes('clients');
-createCrudRoutes('inventory');
-createCrudRoutes('rfis');
-createCrudRoutes('punch_items');
-createCrudRoutes('daily_logs');
-createCrudRoutes('dayworks', ['labor', 'materials', 'attachments']);
-createCrudRoutes('safety_incidents');
-createCrudRoutes('equipment');
-createCrudRoutes('timesheets');
-createCrudRoutes('channels');
-createCrudRoutes('team_messages');
-createCrudRoutes('transactions');
-createCrudRoutes('purchase_orders', ['items', 'approvers']);
-createCrudRoutes('defects', ['box_2d']);
-createCrudRoutes('project_risks', ['factors', 'recommendations']);
-createCrudRoutes('invoices', ['items']);
-createCrudRoutes('expense_claims', ['receipts', 'items']);
+// Register Routes for other entities (Secured with granular RBAC)
+createCrudRoutes('team', ['skills', 'certifications'], 'team');
+createCrudRoutes('documents', ['linkedTaskIds'], 'documents');
+createCrudRoutes('clients', [], 'clients');
+createCrudRoutes('inventory', [], 'inventory');
+createCrudRoutes('rfis', [], 'rfis');
+createCrudRoutes('punch_items', [], 'punch_items');
+createCrudRoutes('daily_logs', [], 'daily_logs');
+createCrudRoutes('dayworks', ['labor', 'materials', 'attachments'], 'dayworks');
+createCrudRoutes('safety_incidents', [], 'safety');
+createCrudRoutes('equipment', [], 'equipment');
+createCrudRoutes('timesheets', [], 'timesheets');
+createCrudRoutes('channels', [], 'channels');
+createCrudRoutes('team_messages', [], 'team_messages');
+createCrudRoutes('transactions', [], 'financials');
+createCrudRoutes('purchase_orders', ['items', 'approvers'], 'procurement');
+createCrudRoutes('defects', ['box_2d'], 'quality');
+createCrudRoutes('project_risks', ['factors', 'recommendations'], 'risk');
+createCrudRoutes('invoices', ['items'], 'financials');
+createCrudRoutes('expense_claims', ['receipts', 'items'], 'financials');
 
 
 // Serve static files from the React app
@@ -549,6 +592,20 @@ startApolloServer();
 // Start server immediately to satisfy Cloud Run health checks
 const startServer = async () => {
     logger.info(`DEBUG: startServer() called. Port: ${port}`);
+
+    // 1. Initialize DB FIRST and await it
+    try {
+        logger.info('Starting DB initialization...');
+        await ensureDbInitialized();
+        logger.info('DB Initialized. Seeding...');
+        await seedDatabase();
+        logger.info('DB Ready.');
+    } catch (err) {
+        logger.error('CRITICAL: DB Initialization failed:', err);
+        // Process might need to exit if DB is essential, but for now we continue
+    }
+
+    // 2. Start Listening ONLY after DB is ready
     try {
         // Listen strictly on 0.0.0.0 for Cloud Run
         httpServer.listen(Number(port), '0.0.0.0', () => {
@@ -560,25 +617,29 @@ const startServer = async () => {
         logger.error('DEBUG: httpServer.listen failed:', e);
     }
 
-    // Initialize DB in background
-    // if (!process.env.VERCEL) { // FORCE START
-    try {
-        logger.info('Starting DB initialization...');
-        await ensureDbInitialized();
-        logger.info('DB Initialized. Seeding...');
-        await seedDatabase();
-        logger.info('DB Ready.');
-    } catch (err) {
-        logger.error('CRITICAL: DB Initialization failed:', err);
-        // Don't crash, just log. App will be online but DB features might fail.
-    }
-    // }
+    logger.info(`DEBUG: Reached end of startServer. Env VERCEL: ${process.env.VERCEL}`);
 };
 
 // ... (previous code)
 
 logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`);
-startServer();
+
+// Startup environment validation: fail fast if core Supabase server envs are missing
+(() => {
+    const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
+    const missing = required.filter(k => !process.env[k]);
+    if (missing.length > 0) {
+        logger.error(`Missing required environment variables: ${missing.join(', ')}. ` +
+            'These are required for server-side Supabase operations. Exiting.');
+        // Give logs a moment to flush
+        setTimeout(() => process.exit(1), 100);
+    }
+})();
+
+const serverPromise = startServer();
+
+// For testing purposes, we might want to wait for this promise
+export { serverPromise };
 
 // Global Error Handler (must be last)
 import errorHandler from './middleware/errorMiddleware.js';

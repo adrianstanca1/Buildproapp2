@@ -543,24 +543,73 @@ const CompanyManagementView: React.FC = () => {
 
                         {/* Subscription Editing */}
                         <div className="border-t border-zinc-200 dark:border-zinc-700 pt-4">
-                            <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Subscription Management</h4>
-                            <div className="flex gap-2">
-                                <select
-                                    value={editPlan}
-                                    onChange={(e) => setEditPlan(e.target.value)}
-                                    className="flex-1 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm"
-                                >
-                                    <option value="starter">Starter - $99/mo</option>
-                                    <option value="professional">Professional - $299/mo</option>
-                                    <option value="enterprise">Enterprise - $999/mo</option>
-                                </select>
-                                <button
-                                    onClick={handleUpdatePlan}
-                                    disabled={editPlan === selectedCompany.plan}
-                                    className="px-4 py-2 bg-zinc-900 text-white text-sm font-bold rounded-lg hover:bg-zinc-800 disabled:opacity-50"
-                                >
-                                    Update Plan
-                                </button>
+                            <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-4">Subscription & Limits</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="text-xs font-bold text-zinc-500 uppercase mb-1">Plan</label>
+                                    <div className="flex gap-2">
+                                        <select
+                                            value={editPlan}
+                                            onChange={(e) => setEditPlan(e.target.value)}
+                                            className="flex-1 px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm"
+                                        >
+                                            <option value="starter">Starter - $99/mo</option>
+                                            <option value="professional">Professional - $299/mo</option>
+                                            <option value="enterprise">Enterprise - $999/mo</option>
+                                        </select>
+                                        <button
+                                            onClick={handleUpdatePlan}
+                                            disabled={editPlan === selectedCompany.plan}
+                                            className="px-3 py-2 bg-zinc-900 text-white text-xs font-bold rounded-lg hover:bg-zinc-800 disabled:opacity-50"
+                                        >
+                                            Update
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-xs font-bold text-zinc-500 uppercase mb-1">Max Users</label>
+                                        <input
+                                            type="number"
+                                            defaultValue={selectedCompany.maxUsers || 10}
+                                            onBlur={(e) => updateTenant(selectedCompany.id, { maxUsers: parseInt(e.target.value) })}
+                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold text-zinc-500 uppercase mb-1">Max Projects</label>
+                                        <input
+                                            type="number"
+                                            defaultValue={selectedCompany.maxProjects || 5}
+                                            onBlur={(e) => updateTenant(selectedCompany.id, { maxProjects: parseInt(e.target.value) })}
+                                            className="w-full px-3 py-2 bg-white dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg text-sm"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <h4 className="text-sm font-bold text-zinc-900 dark:text-white mb-2">Feature Flags</h4>
+                            <div className="grid grid-cols-2 gap-2">
+                                {['AI Assistant', 'Advanced Reports', 'API Access', 'Beta Features'].map(featureName => {
+                                    const isEnabled = selectedCompany.features?.some((f: any) => f.name === featureName && f.enabled);
+                                    return (
+                                        <label key={featureName} className="flex items-center justify-between p-2 bg-zinc-50 dark:bg-zinc-700/30 rounded-lg cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-700/50">
+                                            <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">{featureName}</span>
+                                            <input
+                                                type="checkbox"
+                                                checked={isEnabled}
+                                                onChange={(e) => {
+                                                    const newFeatures = selectedCompany.features?.filter((f: any) => f.name !== featureName) || [];
+                                                    if (e.target.checked) {
+                                                        newFeatures.push({ id: `feat-${Date.now()}`, name: featureName, enabled: true });
+                                                    }
+                                                    updateTenant(selectedCompany.id, { features: newFeatures });
+                                                }}
+                                                className="w-4 h-4 text-blue-600 rounded"
+                                            />
+                                        </label>
+                                    );
+                                })}
                             </div>
                         </div>
 

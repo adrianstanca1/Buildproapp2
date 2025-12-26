@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import request from 'supertest';
 
 vi.mock('../middleware/authMiddleware.js', () => ({
@@ -13,12 +13,12 @@ vi.mock('../middleware/contextMiddleware.js', () => ({
     contextMiddleware: (req: any, res: any, next: any) => {
         req.context = {
             userId: 'test-user',
-            tenantId: 'test-tenant-123',
-            role: 'super_admin',
+            tenantId: 'c1',
+            role: 'SUPERADMIN',
             permissions: ['*'],
             isSuperadmin: true
         };
-        req.tenantId = 'test-tenant-123'; // For legacy compat
+        req.tenantId = 'c1'; // For legacy compat
         next();
     }
 }));
@@ -38,9 +38,16 @@ vi.mock('../services/membershipService.js', () => ({
     }
 }));
 
-import app from '../index.js';
+import app, { serverPromise } from '../index.js';
+import { ensureDbInitialized } from '../database.js';
 
 describe('API Integration Tests', () => {
+    beforeAll(async () => {
+        // Wait for the server to be fully initialized (DB, seeding, etc.)
+        await serverPromise;
+        // Also explicitly ensure local DB instance is ready if needed
+        await ensureDbInitialized();
+    });
 
     it('should return 404 for unknown routes', async () => {
         const res = await request(app).get('/api/unknown-route');
@@ -81,7 +88,7 @@ describe('API Integration Tests', () => {
     });
 
     it('GET /api/projects should return empty list (or filtered) initially', async () => {
-        const res = await request(app).get('/api/projects').set('x-company-id', 'test-tenant-123');
+        const res = await request(app).get('/api/projects').set('x-company-id', 'c1');
         expect(res.status).toBe(200);
         expect(Array.isArray(res.body)).toBe(true);
     });
@@ -89,7 +96,7 @@ describe('API Integration Tests', () => {
     it('POST /api/projects should fail validation if name missing', async () => {
         const res = await request(app)
             .post('/api/projects')
-            .set('x-company-id', 'test-tenant-123')
+            .set('x-company-id', 'c1')
             .send({
                 description: 'Project without name'
             });
@@ -100,7 +107,7 @@ describe('API Integration Tests', () => {
     it('POST /api/projects should create project', async () => {
         const res = await request(app)
             .post('/api/projects')
-            .set('x-company-id', 'test-tenant-123')
+            .set('x-company-id', 'c1')
             .send({
                 name: 'New Skyscraper',
                 status: 'Planning'

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { db } from '@/services/db';
 import { Project, Task, TeamMember, Transaction } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Query Keys
 export const queryKeys = {
@@ -15,16 +16,19 @@ export const queryKeys = {
 
 // Projects Hooks
 export const useProjects = () => {
+    const { token } = useAuth();
     return useQuery({
         queryKey: queryKeys.projects,
         queryFn: async () => {
             const response = await db.getProjects();
             return response as Project[];
         },
+        enabled: !!token,
     });
 };
 
 export const useProject = (id: string | null) => {
+    const { token } = useAuth();
     return useQuery({
         queryKey: queryKeys.project(id || ''),
         queryFn: async () => {
@@ -33,40 +37,46 @@ export const useProject = (id: string | null) => {
             const projects = await db.getProjects();
             return (projects as Project[]).find(p => p.id === id) || null;
         },
-        enabled: !!id,
+        enabled: !!token && !!id,
     });
 };
 
 // Tasks Hooks
 export const useTasks = () => {
+    const { token } = useAuth();
     return useQuery({
         queryKey: queryKeys.tasks,
         queryFn: async () => {
             const response = await db.getTasks();
             return response as Task[];
         },
+        enabled: !!token,
     });
 };
 
 // Team Members Hooks
 export const useTeamMembers = () => {
+    const { token } = useAuth();
     return useQuery({
         queryKey: queryKeys.teamMembers,
         queryFn: async () => {
             const response = await db.getTeam();
             return response as TeamMember[];
         },
+        enabled: !!token,
     });
 };
 
 // Transactions Hooks
 export const useTransactions = () => {
+    const { token } = useAuth();
     return useQuery({
         queryKey: queryKeys.transactions,
         queryFn: async () => {
             const response = await db.getTransactions();
             return response as Transaction[];
         },
+        enabled: !!token,
     });
 };
 

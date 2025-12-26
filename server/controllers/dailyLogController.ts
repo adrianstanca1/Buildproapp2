@@ -31,8 +31,9 @@ export const getDailyLogs = async (req: AuthenticatedRequest, res: Response): Pr
 
 export const createDailyLog = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
     try {
-        const { tenantId, userId } = req.context!;
-        const name = req.userName || 'Unknown';
+        const { tenantId } = req.context!;
+        const userId = (req as any).userId;
+        const name = (req as any).userName || 'Unknown';
         const { projectId, date, weather, temperature, workforce, activities, equipment, delays, safetyIssues, notes } = req.body;
 
         if (!projectId || !date) {

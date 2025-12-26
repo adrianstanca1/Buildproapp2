@@ -4,7 +4,7 @@ import { getDb } from '../database.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from '../../services/supabaseClient.js';
+import { getSupabaseAdmin, supabaseAdmin } from '../utils/supabase.js';
 
 export const inviteMember = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -32,8 +32,14 @@ export const inviteMember = async (req: Request, res: Response, next: NextFuncti
         // This sends an invite email if email config is set up, or just creates the user
         let userId = '';
         try {
+            // Prefer the central server admin client
+            const adminClient: any = supabaseAdmin || (typeof getSupabaseAdmin === 'function' ? getSupabaseAdmin() : null);
+            if (!adminClient) {
+                throw new AppError('Server Supabase admin client not configured. Cannot invite users via Supabase.', 500);
+            }
+
             // We use the admin API to invite the user. This creates an authorized user in Supabase.
-            const { data: { user }, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(email, {
+            const { data: { user } = { user: null }, error: inviteError } = await adminClient.auth.admin.inviteUserByEmail(email, {
                 data: {
                     companyId: tenantId,
                     role: role,

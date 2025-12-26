@@ -5,6 +5,7 @@ import Sidebar from '@/components/Sidebar';
 import SuperadminSidebar from '@/components/SuperadminSidebar';
 import TopBar from '@/components/TopBar';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import { OfflineIndicator } from '@/components/OfflineIndicator';
 import { CommandPalette } from '@/components/CommandPalette';
 import { Page, UserRole } from '@/types';
 import { ProjectProvider } from '@/contexts/ProjectContext';
@@ -15,6 +16,7 @@ import { NotificationProvider } from '@/contexts/NotificationContext';
 import { WebSocketProvider } from '@/contexts/WebSocketContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { QueryProvider } from '@/contexts/QueryProvider';
+import { SyncProvider } from '@/contexts/SyncContext';
 
 // Utility to handle chunk load errors by reloading the page
 const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
@@ -75,10 +77,11 @@ const ClientPortalView = lazyWithReload(() => import('@/views/ClientPortalView')
 const MaintenanceView = lazyWithReload(() => import('@/views/MaintenanceView'));
 
 // Platform/Superadmin Views
+// Platform/Superadmin Views
 const PlatformDashboardView = lazyWithReload(() => import('@/views/platform/PlatformDashboardView'));
 const DatabaseQueryView = lazyWithReload(() => import('@/views/platform/DatabaseQueryView'));
 const CompanyManagementView = lazyWithReload(() => import('@/views/platform/CompanyManagementView'));
-const UserManagementView = lazyWithReload(() => import('@/views/platform/UserManagementView'));
+
 const PlatformMembersView = lazyWithReload(() => import('@/views/platform/PlatformMembersView'));
 const AccessControlView = lazyWithReload(() => import('@/views/platform/AccessControlView'));
 const SystemLogsView = lazyWithReload(() => import('@/views/platform/SystemLogsView'));
@@ -87,6 +90,14 @@ const SecurityDashboardView = lazyWithReload(() => import('@/views/platform/Secu
 const SupportTicketsView = lazyWithReload(() => import('@/views/platform/SupportTicketsView'));
 const PlatformNotificationsView = lazyWithReload(() => import('@/views/platform/PlatformNotificationsView'));
 const GlobalSettingsView = lazyWithReload(() => import('@/views/platform/GlobalSettingsView'));
+const SuperAdminCommandCenter = lazyWithReload(() => import('@/views/platform/SuperAdminCommandCenter'));
+
+// Phase 14: Automations & Intelligence
+const AutomationsView = lazyWithReload(() => import('@/views/AutomationsView'));
+const PredictiveAnalysisView = lazyWithReload(() => import('@/views/PredictiveAnalysisView'));
+const SmartDocumentCenter = lazyWithReload(() => import('@/views/SmartDocumentCenter'));
+
+
 
 const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(
@@ -118,7 +129,7 @@ const AuthenticatedApp: React.FC = () => {
   // Maintenance Mode Check (Super Admins Bypass)
   // If user is logged in AND is Super Admin, they bypass.
   // If user is NOT logged in or NOT Super Admin, they see Maintenance View.
-  const isMaintenanceActive = systemSettings.maintenance;
+  const isMaintenanceActive = systemSettings.maintenance || systemSettings.maintenanceMode;
   const isSuperAdmin = user?.role === UserRole.SUPERADMIN;
 
   if (isMaintenanceActive && !isSuperAdmin) {
@@ -180,7 +191,7 @@ const AuthenticatedApp: React.FC = () => {
     const platformPages = [
       Page.PLATFORM_DASHBOARD,
       Page.COMPANY_MANAGEMENT,
-      Page.PLATFORM_MEMBERS,  // UserManagementView route
+      Page.PLATFORM_MEMBERS,
       Page.ACCESS_CONTROL,
       Page.SYSTEM_LOGS,
       Page.SQL_CONSOLE,
@@ -189,13 +200,11 @@ const AuthenticatedApp: React.FC = () => {
       Page.SUPPORT_CENTER,
       Page.PLATFORM_NOTIFICATIONS,
       Page.GLOBAL_SETTINGS,
-      // Add other platform-specific pages if they exist in Page enum
     ];
-    // Note: In strict mode, we should check against a comprehensive list. 
-    // For now, we rely on the specific conditionals below or standard pages.
 
-    // Explicit deny list for standard users
-    if (targetPage === Page.PLATFORM_DASHBOARD) return false;
+    if (platformPages.includes(targetPage)) {
+      return false;
+    }
 
     return true;
   };
@@ -217,6 +226,7 @@ const AuthenticatedApp: React.FC = () => {
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 overflow-hidden relative">
       {/* Command Palette */}
+      <OfflineIndicator />
       <CommandPalette
         isOpen={showCommandPalette}
         onClose={() => setShowCommandPalette(false)}
@@ -336,13 +346,16 @@ const AuthenticatedApp: React.FC = () => {
               {/* Platform/Superadmin Routes */}
               {page === Page.PLATFORM_DASHBOARD && <PlatformDashboardView />}
               {page === Page.COMPANY_MANAGEMENT && <CompanyManagementView />}
-              {page === Page.PLATFORM_MEMBERS && <UserManagementView />}
+              {page === Page.PLATFORM_MEMBERS && <PlatformMembersView />}
               {page === Page.ACCESS_CONTROL && <AccessControlView />}
               {page === Page.SYSTEM_LOGS && <SystemLogsView />}
-              {page === Page.SQL_CONSOLE && <DatabaseQueryView />}
+              {page === Page.SQL_CONSOLE && <SuperAdminCommandCenter />}
               {page === Page.SUBSCRIPTIONS && <SubscriptionView />}
               {page === Page.SECURITY_CENTER && <SecurityDashboardView />}
               {page === Page.SUPPORT_CENTER && <SupportTicketsView />}
+              {page === Page.AUTOMATIONS && <AutomationsView />}
+              {page === Page.PREDICTIVE_ANALYSIS && <PredictiveAnalysisView />}
+              {page === Page.SMART_DOCS && <SmartDocumentCenter />}
             </Suspense>
           </ErrorBoundary>
         </main>
@@ -356,19 +369,21 @@ const App: React.FC = () => {
     <QueryProvider>
       <ThemeProvider>
         <ToastProvider>
-          <TenantProvider>
-            <AuthProvider>
-              <NotificationProvider>
-                <ProjectProvider>
-                  <WebSocketProvider>
-                    <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
-                      <AuthenticatedApp />
-                    </Suspense>
-                  </WebSocketProvider>
-                </ProjectProvider>
-              </NotificationProvider>
-            </AuthProvider>
-          </TenantProvider>
+          <AuthProvider>
+            <SyncProvider>
+              <TenantProvider>
+                <NotificationProvider>
+                  <ProjectProvider>
+                    <WebSocketProvider>
+                      <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
+                        <AuthenticatedApp />
+                      </Suspense>
+                    </WebSocketProvider>
+                  </ProjectProvider>
+                </NotificationProvider>
+              </TenantProvider>
+            </SyncProvider>
+          </AuthProvider>
         </ToastProvider>
       </ThemeProvider>
     </QueryProvider>

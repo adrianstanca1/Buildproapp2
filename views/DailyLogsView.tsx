@@ -5,6 +5,7 @@ import FileUploadZone from '@/components/FileUploadZone';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useSync } from '@/contexts/SyncContext';
 import { DailyLog } from '@/types';
 import { getWeather } from '@/services/weatherService';
 
@@ -12,6 +13,7 @@ const DailyLogsView: React.FC = () => {
     const { projects, dailyLogs, addDailyLog } = useProjects();
     const { user } = useAuth();
     const { addToast } = useToast();
+    const { isOnline, queueAction } = useSync();
 
     // State
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -67,6 +69,15 @@ const DailyLogsView: React.FC = () => {
             signedAt: new Date().toISOString(),
             attachments: attachments
         };
+
+        if (!isOnline) {
+            await queueAction('/api/daily_logs', 'POST', log, 'daily-log');
+            addToast("Saved Offline (Will sync when online)", "info");
+            setWorkPerformed('');
+            setNotes('');
+            setAttachments([]);
+            return;
+        }
 
         try {
             await addDailyLog(log);

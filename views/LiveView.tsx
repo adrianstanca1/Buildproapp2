@@ -405,7 +405,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
 
                 {/* Hazards Feed (Right Side) */}
                 {safetyScanActive && (
-                    <div className="absolute top-24 right-6 bottom-32 w-80 flex flex-col pointer-events-none z-20">
+                    <div className="absolute top-24 right-6 bottom-32 w-full max-w-[300px] flex flex-col pointer-events-none z-20">
                         <div className="self-end bg-black/60 text-white px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest border border-white/10 mb-3 backdrop-blur-sm flex items-center gap-2 shadow-lg">
                             <ShieldAlert size={12} className="text-blue-400" /> Hazard Detection
                         </div>
@@ -414,15 +414,15 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                             {detectedHazards.map((hazard, i) => (
                                 <div
                                     key={hazard.id || i}
-                                    className={`p - 4 rounded - xl backdrop - blur - xl border shadow - xl animate -in slide -in -from - right - 8 duration - 500 relative overflow - hidden ${hazard.severity === 'High' ? 'bg-red-950/80 border-red-500/50 text-white' :
+                                    className={`p-4 rounded-xl backdrop-blur-xl border shadow-xl animate-in slide-in-from-right-8 duration-500 relative overflow-hidden ${hazard.severity === 'High' ? 'bg-red-950/80 border-red-500/50 text-white' :
                                         hazard.severity === 'Medium' ? 'bg-orange-950/80 border-orange-500/50 text-white' :
                                             'bg-blue-950/80 border-blue-500/50 text-white'
-                                        } `}
+                                        }`}
                                 >
                                     {/* Severity Stripe */}
-                                    <div className={`absolute left - 0 top - 0 bottom - 0 w - 1.5 ${hazard.severity === 'High' ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' :
+                                    <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${hazard.severity === 'High' ? 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]' :
                                         hazard.severity === 'Medium' ? 'bg-orange-500' : 'bg-blue-500'
-                                        } `} />
+                                        }`} />
 
                                     <div className="flex items-center justify-between mb-2 pl-2">
                                         <span className="font-bold text-xs flex items-center gap-2 uppercase tracking-wide">
@@ -445,7 +445,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
 
                 {/* Start Session Overlay */}
                 {!sessionStarted ? (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-auto bg-black/60 backdrop-blur-md z-50">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-auto bg-black/60 backdrop-blur-md z-50 p-4">
                         <div className="bg-zinc-900/90 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-2xl text-center max-w-sm w-full animate-in zoom-in duration-300">
                             <div className="w-20 h-20 bg-gradient-to-br from-[#0f5c82] to-[#0284c7] rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-900/50">
                                 <Zap size={40} className="text-white" fill="white" />
@@ -456,7 +456,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                             </p>
                             <button
                                 onClick={startSession}
-                                className="w-full bg-white text-zinc-900 font-bold py-4 rounded-xl hover:bg-zinc-200 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-xl"
+                                className="w-full bg-white text-zinc-900 font-bold py-4 rounded-xl hover:bg-zinc-200 transition-all transform hover:scale-[1.02] flex items-center justify-center gap-2 shadow-xl active:scale-95"
                             >
                                 <Play size={20} fill="currentColor" /> Start Session
                             </button>
@@ -481,7 +481,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                         )}
 
                         {/* Bottom Controls */}
-                        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center w-full max-w-3xl z-50 px-4">
+                        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto flex flex-col items-center w-full max-w-3xl z-50 px-4 pb-safe">
                             {/* Subtitles */}
                             {(currentUserText || currentModelText) && (
                                 <div className="w-full bg-black/60 backdrop-blur-lg border border-white/10 rounded-2xl p-6 text-left shadow-2xl transition-all duration-300 mb-6">
@@ -490,35 +490,35 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                                 </div>
                             )}
 
-                            <div className="flex items-center gap-4 bg-black/50 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-full shadow-2xl ring-1 ring-white/5">
+                            <div className="flex items-center gap-3 sm:gap-6 bg-black/60 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-3xl shadow-2xl ring-1 ring-white/5 overflow-x-auto max-w-full">
                                 <button
                                     onClick={() => setIsActive(!isActive)}
-                                    className={`p - 4 rounded - full transition - all duration - 200 hover: scale - 105 active: scale - 95 ${!isActive ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-white hover:bg-white/20'} `}
+                                    className={`p-5 rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0 ${!isActive ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     title={isActive ? "Mute Microphone" : "Unmute Microphone"}
                                 >
-                                    {isActive ? <Mic size={24} /> : <MicOff size={24} />}
+                                    {isActive ? <Mic size={28} /> : <MicOff size={28} />}
                                 </button>
 
                                 <button
                                     onClick={toggleCamera}
-                                    className={`p - 4 rounded - full transition - all duration - 200 hover: scale - 105 active: scale - 95 ${isCameraOn ? 'bg-white text-black shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'} `}
+                                    className={`p-5 rounded-2xl transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0 ${isCameraOn ? 'bg-white text-black shadow-lg' : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     title={isCameraOn ? "Turn Off Camera" : "Turn On Camera"}
                                 >
-                                    {isCameraOn ? <Video size={24} /> : <VideoOff size={24} />}
+                                    {isCameraOn ? <Video size={28} /> : <VideoOff size={28} />}
                                 </button>
 
                                 {/* Safety Scanner Toggle */}
                                 {isCameraOn && (
                                     <>
-                                        <div className="w-px h-10 bg-white/10 mx-2"></div>
+                                        <div className="w-px h-12 bg-white/10 mx-2 hidden sm:block"></div>
                                         <button
                                             onClick={toggleSafetyScan}
-                                            className={`flex items - center gap - 3 px - 6 py - 3.5 rounded - full transition - all duration - 200 border hover: scale - 105 active: scale - 95 ${safetyScanActive
+                                            className={`flex items-center gap-3 px-6 py-5 rounded-2xl transition-all duration-200 border hover:scale-105 active:scale-95 flex-shrink-0 ${safetyScanActive
                                                 ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_20px_rgba(37,99,235,0.5)]'
                                                 : 'bg-white/5 border-white/10 text-zinc-400 hover:text-white hover:bg-white/10'
-                                                } `}
+                                                }`}
                                         >
-                                            <ScanLine size={20} />
+                                            <ScanLine size={24} />
                                             <span className="text-sm font-bold uppercase tracking-wide hidden sm:inline">
                                                 {safetyScanActive ? "Scanner On" : "Safety Scan"}
                                             </span>
@@ -526,14 +526,14 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                                     </>
                                 )}
 
-                                <div className="w-px h-10 bg-white/10 mx-2"></div>
+                                <div className="w-px h-12 bg-white/10 mx-2 hidden sm:block"></div>
 
                                 <button
                                     onClick={handleEndCall}
-                                    className="p-4 bg-red-600 hover:bg-red-700 text-white rounded-full flex items-center justify-center shadow-lg transform hover:scale-105 transition-all group border border-red-500"
+                                    className="p-5 bg-red-600 hover:bg-red-700 text-white rounded-2xl flex items-center justify-center shadow-lg transform hover:scale-105 transition-all group border border-red-500 active:scale-95 flex-shrink-0"
                                     title="End Session"
                                 >
-                                    <PhoneOff size={24} className="group-hover:rotate-12 transition-transform" />
+                                    <PhoneOff size={28} className="group-hover:rotate-12 transition-transform" />
                                 </button>
                             </div>
                         </div>

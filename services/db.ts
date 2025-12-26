@@ -10,8 +10,7 @@ class DatabaseService {
   private tenantId: string | null = null;
 
   constructor() {
-    // Simple health check on init
-    this.checkHealth();
+    // Health check removed from constructor to prevent unauthenticated 401 calls on landing page
   }
 
   setTenantId(id: string | null) {
@@ -508,13 +507,7 @@ class DatabaseService {
   }
 
 
-  async getGlobalActivity(): Promise<any[]> {
-    try {
-      const res = await fetch(`${API_URL}/platform/activity`, { headers: await this.getHeaders() });
-      if (!res.ok) return [];
-      return await res.json();
-    } catch { return []; }
-  }
+
 
   async getAllPlatformUsers(): Promise<any[]> {
     try {
@@ -546,7 +539,7 @@ class DatabaseService {
 
   // --- System Settings (Admin) ---
   async getSystemSettings(): Promise<any> {
-    const res = await fetch(`${API_URL}/system-settings/settings`, { headers: await this.getHeaders() });
+    const res = await fetch(`${API_URL}/system-settings`, { headers: await this.getHeaders() });
     if (!res.ok) return {}; // Fallback to empty on error
     return await res.json();
   }
@@ -567,11 +560,8 @@ class DatabaseService {
 
   async updateSystemSettings(settings: any): Promise<void> {
     try {
-      // API expects { key, value } per request, or we update one by one
-      const updates = Object.entries(settings).map(async ([key, value]) => {
-        await this.post('system-settings/settings', { key, value });
-      });
-      await Promise.all(updates);
+      // Send full config object to platform controller logic
+      await this.post('system-settings', settings);
     } catch (e) {
       console.warn("API update failed", e);
     }
@@ -593,36 +583,18 @@ class DatabaseService {
   }
 
   async impersonateUser(userId: string): Promise<{ user: any; token: string }> {
-    /*
-    if (this.useMock) {
-      console.log(`[MockDB] Impersonating user ${userId}`);
-      return {
-        user: {
-          id: userId,
-          email: `impersonated-${userId}@buildpro.app`,
-          role: 'PROJECT_MANAGER',
-          permissions: [],
-          name: 'Impersonated User',
-          avatarInitials: 'IU'
-        },
-        token: 'mock-impersonation-token-' + userId
-      };
-    }
-    */
+
     const res = await this.post('auth/impersonate', { userId });
     if (!res) throw new Error("Failed to impersonate user");
     return res as any;
   }
 
   // --- Audit Logs ---
-  async getGlobalAuditLogs(): Promise<TenantAuditLog[]> {
-    /*
-    if (this.useMock) {
-      // Aggregate logs from all mock tenants or return global system logs
-      return mockDb.getSystemLogs ? mockDb.getSystemLogs() : [];
-    }
-    */
-    const res = await fetch(`${API_URL}/platform/audit-logs`, { headers: await this.getHeaders() });
+  async getGlobalAuditLogs(params: Record<string, any> = {}): Promise<TenantAuditLog[]> {
+
+    const query = new URLSearchParams(params).toString();
+    const url = `${API_URL}/platform/audit-logs${query ? `?${query}` : ''}`;
+    const res = await fetch(url, { headers: await this.getHeaders() });
     if (!res.ok) return [];
     return await res.json();
   }
@@ -697,11 +669,7 @@ class DatabaseService {
   }
 
   async getAccessLogs(): Promise<any[]> {
-    /*
-    if (this.useMock) {
-      return mockDb.getAccessLogs();
-    }
-    */
+
     // Return empty or fetch from real audit logs if available
     return [];
   }
@@ -840,15 +808,7 @@ class DatabaseService {
     await this.put(`platform/support/admin/tickets`, ticketId + '/status', { status });
   }
 
-  async getSystemConfig(): Promise<any> {
-    return this.getSingle('platform/config');
-  }
 
-  async updateSystemConfig(config: any): Promise<void> {
-    // Backend uses POST /config for upsert or PUT if we follow standard. 
-    // routes/platformRoutes.ts has router.post('/config')
-    await this.post('platform/config', config);
-  }
 
   async addAccessLog(log: any): Promise<void> {
     // implementation handled by backend for critical actions, but client can log too
@@ -860,8 +820,11 @@ class DatabaseService {
   async addInvoice(item: Invoice) {
     await this.post('invoices', item);
   }
-  async updateInvoice(id: string, u: Partial<Invoice>) {
-    await this.put('invoices', id, u);
+  async updateInvoice(id: string, updates: Partial<Invoice>) {
+    await this.put('invoices', id, updates);
+  }
+  async deleteInvoice(id: string) {
+    await this.delete('invoices', id);
   }
 
   async getExpenseClaims(): Promise<ExpenseClaim[]> {
@@ -895,12 +858,7 @@ class DatabaseService {
   }
 
   async updateCostCode(id: string, u: Partial<CostCode>) {
-    /*
-    if (this.useMock) {
-      await (mockDb as any).updateCostCode(id, u);
-      return;
-    }
-    */
+
     await this.put('cost_codes', id, u);
   }
   // --- Client Portal ---

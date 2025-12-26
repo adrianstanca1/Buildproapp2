@@ -10,8 +10,13 @@ router.use(requireRole([UserRole.SUPERADMIN]));
 
 router.get('/stats', platformController.getDashboardStats);
 router.get('/health', platformController.getSystemHealth);
-router.get('/activity', platformController.getGlobalActivity);
+// Legacy alias
+router.get('/audit-logs', platformController.getAuditLogs);
 router.get('/metrics', platformController.getAdvancedMetrics);
+
+router.get('/users', platformController.getAllUsers);
+router.put('/users/:id/status', platformController.updateUserStatus);
+router.put('/users/:id/role', platformController.updateUserRole);
 
 router.post('/broadcast', platformController.broadcastMessage);
 router.post('/maintenance', platformController.toggleMaintenance);

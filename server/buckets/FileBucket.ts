@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { auditService } from '../services/auditService.js';
@@ -280,7 +281,7 @@ export class FileBucket {
     }
 
     /**
-     * Generate presigned URL (placeholder - would integrate with S3/Cloud Storage)
+     * Generate presigned URL using HMAC (local-friendly; swap for S3/GCS in prod)
      */
     async generatePresignedUrl(
         tenantId: string,
@@ -288,12 +289,17 @@ export class FileBucket {
         expiresIn: number = 3600,
         options?: UploadOptions
     ): Promise<string> {
-        // For local storage, just return the regular URL
-        // In production, this would generate a signed S3/GCS URL
         const filePath = this.getPath(tenantId, filename, options);
         const relativePath = path.relative(this.baseStoragePath, filePath);
 
-        return `/uploads/${relativePath.replace(/\\/g, '/')}?expires=${Date.now() + expiresIn * 1000}`;
+        const expiresAt = Date.now() + expiresIn * 1000;
+        const payload = `${tenantId}:${relativePath}:${expiresAt}`;
+        const signature = crypto
+            .createHmac('sha256', process.env.FILE_SIGNING_SECRET || 'local-dev-secret')
+            .update(payload)
+            .digest('hex');
+
+        return `/uploads/${relativePath.replace(/\\/g, '/')}?expires=${expiresAt}&sig=${signature}`;
     }
 }
 

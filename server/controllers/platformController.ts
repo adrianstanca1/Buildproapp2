@@ -82,23 +82,58 @@ export const getSystemHealth = async (req: Request, res: Response, next: NextFun
 };
 
 /**
- * Get recent global activity logs
+ * Get global audit logs with filtering and pagination
  */
-export const getGlobalActivity = async (req: Request, res: Response, next: NextFunction) => {
+export const getAuditLogs = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const db = getDb();
-        // Fetch recent logs from audit_logs table, ideally indexed by timestamp
-        const logs = await db.all(
-            `SELECT * FROM audit_logs 
-             ORDER BY timestamp DESC 
-             LIMIT 50`
-        );
+        const { limit = 100, offset = 0, action, userId, resource, startDate, endDate } = req.query;
 
-        res.json(logs);
+        let sql = `SELECT * FROM audit_logs WHERE 1=1`;
+        const params: any[] = [];
+
+        if (action && action !== 'ALL') {
+            sql += ` AND action = ?`;
+            params.push(action);
+        }
+
+        if (userId) {
+            sql += ` AND (userId LIKE ? OR userName LIKE ?)`;
+            params.push(`%${userId}%`, `%${userId}%`);
+        }
+
+        if (resource) {
+            sql += ` AND resource = ?`;
+            params.push(resource);
+        }
+
+        if (startDate) {
+            sql += ` AND timestamp >= ?`;
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            sql += ` AND timestamp <= ?`;
+            params.push(endDate);
+        }
+
+        sql += ` ORDER BY timestamp DESC LIMIT ? OFFSET ?`;
+        params.push(limit, offset);
+
+        const logs = await db.all(sql, params);
+
+        const parsedLogs = logs.map(l => ({
+            ...l,
+            metadata: l.changes ? JSON.parse(l.changes) : l.metadata ? JSON.parse(l.metadata) : null
+        }));
+
+        res.json(parsedLogs);
     } catch (e) {
         next(e);
     }
 };
+
+
 
 /**
  * Execute raw SQL (Super Admin Only)
@@ -224,15 +259,111 @@ export const getSystemConfig = async (req: Request, res: Response, next: NextFun
 export const updateSystemConfig = async (req: Request, res: Response, next: NextFunction) => {
     try {
         const db = getDb();
-        const config = req.body;
+        const updates = req.body;
         const now = new Date().toISOString();
         const updatedBy = (req as any).userName || 'admin';
+
+        // 1. Fetch existing config
+        const existingRow = await db.get('SELECT value FROM system_settings WHERE key = ?', ['global_config']);
+        let currentConfig: any = {};
+        if (existingRow) {
+            try {
+                currentConfig = JSON.parse(existingRow.value);
+            } catch (e) {
+                // Ignore parse error, start fresh
+            }
+        }
+
+        // 2. Merge updates (Shallow merge is usually enough for top-level keys like maintenanceMode)
+        // If we need deep merge for apiKeys, we handle it:
+        const mergedConfig = {
+            ...currentConfig,
+            ...updates,
+            // Handle nested objects explicitly if needed, but for now top-level merge
+            // If updates contains apiKeys, it overwrites the whole object unless we merge it too.
+            // Let's do a simple spread for apiKeys if present in both
+            apiKeys: {
+                ...(currentConfig.apiKeys || {}),
+                ...(updates.apiKeys || {})
+            }
+        };
 
         await db.run(
             `INSERT INTO system_settings (key, value, updatedAt, updatedBy) 
              VALUES (?, ?, ?, ?)
              ON CONFLICT(key) DO UPDATE SET value = ?, updatedAt = ?, updatedBy = ?`,
-            ['global_config', JSON.stringify(config), now, updatedBy, JSON.stringify(config), now, updatedBy]
+            ['global_config', JSON.stringify(mergedConfig), now, updatedBy, JSON.stringify(mergedConfig), now, updatedBy]
+        );
+
+        res.json({ success: true, config: mergedConfig });
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Get All Platform Users (Super Admin)
+ */
+export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const users = await db.all(`
+            SELECT u.id, u.email, u.name, u.role, u.companyId, c.name as companyName, u.status, u.createdAt 
+            FROM users u 
+            LEFT JOIN companies c ON u.companyId = c.id
+            ORDER BY u.createdAt DESC
+        `);
+        res.json(users);
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Update User Status (Suspend/Activate)
+ */
+export const updateUserStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const db = getDb();
+
+        await db.run('UPDATE users SET status = ? WHERE id = ?', [status, id]);
+
+        // Audit log
+        const logId = (await import('uuid')).v4();
+        const now = new Date().toISOString();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, 'system', (req as any).userId, (req as any).userName, 'UPDATE_STATUS', 'users', id, JSON.stringify({ status }), 'success', now, req.ip, req.headers['user-agent']]
+        );
+
+        res.json({ success: true });
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Update User Role
+ */
+export const updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { id } = req.params;
+        const { role } = req.body;
+        const db = getDb();
+
+        // Update both user table and memberships if needed. For now users table is source of truth for global role.
+        await db.run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+
+        // Audit log
+        const logId = (await import('uuid')).v4();
+        const now = new Date().toISOString();
+        await db.run(
+            `INSERT INTO audit_logs (id, companyId, userId, userName, action, resource, resourceId, changes, status, timestamp, ipAddress, userAgent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [logId, 'system', (req as any).userId, (req as any).userName, 'UPDATE_ROLE', 'users', id, JSON.stringify({ role }), 'success', now, req.ip, req.headers['user-agent']]
         );
 
         res.json({ success: true });

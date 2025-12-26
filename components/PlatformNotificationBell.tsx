@@ -31,8 +31,9 @@ const PlatformNotificationBell: React.FC = () => {
             try {
                 const data = await db.getPlatformEvents(10);
                 setEvents(data);
-            } catch (e) {
-                console.error('Failed to load platform events', e);
+            } catch (error) {
+                // Silently fail for non-critical notifications
+                console.error('Failed to load platform events', error);
             }
         };
 
@@ -61,27 +62,33 @@ const PlatformNotificationBell: React.FC = () => {
                             addToast(`SYSTEM: ${newEvent.message}`, newEvent.level === 'critical' ? 'error' : 'warning');
                         }
                     }
-                } catch (e) { }
+                } catch (e) {
+                    // Ignore JSON parsing errors from socket
+                }
             };
             ws.onclose = () => setTimeout(connect, 5000);
         };
 
         connect();
         return () => ws?.close();
-    }, [user, token]);
+    }, [user, token, addToast]);
 
     const handleMarkAsRead = async (id: string) => {
         try {
             await db.markPlatformEventRead(id);
             setEvents(prev => prev.map(e => e.id === id ? { ...e, is_read: true } : e));
-        } catch (e) { }
+        } catch (e) {
+            // Silently fail if marking as read fails
+        }
     };
 
     const handleMarkAllRead = async () => {
         try {
             await db.markAllPlatformEventsRead();
             setEvents(prev => prev.map(e => ({ ...e, is_read: true })));
-        } catch (e) { }
+        } catch (e) {
+            // Silently fail
+        }
     };
 
     return (

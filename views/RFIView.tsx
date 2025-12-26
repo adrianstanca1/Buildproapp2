@@ -3,6 +3,7 @@ import { Search, Plus, Filter, MessageSquare, Clock, CheckCircle2, User, FileTex
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/contexts/ToastContext';
+import { useSync } from '@/contexts/SyncContext';
 import { Modal } from '@/components/Modal';
 import { Comments } from '@/components/Comments';
 import { RFI } from '@/types';
@@ -11,6 +12,7 @@ const RFIView: React.FC = () => {
     const { projects, rfis, addRFI, updateRFI } = useProjects();
     const { user } = useAuth();
     const { addToast } = useToast();
+    const { isOnline, queueAction } = useSync();
 
     const [selectedRfi, setSelectedRfi] = useState<RFI | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -49,6 +51,14 @@ const RFIView: React.FC = () => {
         };
 
         try {
+            if (!isOnline) {
+                await queueAction('/api/rfis', 'POST', rfi, 'rfi');
+                addToast(`RFI Saved Offline (Will sync when online)`, "info");
+                setIsCreating(false);
+                setNewRfi({ subject: '', question: '', assignedTo: '', dueDate: '' });
+                return;
+            }
+
             await addRFI(rfi);
             setIsCreating(false);
             setNewRfi({ subject: '', question: '', assignedTo: '', dueDate: '' });

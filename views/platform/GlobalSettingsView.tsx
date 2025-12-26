@@ -9,7 +9,14 @@ import { useToast } from '@/contexts/ToastContext';
 
 const GlobalSettingsView: React.FC = () => {
     const { addToast } = useToast();
-    const [config, setConfig] = useState<any>(null);
+    const [config, setConfig] = useState<any>({
+        platformName: '',
+        supportEmail: '',
+        primaryColor: '#6366f1',
+        maintenanceMode: false,
+        allowRegistrations: false,
+        apiKeys: { googleMaps: '', sendGrid: '', openAi: '' }
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [activeTab, setActiveTab] = useState<'general' | 'branding' | 'integrations' | 'security'>('general');
@@ -17,10 +24,11 @@ const GlobalSettingsView: React.FC = () => {
     useEffect(() => {
         const loadConfig = async () => {
             try {
-                const data = await db.getSystemConfig();
-                setConfig(data);
+                const data = await db.getSystemSettings();
+                setConfig((prev: any) => ({ ...prev, ...data }));
             } catch (error) {
-                addToast('Failed to load system configuration', 'error');
+                console.error('Config load failed', error);
+                addToast('Using default settings (Config failed)', 'warning');
             } finally {
                 setIsLoading(false);
             }
@@ -31,7 +39,7 @@ const GlobalSettingsView: React.FC = () => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await db.updateSystemConfig(config);
+            await db.updateSystemSettings(config);
             addToast('System configuration saved successfully', 'success');
         } catch (error) {
             addToast('Failed to save settings', 'error');
@@ -44,6 +52,15 @@ const GlobalSettingsView: React.FC = () => {
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+        );
+    }
+
+    if (!config) {
+        return (
+            <div className="flex items-center justify-center h-full flex-col gap-4">
+                <div className="text-zinc-400 font-bold">Failed to load configuration</div>
+                <button onClick={() => window.location.reload()} className="px-4 py-2 bg-indigo-600 text-white rounded-lg">Retry</button>
             </div>
         );
     }
@@ -107,7 +124,7 @@ const GlobalSettingsView: React.FC = () => {
                                         <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Platform Name</label>
                                         <input
                                             type="text"
-                                            value={config.platformName}
+                                            value={config?.platformName || ''}
                                             onChange={e => setConfig({ ...config, platformName: e.target.value })}
                                             className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
                                         />

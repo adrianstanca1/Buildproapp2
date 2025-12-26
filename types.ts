@@ -29,6 +29,7 @@ export interface PlatformStats {
 
 export interface SystemSettings {
   maintenance: boolean;
+  maintenanceMode?: boolean; // For legacy/frontend compatibility
   betaFeatures: boolean;
   registrations: boolean;
   aiEngine: boolean;
@@ -76,6 +77,12 @@ export enum Page {
   DAILY_LOGS = 'DAILY_LOGS',
   RFI = 'RFI',
   CLIENT_PORTAL = 'CLIENT_PORTAL',
+  MAINTENANCE = 'MAINTENANCE',
+
+  // Phase 14
+  AUTOMATIONS = 'AUTOMATIONS',
+  PREDICTIVE_ANALYSIS = 'PREDICTIVE_ANALYSIS',
+  SMART_DOCS = 'SMART_DOCS',
   PLATFORM_DASHBOARD = 'PLATFORM_DASHBOARD',
   COMPANY_MANAGEMENT = 'COMPANY_MANAGEMENT',
   COMPANY_SETTINGS = 'COMPANY_SETTINGS', // New Company Admin settings page
@@ -145,6 +152,27 @@ export interface Company {
 }
 
 // Enhanced tenant management types
+
+export interface Invoice {
+  id: string;
+  companyId: string;
+  projectId?: string;
+  number: string;
+  vendor: string;
+  vendorId?: string;
+  amount: number;
+  total: number;
+  tax?: number;
+  date: string;
+  dueDate: string;
+  status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
+  costCodeId?: string;
+  items?: string; // JSON string for backend
+  files?: string;
+  attachments?: string[];
+  // Transformed on frontend
+  lineItems?: Array<{ description: string; quantity: number; unitPrice: number; total: number }>;
+}
 export interface Tenant {
   id: string;
   companyId: string;
@@ -778,30 +806,6 @@ export interface CostCode {
   budget: number;
   spent: number;
   var?: number;
-}
-
-export interface Invoice {
-  id: string;
-  projectId: string;
-  number: string;
-  vendor: string;
-  date: string;
-  dueDate: string;
-  amount: number;
-  tax: number;
-  total: number;
-  status: 'Draft' | 'Pending' | 'Approved' | 'Paid' | 'Overdue';
-  costCode?: string;
-  costCodeId?: string;
-  linkedPoId?: string;
-  lineItems: {
-    desc: string;
-    qty: number;
-    rate: number;
-    amount: number;
-  }[];
-  attachments?: string[];
-  companyId: string;
 }
 
 export interface ExpenseClaim {

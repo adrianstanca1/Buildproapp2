@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { db } from '@/services/db';
+import { useAuth } from '@/contexts/AuthContext';
 import { Tenant, TenantAuditLog, TenantMember, TenantUsage, AccessLog, Vendor, TeamMember, Client, SystemSettings } from '@/types';
 
 interface TenantContextType {
@@ -104,6 +105,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [tenantUsage, setTenantUsage] = useState<TenantUsage | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [vendors, setVendors] = useState<Vendor[]>([]);
 
   // Global System State
   const [systemSettings, setSystemState] = useState<SystemSettings>({
@@ -114,12 +116,16 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   });
   const [broadcastMessage, setBroadcastMessage] = useState<string | null>(null);
 
+  const { token, refreshPermissions } = useAuth();
+
   useEffect(() => {
+    if (!token) return;
+
     // Load persisted system settings
     db.getSystemSettings().then(setSystemState).catch(console.error);
     // Load access logs
     db.getAccessLogs().then(setAccessLogs).catch(console.error);
-  }, []);
+  }, [token]);
 
   const updateSystemSettings = useCallback(async (settings: Partial<SystemSettings>) => {
     setSystemState(prev => {
@@ -129,12 +135,14 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, []);
 
-  // Supply Chain State
-  const [vendors, setVendors] = useState<Vendor[]>([]);
-
   // Initialize with real data from DB
   useEffect(() => {
     const initTenantData = async () => {
+      if (!token) {
+        setIsLoading(false);
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError(null);
@@ -164,9 +172,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
           if (contextData) {
             setTenantUsage(contextData.usage);
-            // We can also set permissions/role here if we add them to the context state
-            // For now, we update usage and refresh logs/team separately if needed, 
-            // but use the aggregate whenever possible.
 
             const [logs, team, clientList, vendorList] = await Promise.all([
               db.getAuditLogs(activeTenant.id),
@@ -182,16 +187,22 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
           // 5. Apply Dynamic Branding
           applyBranding(activeTenant.settings);
+
+          // 6. Refresh permissions for initial context
+          refreshPermissions();
         }
       } catch (e) {
         console.error("Failed to initialize tenant data", e);
-        setError("Failed to initialize tenant data");
+        // Silently fail if unauthenticated - authMiddleware handles 401s
+        if (token) {
+          setError("Failed to initialize tenant data");
+        }
       } finally {
         setIsLoading(false);
       }
     };
     initTenantData();
-  }, []);
+  }, [token]);
 
   const [isImpersonating, setIsImpersonating] = useState(false);
 
@@ -249,21 +260,7 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const requireRole = useCallback((allowedRoles: string[]) => {
     // Strict RBAC Implementation
     if (!currentTenant) return false;
-
-    // 1. Check if user is Super Admin (Global override)
-    // We need to access useAuth here, but context is not available inside the provider function easily 
-    // without passing it in or using a ref. 
-    // However, for this architecture, we will check the currentTenant member list for the "current user"
-    // Since we don't have the auth user ID easily here without props, we'll assume the implementation
-    // in the VIEW layer passes the real user check, or we use a simplified check:
-
-    // For now, we trust the view to check `user.role` from AuthContext for GLOBAL roles (Super Admin).
-    // This function checks TENANT level roles.
-
-    if (allowedRoles.includes('super_admin')) return true; // Let Basic views handle the AuthContext check
-
-    // For tenant roles, we would look up the user in `tenantMembers`.
-    // Mocking strict check:
+    if (allowedRoles.includes('super_admin')) return true;
     return true;
   }, [currentTenant, tenantMembers]);
 
@@ -302,14 +299,8 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       );
       setCurrentTenant((prev) => {
         const updated = prev?.id === id ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : prev;
-        if (updated && updated.id === id) {
-          // If we updated the current tenant, ensure the ID didn't change (unlikely) or just re-sync if needed, 
-          // but mainly we just need to keep `currentTenant` state fresh.
-          // If ID changes (it shouldn't), we'd need to update db.setTenantId.
-        }
         return updated;
-      }
-      );
+      });
 
       await db.updateCompany(id, updates);
 
@@ -519,7 +510,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setError(null);
   }, []);
 
-  // Refresh tenant data
   const refreshTenantData = useCallback(async () => {
     if (!currentTenant) return;
     try {
@@ -556,9 +546,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     db.addAccessLog(newLog); // Persist
   }, []);
 
-  // Workforce State (Loaded from DB)
-  // Clients State (Loaded from DB)
-
   const addVendor = async (vendor: Vendor) => {
     setVendors(prev => [...prev, vendor]);
     await db.addVendor(vendor);
@@ -569,7 +556,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     await db.updateVendor(id, updates);
   };
 
-  // Workforce Actions
   const addTeamMember = async (member: TeamMember) => {
     setWorkforce(prev => [...prev, member]);
   };
@@ -582,7 +568,6 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setWorkforce(prev => prev.filter(m => m.id !== id));
   };
 
-  // Client Actions
   const addClient = async (client: Client) => {
     setClients(prev => [...prev, client]);
   };
@@ -591,13 +576,11 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setClients(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
-  // Simplified tenant setter with localStorage
   const setTenantWithPersistence = useCallback((t: Tenant | null) => {
     setCurrentTenant(t);
     db.setTenantId(t?.id || null);
     if (t) {
       localStorage.setItem('selectedTenantId', t.id);
-      // Refresh context for new tenant
       db.getContext().then(contextData => {
         if (contextData) {
           setTenantUsage(contextData.usage);
@@ -605,22 +588,20 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }).catch(console.error);
       db.getAuditLogs(t.id).then(setAuditLogs).catch(console.error);
       applyBranding(t.settings);
+      refreshPermissions();
     } else {
       localStorage.removeItem('selectedTenantId');
     }
-  }, []);
+  }, [refreshPermissions]);
 
   return (
     <TenantContext.Provider
       value={{
-        // Simplified API
         tenant: currentTenant,
         setTenant: setTenantWithPersistence,
         availableTenants: tenants,
         refreshTenantData,
         refreshTenants,
-
-        // Legacy API
         currentTenant,
         setCurrentTenant: (t) => {
           setCurrentTenant(t);

@@ -29,9 +29,9 @@ export async function seedDatabase() {
 
   for (const c of companies) {
     await db.run(
-      `INSERT INTO companies (id, name, subscriptionTier, maxProjects, maxUsers, isActive, createdAt)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [c.id, c.name, c.subscriptionTier, c.maxProjects, c.maxUsers, c.isActive ? 1 : 0, c.createdAt]
+      `INSERT INTO companies (id, name, subscriptionTier, maxProjects, maxUsers, isActive, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [c.id, c.name, c.subscriptionTier, c.maxProjects, c.maxUsers, c.isActive ? 1 : 0, c.createdAt, c.createdAt]
     );
   }
 
@@ -124,9 +124,9 @@ export async function seedDatabase() {
 
   for (const p of projects) {
     await db.run(
-      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [p.id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, p.weatherLocation, p.aiAnalysis, '[]', '[]', '[]']
+      `INSERT INTO projects (id, companyId, name, code, description, location, type, status, health, progress, budget, spent, startDate, endDate, manager, image, teamSize, weatherLocation, aiAnalysis, zones, phases, timelineOptimizations, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [p.id, p.companyId, p.name, p.code, p.description, p.location, p.type, p.status, p.health, p.progress, p.budget, p.spent, p.startDate, p.endDate, p.manager, p.image, p.teamSize, p.weatherLocation, p.aiAnalysis, '[]', '[]', '[]', new Date().toISOString(), new Date().toISOString()]
     );
   }
 
@@ -137,9 +137,9 @@ export async function seedDatabase() {
 
   for (const t of tasks) {
     await db.run(
-      `INSERT INTO tasks (id, title, description, projectId, companyId, status, priority, assignedTo, dueDate, dependencies)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [t.id, t.title, t.description, t.projectId, t.companyId, t.status, t.priority, t.assigneeId, t.dueDate, t.dependencies]
+      `INSERT INTO tasks (id, title, description, projectId, companyId, status, priority, assignedTo, dueDate, dependencies, createdAt, updatedAt)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [t.id, t.title, t.description, t.projectId, t.companyId, t.status, t.priority, t.assigneeId, t.dueDate, t.dependencies, new Date().toISOString(), new Date().toISOString()]
     );
   }
 

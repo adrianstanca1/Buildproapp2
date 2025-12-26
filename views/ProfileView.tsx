@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Loader2, Check, Camera, Upload, MapPin, Mail, Phone, Award, Briefcase, Calendar, Star, ShieldCheck, FileText, Plus, Edit2 } from 'lucide-react';
 
 import { useAuth } from '@/contexts/AuthContext';
+import { NotificationPermissionRequest } from '@/components/NotificationPermissionRequest';
 
 const ProfileView: React.FC = () => {
     const { user } = useAuth();
@@ -214,8 +215,8 @@ const ProfileView: React.FC = () => {
                                             </div>
                                             <div className="text-right">
                                                 <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${cert.status === 'Valid' ? 'bg-green-100 text-green-700' :
-                                                        cert.status === 'Expiring' ? 'bg-orange-100 text-orange-700' :
-                                                            'bg-red-100 text-red-700'
+                                                    cert.status === 'Expiring' ? 'bg-orange-100 text-orange-700' :
+                                                        'bg-red-100 text-red-700'
                                                     }`}>
                                                     {cert.status}
                                                 </span>
@@ -248,32 +249,40 @@ const ProfileView: React.FC = () => {
                     )}
 
                     {activeTab === 'SETTINGS' && (
-                        <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
-                            <h3 className="font-bold text-zinc-900 text-lg mb-6">Profile Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Full Name</label>
-                                    <input type="text" value={profile.fullName} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Job Title</label>
-                                    <input type="text" value={profile.role} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Email Address</label>
-                                    <input type="email" value={profile.email} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-zinc-700 mb-1">Phone Number</label>
-                                    <input type="text" value={profile.phone} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
-                                </div>
+                        <div className="space-y-6">
+                            <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
+                                <h3 className="font-bold text-zinc-900 text-lg mb-6">Notification Preferences</h3>
+                                <NotificationPermissionRequest />
                             </div>
 
-                            <div className="border-t border-zinc-100 mt-8 pt-8">
-                                <h4 className="font-bold text-red-600 mb-4">Danger Zone</h4>
-                                <button className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50">
-                                    Deactivate Account
-                                </button>
+                            <div className="bg-white border border-zinc-200 rounded-xl p-6 shadow-sm">
+                                <h3 className="font-bold text-zinc-900 text-lg mb-6">Profile Information</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* ... rest of form ... */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Full Name</label>
+                                        <input type="text" value={profile.fullName} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Job Title</label>
+                                        <input type="text" value={profile.role} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Email Address</label>
+                                        <input type="email" value={profile.email} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-zinc-700 mb-1">Phone Number</label>
+                                        <input type="text" value={profile.phone} readOnly className="w-full p-3 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-600" />
+                                    </div>
+                                </div>
+
+                                <div className="border-t border-zinc-100 mt-8 pt-8">
+                                    <h4 className="font-bold text-red-600 mb-4">Danger Zone</h4>
+                                    <button className="px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50">
+                                        Deactivate Account
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}

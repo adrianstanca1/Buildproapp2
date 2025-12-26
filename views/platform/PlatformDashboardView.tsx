@@ -43,7 +43,7 @@ const PlatformDashboardView: React.FC = () => {
                 db.getPlatformStats(),
                 db.getSystemHealth(),
                 db.getAdvancedMetrics(),
-                db.getGlobalActivity(),
+                db.getGlobalAuditLogs({ limit: 10 }), // Replaces getGlobalActivity
                 db.getPlatformAlerts(),
                 db.getSystemPerformanceHistory()
             ]);
@@ -101,25 +101,7 @@ const PlatformDashboardView: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        const loadData = async () => {
-            try {
-                const [stats, health, activity] = await Promise.all([
-                    db.getPlatformStats(),
-                    db.getSystemHealth(),
-                    db.getGlobalActivity()
-                ]);
-                setStatsData(stats);
-                setHealthData(health);
-                setActivityLogs(activity);
-            } catch (error) {
-                console.error('Failed to load platform dashboard data', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-        loadData();
-    }, []);
+
 
     const stats = [
         {

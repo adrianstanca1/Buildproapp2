@@ -25,8 +25,9 @@ const PlatformNotificationsView: React.FC = () => {
         try {
             const data = await db.getPlatformEvents(100);
             setEvents(data);
-        } catch (e) {
-            console.error('Failed to load system events', e);
+        } catch (error) {
+            // Silently fail for non-critical notifications
+            console.error('Failed to load system events', error);
         } finally {
             setIsLoading(false);
         }
@@ -40,7 +41,9 @@ const PlatformNotificationsView: React.FC = () => {
         try {
             await db.markPlatformEventRead(id);
             setEvents(prev => prev.map(e => e.id === id ? { ...e, is_read: true } : e));
-        } catch (e) { }
+        } catch (e) {
+            // Failure is non-critical
+        }
     };
 
     const handleMarkAllRead = async () => {
@@ -48,7 +51,9 @@ const PlatformNotificationsView: React.FC = () => {
         try {
             await db.markAllPlatformEventsRead();
             setEvents(prev => prev.map(e => ({ ...e, is_read: true })));
-        } catch (e) { }
+        } catch (e) {
+            // Failure is non-critical
+        }
     };
 
     const filteredEvents = events.filter(e => {
@@ -154,8 +159,8 @@ const PlatformNotificationsView: React.FC = () => {
                                         <div className="flex items-center gap-3">
                                             <span className="text-xs font-black text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">{event.type}</span>
                                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${event.level === 'critical' ? 'bg-red-100 text-red-700' :
-                                                    event.level === 'warning' ? 'bg-amber-100 text-amber-700' :
-                                                        'bg-blue-100 text-blue-700'
+                                                event.level === 'warning' ? 'bg-amber-100 text-amber-700' :
+                                                    'bg-blue-100 text-blue-700'
                                                 }`}>
                                                 {event.level}
                                             </span>

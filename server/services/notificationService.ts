@@ -9,7 +9,8 @@ export type SystemEventType =
     | 'PROVISIONING_FAILURE'
     | 'SECURITY_ALERT'
     | 'SYSTEM_UPDATE'
-    | 'MAINTENANCE_MODE';
+    | 'MAINTENANCE_MODE'
+    | 'COMPANY_UPDATE';
 
 export type SystemEventLevel = 'info' | 'warning' | 'critical';
 

@@ -1,9 +1,7 @@
-
 import React, { useState } from 'react';
-import { HardHat, Check, ArrowRight, Shield, User, Briefcase, Mail, Lock, Loader2 } from 'lucide-react';
+import { HardHat, Check, Shield, User, Briefcase, Mail, Lock, Loader2, Sparkles, Globe, Zap, Cpu } from 'lucide-react';
 import { Page, UserRole } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/services/supabaseClient';
 
 interface LoginViewProps {
   setPage: (page: Page) => void;
@@ -16,20 +14,14 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper: Role-based redirect
   const getDashboardForRole = (role: UserRole): Page => {
     switch (role) {
-      case UserRole.SUPERADMIN:
-        return Page.PLATFORM_DASHBOARD;
-      case UserRole.COMPANY_ADMIN:
-        return Page.DASHBOARD; // Main Company Dashboard
+      case UserRole.SUPERADMIN: return Page.PLATFORM_DASHBOARD;
+      case UserRole.COMPANY_ADMIN: return Page.DASHBOARD;
       case UserRole.SUPERVISOR:
-      case UserRole.OPERATIVE:
-        return Page.PROJECTS; // Operational focus
-      case UserRole.READ_ONLY:
-        return Page.CLIENT_PORTAL;
-      default:
-        return Page.DASHBOARD;
+      case UserRole.OPERATIVE: return Page.PROJECTS;
+      case UserRole.READ_ONLY: return Page.CLIENT_PORTAL;
+      default: return Page.DASHBOARD;
     }
   };
 
@@ -39,15 +31,8 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
     setError(null);
     try {
       const { user, error } = await login(email, password);
-
       if (error) throw error;
-      if (!user) throw new Error("Login succeeded but no user returned");
-
-      // Role is determined by context effect after login
-      // We just need to trigger the page switch if success
-      // Small delay to allow context to update? Actually context updates user state.
-      // But we can just use the returned user role
-
+      if (!user) throw new Error("Login failed");
       setPage(getDashboardForRole(user.role));
     } catch (err: any) {
       setError(err.message);
@@ -56,135 +41,162 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
     }
   };
 
-
-  const demoAccounts = [
-    { label: 'Principal Admin', role: UserRole.SUPERADMIN, email: 'john@buildcorp.com', icon: Shield, color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100 hover:border-purple-300' },
-    { label: 'Company Admin', role: UserRole.COMPANY_ADMIN, email: 'sarah@buildcorp.com', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100 hover:border-blue-300' },
-    { label: 'Supervisor', role: UserRole.SUPERVISOR, email: 'mike@buildcorp.com', icon: User, color: 'text-orange-600', bg: 'bg-orange-50', border: 'border-orange-100 hover:border-orange-300' },
-    { label: 'Operative', role: UserRole.OPERATIVE, email: 'david@buildcorp.com', icon: HardHat, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100 hover:border-green-300' },
-  ];
-
   return (
-    <div className="flex h-screen w-full bg-white overflow-hidden font-sans">
-      {/* Left Panel - Light and Airy Theme */}
-      <div className="hidden lg:flex w-[45%] bg-zinc-50 border-r border-zinc-100 flex-col p-16 relative overflow-hidden">
-        <div className="relative z-10 h-full flex flex-col">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="bg-[#0f5c82] p-2.5 rounded-xl shadow-sm">
-              <HardHat size={28} fill="white" className="text-white" />
+    <div className="flex h-screen w-full bg-[#020617] overflow-hidden font-sans selection:bg-sky-500/30">
+      {/* Left Panel: Cinematic Brand Section */}
+      <div className="hidden lg:flex w-[55%] relative flex-col p-16 overflow-hidden">
+        {/* Animated Background Layers */}
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1541888946425-d81bb19240f5?q=80&w=2070')] bg-cover bg-center opacity-40 scale-105 animate-pulse-slow" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0c4a6e]/90 via-[#020617]/95 to-transparent border-r border-white/5" />
+
+        {/* Mesh Gradient Accents */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-sky-500/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/20 rounded-full blur-[120px]" />
+
+        <div className="relative z-10 flex flex-col h-full">
+          <div className="flex items-center gap-4 mb-20 animate-fade-in">
+            <div className="bg-gradient-to-br from-sky-400 to-blue-600 p-3 rounded-2xl shadow-lg shadow-sky-500/20 border border-white/10 group">
+              <HardHat size={32} className="text-white transform group-hover:rotate-12 transition-transform duration-300" />
             </div>
-            <span className="text-3xl font-bold tracking-tight text-[#0f5c82]">BuildPro</span>
+            <div className="flex flex-col">
+              <span className="text-4xl font-extrabold tracking-tighter text-white">BUILD<span className="text-sky-400">PRO</span></span>
+              <span className="text-[10px] font-bold tracking-[0.3em] text-sky-400/80 uppercase -mt-1 ml-1">Construction 4.0</span>
+            </div>
           </div>
 
-          <h2 className="text-4xl font-semibold leading-tight mb-6 text-zinc-800 tracking-tight">
-            The Intelligent Platform for Modern Construction
-          </h2>
+          <div className="max-w-xl space-y-8">
+            <h2 className="text-6xl font-bold leading-[1.1] text-white tracking-tight animate-slide-up">
+              Build the future with <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-300">Intelligent</span> automation.
+            </h2>
 
-          <p className="text-lg text-zinc-500 mb-12 leading-relaxed max-w-md font-light">
-            Manage projects, track safety, and leverage AI insights in one unified workspace.
-          </p>
+            <p className="text-xl text-zinc-400 leading-relaxed font-light animate-fade-in delay-200">
+              The only platform that fuses field execution with Gemini AI to predict risks before they happen.
+            </p>
 
-          <div className="space-y-5 mb-12">
-            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">Core Capabilities</h3>
-            {[
-              'Real-time Project Tracking & Maps',
-              'AI-Powered Risk Assessment',
-              'Integrated Financials & Contracts',
-              'Field Team Management',
-              'Gemini 3.0 Pro Intelligence'
-            ].map((feature) => (
-              <div key={feature} className="flex items-center gap-3 text-zinc-600 group">
-                <div className="bg-green-50 p-1 rounded-full text-green-600 border border-green-100">
-                  <Check size={12} strokeWidth={3} />
-                </div>
-                <span className="font-medium text-sm">{feature}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-auto">
-            <div className="flex -space-x-3 mb-4">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="w-10 h-10 rounded-full border-2 border-white bg-zinc-100 overflow-hidden">
-                  <img src={`https://i.pravatar.cc/100?img=${i + 10}`} alt="User" className="w-full h-full object-cover opacity-80 grayscale hover:grayscale-0 transition-all" />
+            <div className="grid grid-cols-2 gap-6 pt-10 animate-fade-in delay-500">
+              {[
+                { icon: Sparkles, label: 'Gemini AI Insights', color: 'text-amber-400' },
+                { icon: Globe, label: 'Global Fleet Sync', color: 'text-sky-400' },
+                { icon: Zap, label: 'Predictive Safety', color: 'text-emerald-400' },
+                { icon: Cpu, label: 'BIM Automation', color: 'text-indigo-400' }
+              ].map((item, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-4 rounded-2xl bg-white/5 border border-white/5 backdrop-blur-sm hover:bg-white/10 transition-all cursor-default">
+                  <item.icon className={`${item.color}`} size={20} />
+                  <span className="text-sm font-semibold text-zinc-300">{item.label}</span>
                 </div>
               ))}
-              <div className="w-10 h-10 rounded-full border-2 border-white bg-zinc-50 flex items-center justify-center text-xs font-bold text-zinc-400">+2k</div>
             </div>
-            <p className="text-xs text-zinc-400 font-medium">Trusted by leading construction firms globally.</p>
+          </div>
+
+          <div className="mt-auto flex items-center gap-6 animate-fade-in delay-700">
+            <div className="flex -space-x-3">
+              {[15, 18, 22, 25].map(i => (
+                <img key={i} src={`https://i.pravatar.cc/100?img=${i}`} className="w-12 h-12 rounded-full border-2 border-[#020617] ring-1 ring-white/10" alt="Active user" />
+              ))}
+              <div className="w-12 h-12 rounded-full border-2 border-[#020617] ring-1 ring-white/10 bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-400">+2.4k</div>
+            </div>
+            <div className="h-10 w-[1px] bg-white/10" />
+            <p className="text-sm text-zinc-500 font-medium">Powering enterprise construction teams worldwide.</p>
           </div>
         </div>
-
-        {/* Subtle Decorative Elements */}
-        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-blue-50 rounded-full opacity-60 blur-3xl" />
-        <div className="absolute top-20 right-20 w-64 h-64 bg-purple-50 rounded-full opacity-40 blur-3xl" />
       </div>
 
-      {/* Right Panel */}
-      <div className="flex-1 flex flex-col justify-center p-8 lg:p-24 overflow-y-auto bg-white relative">
+      {/* Right Panel: Sleek Login Section */}
+      <div className="flex-1 flex flex-col justify-center p-8 lg:p-24 bg-[#020617] relative">
+        {/* Mobile Background Accent */}
+        <div className="lg:hidden absolute inset-0 bg-gradient-to-b from-[#0c4a6e]/20 to-transparent" />
+
         <div className="max-w-md w-full mx-auto relative z-10">
-          <div className="mb-10 text-center lg:text-left">
-            <h1 className="text-3xl font-bold text-zinc-900 mb-2">Welcome Back</h1>
-            <p className="text-zinc-500 text-sm">Securely sign in to your account to continue.</p>
+          <div className="lg:hidden mb-12 flex items-center gap-3">
+            <div className="bg-sky-500 p-2 rounded-xl"><HardHat size={20} className="text-white" /></div>
+            <span className="text-2xl font-bold text-white tracking-tighter">BUILD<span className="text-sky-400">PRO</span></span>
           </div>
 
-          <div className="bg-white p-1 rounded-3xl border border-zinc-100 shadow-xl shadow-zinc-100/50 mb-8">
-            <div className="bg-zinc-50/30 p-6 rounded-[20px]">
-              {isSupabaseConnected ? (
-                <div className="mb-8 pb-8">
-                  <p className="text-xs font-bold text-zinc-400 mb-4 uppercase tracking-widest text-center lg:text-left">Sign In</p>
-                  <form onSubmit={handleSupabaseLogin} className="space-y-4">
-                    <div>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-3 text-zinc-400" size={18} />
-                        <input
-                          type="email"
-                          placeholder="Email address"
-                          value={email}
-                          onChange={e => setEmail(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none transition-all"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-3 text-zinc-400" size={18} />
-                        <input
-                          type="password"
-                          placeholder="Password"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          className="w-full pl-10 pr-4 py-2.5 bg-white border border-zinc-200 rounded-xl text-sm focus:ring-2 focus:ring-[#0f5c82] focus:border-transparent outline-none transition-all"
-                          required
-                        />
-                      </div>
-                    </div>
-                    {error && <div className="text-red-500 text-xs">{error}</div>}
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="w-full bg-[#0f5c82] text-white py-2.5 rounded-xl font-bold text-sm hover:bg-[#0c4a6e] transition-colors flex items-center justify-center gap-2"
-                    >
-                      {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Sign In'}
-                    </button>
-                  </form>
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">System Access</h1>
+            <p className="text-zinc-500 font-medium italic">Secure entry required for platform access.</p>
+          </div>
+
+          {isSupabaseConnected ? (
+            <form onSubmit={handleSupabaseLogin} className="space-y-6">
+              <div className="space-y-4">
+                <div className="group">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-sky-400 transition-colors">Digital Identity</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-sky-400 transition-colors" size={20} />
+                    <input
+                      type="email"
+                      placeholder="name@buildcorp.com"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className="w-full pl-12 pr-4 py-4 bg-zinc-900/50 border border-zinc-800 rounded-2xi text-white placeholder-zinc-600 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 outline-none transition-all"
+                      required
+                    />
+                  </div>
                 </div>
-              ) : (
-                <div className="bg-amber-50 text-amber-600 p-4 rounded-xl border border-amber-200 text-sm">
-                  Supabase not configured. Please launch with valid credentials.
+
+                <div className="group">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1 mb-2 block group-focus-within:text-sky-400 transition-colors">Access Key</label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-sky-400 transition-colors" size={20} />
+                    <input
+                      type="password"
+                      placeholder="••••••••••••"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className="w-full pl-12 pr-4 py-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-white placeholder-zinc-600 focus:ring-4 focus:ring-sky-500/10 focus:border-sky-500/50 outline-none transition-all"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {error && (
+                <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-400 text-sm flex items-center gap-3 animate-shake">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                  {error}
                 </div>
               )}
-            </div>
-          </div>
 
-          <div className="text-center">
-            <p className="text-xs text-zinc-300 mb-3">
-              Protected by enterprise-grade encryption.
-            </p>
-            <div className="flex justify-center gap-6 text-xs text-zinc-400 font-medium">
-              <a href="#" className="hover:text-[#0f5c82] transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-[#0f5c82] transition-colors">Terms of Service</a>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full group bg-sky-500 hover:bg-sky-400 disabled:bg-zinc-800 text-white py-4 rounded-2xl font-bold text-base transition-all active:scale-[0.98] shadow-lg shadow-sky-500/20 flex items-center justify-center gap-3 overflow-hidden relative"
+              >
+                {isLoading ? (
+                  <Loader2 size={24} className="animate-spin" />
+                ) : (
+                  <>
+                    <span className="relative z-10 uppercase tracking-widest">Authorize Access</span>
+                    <Sparkles size={18} className="relative z-10 group-hover:rotate-12 transition-transform" />
+                  </>
+                )}
+              </button>
+
+              <div className="flex items-center justify-between text-sm py-2">
+                <label className="flex items-center gap-3 cursor-pointer group text-zinc-500 hover:text-white transition-colors">
+                  <input type="checkbox" className="w-5 h-5 rounded-lg bg-zinc-900 border-zinc-800 text-sky-500 focus:ring-sky-500/20" />
+                  Keep me authorized
+                </label>
+                <a href="#" className="text-sky-500 hover:text-sky-400 font-semibold transition-colors">Lost Access?</a>
+              </div>
+            </form>
+          ) : (
+            <div className="bg-amber-500/10 text-amber-500 p-6 rounded-3xl border border-amber-500/20 text-sm italic">
+              Hardware verification failed. Supabase connection required.
+            </div>
+          )}
+
+          <div className="mt-20 pt-10 border-t border-zinc-900">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-4 text-xs font-bold text-zinc-600 uppercase tracking-widest">
+                <span className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full"><Shield size={12} className="text-emerald-500" /> SOC2 COMPLIANT</span>
+                <span className="flex items-center gap-2 px-3 py-1 bg-zinc-900 border border-zinc-800 rounded-full">AES-256</span>
+              </div>
+              <div className="flex gap-8 text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                <a href="#" className="hover:text-sky-400 transition-colors">Legal</a>
+                <a href="#" className="hover:text-sky-400 transition-colors">Privacy</a>
+              </div>
             </div>
           </div>
         </div>

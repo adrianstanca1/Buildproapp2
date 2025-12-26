@@ -134,13 +134,56 @@ async function initializeSchema(db: IDatabase) {
     CREATE TABLE IF NOT EXISTS companies (
       id TEXT PRIMARY KEY,
       name TEXT NOT NULL,
+      status TEXT DEFAULT 'Active',
+      plan TEXT DEFAULT 'Starter',
       logo TEXT,
       address TEXT,
       subscriptionTier TEXT DEFAULT 'FREE',
       maxProjects INTEGER DEFAULT 5,
       maxUsers INTEGER DEFAULT 10,
       createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL,
       isActive BOOLEAN DEFAULT TRUE
+    )
+  `);
+
+  // Companies Schema Migrations (Safe Add)
+  const companyColumns = [
+    'status TEXT DEFAULT \'Active\'',
+    'plan TEXT DEFAULT \'Starter\'',
+    'subscription TEXT DEFAULT \'{}\'',
+    'features TEXT DEFAULT \'[]\'',
+    'settings TEXT DEFAULT \'{}\'',
+    'users INTEGER DEFAULT 0',
+    'projects INTEGER DEFAULT 0',
+    'mrr REAL DEFAULT 0',
+    'joinedDate TEXT',
+    'description TEXT',
+    'website TEXT',
+    'email TEXT',
+    'phone TEXT',
+    'city TEXT',
+    'state TEXT',
+    'zipCode TEXT',
+    'country TEXT',
+    'updatedAt TEXT'
+  ];
+
+  for (const col of companyColumns) {
+    const colName = col.split(' ')[0];
+    try {
+      await db.exec(`ALTER TABLE companies ADD COLUMN ${col}`);
+    } catch (e) {
+      /* Column may already exist */
+    }
+  }
+
+  // System Settings (Early for maintenance check)
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
     )
   `);
 
@@ -156,6 +199,18 @@ async function initializeSchema(db: IDatabase) {
       isActive BOOLEAN DEFAULT TRUE,
       createdAt TEXT NOT NULL,
       FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE SET NULL
+    )
+  `);
+
+  // Push Subscriptions
+  await db.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id TEXT PRIMARY KEY,
+      userId TEXT NOT NULL,
+      endpoint TEXT UNIQUE NOT NULL,
+      keys TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 
@@ -286,12 +341,12 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
-  // Tasks Schema Migration (Safe Add)
-  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS startDate TEXT;`);
-  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS duration INTEGER;`);
-  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS dependencies TEXT;`);
-  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS progress INTEGER DEFAULT 0;`);
-  await db.exec(`ALTER TABLE tasks ADD COLUMN IF NOT EXISTS color TEXT;`);
+  // Tasks Schema Migration (Safe Add - wrapped in try-catch for SQLite compatibility)
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN startDate TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN duration INTEGER;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN dependencies TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN progress INTEGER DEFAULT 0;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE tasks ADD COLUMN color TEXT;`); } catch (e) { /* Column may already exist */ }
 
   // Team
   await db.exec(`
@@ -454,10 +509,10 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Daily Logs Schema Migration (Safe Add)
-  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'Draft';`);
-  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS signedBy TEXT;`);
-  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS signedAt TEXT;`);
-  await db.exec(`ALTER TABLE daily_logs ADD COLUMN IF NOT EXISTS attachments TEXT;`);
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN status TEXT DEFAULT 'Draft';`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN signedBy TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN signedAt TEXT;`); } catch (e) { /* Column may already exist */ }
+  try { await db.exec(`ALTER TABLE daily_logs ADD COLUMN attachments TEXT;`); } catch (e) { /* Column may already exist */ }
 
   // Dayworks
   await db.exec(`

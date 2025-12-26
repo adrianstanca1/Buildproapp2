@@ -2,13 +2,13 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { Comments } from '@/components/Comments';
 
-// Mock API
-vi.mock('@/services/api', () => ({
-    default: {
-        get: vi.fn(() => Promise.resolve({ data: [] })),
-        post: vi.fn(() => Promise.resolve({ data: {} })),
-        put: vi.fn(() => Promise.resolve({ data: {} })),
-        delete: vi.fn(() => Promise.resolve({ data: {} })),
+// Mock DB service
+vi.mock('@/services/db', () => ({
+    db: {
+        getComments: vi.fn(() => Promise.resolve([])),
+        addComment: vi.fn(() => Promise.resolve({ id: '123' })),
+        updateComment: vi.fn(() => Promise.resolve()),
+        deleteComment: vi.fn(() => Promise.resolve()),
     },
 }));
 
@@ -20,9 +20,10 @@ vi.mock('@/contexts/AuthContext', () => ({
 }));
 
 describe('Comments Component', () => {
-    it('renders comments header', () => {
+    it('renders comments header', async () => {
         render(<Comments entityType="task" entityId="123" />);
-        expect(screen.getByText(/Comments/i)).toBeInTheDocument();
+        await waitFor(() => expect(screen.getByText(/No comments yet/i)).toBeInTheDocument());
+        expect(screen.getByRole('heading', { name: /Comments/i })).toBeInTheDocument();
     });
 
     it('shows empty state when no comments', async () => {
@@ -33,8 +34,9 @@ describe('Comments Component', () => {
         });
     });
 
-    it('allows user to type a comment', () => {
+    it('allows user to type a comment', async () => {
         render(<Comments entityType="task" entityId="123" />);
+        await waitFor(() => expect(screen.getByText(/No comments yet/i)).toBeInTheDocument());
 
         const textarea = screen.getByPlaceholderText(/Add a comment/i);
         fireEvent.change(textarea, { target: { value: 'Test comment' } });
@@ -42,8 +44,9 @@ describe('Comments Component', () => {
         expect(textarea).toHaveValue('Test comment');
     });
 
-    it('disables send button when comment is empty', () => {
+    it('disables send button when comment is empty', async () => {
         render(<Comments entityType="task" entityId="123" />);
+        await waitFor(() => expect(screen.getByText(/No comments yet/i)).toBeInTheDocument());
 
         const sendButton = screen.getByRole('button', { name: /Send/i });
         expect(sendButton).toBeDisabled();
