@@ -76,14 +76,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
     [Page.SUPPORT_CENTER]: ['platform.support'],
     [Page.PLATFORM_NOTIFICATIONS]: ['platform.notifications'],
     [Page.GLOBAL_SETTINGS]: ['platform.settings'],
-    [Page.LOGIN]: ["auth.login"],
-    [Page.REGISTER]: ["auth.register"],
-    [Page.TEAM_CHAT]: ["chat.team"],
-    [Page.PROJECT_DETAILS]: ["projects.details"],
-    [Page.ML_INSIGHTS]: ["ml.insights"],
-    [Page.MARKETPLACE]: ["marketplace.view"],
-    [Page.MY_DESKTOP]: ["desktop.view"],
-    [Page.PROJECT_LAUNCHPAD]: ["projects.launchpad"]
   };
 
   const menuGroups = [

@@ -444,6 +444,136 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Token expiration monitoring with refresh
+  useEffect(() => {
+    let tokenCheckInterval: NodeJS.Timeout | null = null;
+
+    const checkTokenExpiration = () => {
+      if (!token) return;
+
+      try {
+        // Decode JWT to check expiration (simplified - in a real app, use a proper JWT library)
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          const currentTime = Math.floor(Date.now() / 1000);
+
+          // Check if token expires within 5 minutes
+          if (payload.exp && payload.exp < currentTime + 300) {
+            console.warn("Token is about to expire, logging out user");
+            logout();
+          } else if (payload.exp && payload.exp < currentTime + 900) { // 15 minutes
+            // Attempt to refresh the token before it expires
+            console.info("Token will expire soon, attempting refresh");
+            // In a real implementation, we would call a refresh token endpoint
+          }
+        }
+      } catch (error) {
+        console.error("Error checking token expiration:", error);
+        // If we can't verify the token, treat it as expired
+        logout();
+      }
+    };
+
+    // Check token expiration every 1 minute
+    tokenCheckInterval = setInterval(checkTokenExpiration, 60000);
+
+    return () => {
+      if (tokenCheckInterval) {
+        clearInterval(tokenCheckInterval);
+      }
+    };
+  }, [token]);
+
+  // Handle tab visibility changes (when user switches back to the tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && token) {
+        // When user returns to the tab, verify session is still valid
+        verifySession();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [token]);
+
+  // Handle online/offline status changes
+  useEffect(() => {
+    const handleOnline = () => {
+      // When coming back online, verify session is still valid
+      if (user && token) {
+        verifySession();
+      }
+    };
+
+    const handleOffline = () => {
+      // When going offline, warn user about potential session issues
+      console.log("Connection lost. Session may expire while offline.");
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [user, token]);
+
+  // Handle beforeunload to clean up any temporary data
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clean up any sensitive data before page closes
+      if (user?.role === UserRole.READ_ONLY) {
+        // For read-only users, clear more aggressively
+        sessionStorage.clear();
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [user]);
+
+  // Function to verify current session is still valid
+  const verifySession = async () => {
+    if (!token) return;
+
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error || !session || session.access_token !== token) {
+        console.warn("Session verification failed, logging out user");
+        logout();
+      } else if (session.expires_at) {
+        // Check if session is about to expire (within 5 minutes)
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = session.expires_at - now;
+
+        if (timeUntilExpiry < 300) { // 5 minutes
+          console.warn("Session about to expire, prompting for refresh");
+          // Attempt to refresh the session if possible
+          try {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              console.error("Session refresh failed:", refreshError);
+              logout();
+            } else if (refreshedSession) {
+              setToken(refreshedSession.access_token);
+            }
+          } catch (refreshError) {
+            console.error("Session refresh error:", refreshError);
+            logout();
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Session verification error:", error);
+      // Don't automatically log out on network errors, but warn
+      console.warn("Could not verify session due to network error");
+    }
+  };
+
   // Handle token expiration
   useEffect(() => {
     let tokenCheckInterval: NodeJS.Timeout | null = null;
@@ -529,6 +659,45 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [user]);
 
+  // Function to verify current session is still valid
+  const verifySession = async () => {
+    if (!token) return;
+
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+
+      if (error || !session || session.access_token !== token) {
+        console.warn("Session verification failed, logging out user");
+        logout();
+      } else if (session.expires_at) {
+        // Check if session is about to expire (within 5 minutes)
+        const now = Math.floor(Date.now() / 1000);
+        const timeUntilExpiry = session.expires_at - now;
+
+        if (timeUntilExpiry < 300) { // 5 minutes
+          console.warn("Session about to expire, prompting for refresh");
+          // Attempt to refresh the session if possible
+          try {
+            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError) {
+              console.error("Session refresh failed:", refreshError);
+              logout();
+            } else if (refreshedSession) {
+              setToken(refreshedSession.access_token);
+            }
+          } catch (refreshError) {
+            console.error("Session refresh error:", refreshError);
+            logout();
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Session verification error:", error);
+      // Don't automatically log out on network errors, but warn
+      console.warn("Could not verify session due to network error");
+    }
+  };
+
   // Handle online/offline status
   useEffect(() => {
     const handleOnline = () => {
@@ -552,45 +721,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [user, token]);
 
-
-  // Function to verify current session is still valid
-  const verifySession = async () => {
-    if (!token) return;
-
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-
-      if (error || !session || session.access_token !== token) {
-        console.warn("Session verification failed, logging out user");
-        logout();
-      } else if (session.expires_at) {
-        // Check if session is about to expire (within 5 minutes)
-        const now = Math.floor(Date.now() / 1000);
-        const timeUntilExpiry = session.expires_at - now;
-
-        if (timeUntilExpiry < 300) { // 5 minutes
-          console.warn("Session about to expire, attempting refresh");
-          // Attempt to refresh the session if possible
-          try {
-            const { data: { session: refreshedSession }, error: refreshError } = await supabase.auth.refreshSession();
-            if (refreshError) {
-              console.error("Session refresh failed:", refreshError);
-              logout();
-            } else if (refreshedSession) {
-              setToken(refreshedSession.access_token);
-            }
-          } catch (refreshError) {
-            console.error("Session refresh error:", refreshError);
-            logout();
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Session verification error:", error);
-      // Don't automatically log out on network errors, but warn
-      console.warn("Could not verify session due to network error");
-    }
-  };
 
   // Token expiration monitoring
   useEffect(() => {

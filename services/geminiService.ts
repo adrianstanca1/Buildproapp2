@@ -9,6 +9,21 @@ if (!process.env.GEMINI_API_KEY && !process.env.API_KEY) {
   console.warn("GEMINI_API_KEY is not set. AI features will not function correctly.");
 }
 
+// Helper function to get auth headers
+const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Get current session token from Supabase
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
+  return headers;
+};
+
 export interface ChatConfig {
   model?: string;
   systemInstruction?: string;
