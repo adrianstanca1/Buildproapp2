@@ -2,9 +2,9 @@
 import { GoogleGenAI, LiveServerMessage, Modality, Content, GenerateContentResponse, Type, Part } from "@google/genai";
 import { Message } from "@/types";
 
-// Initialize the client with the environment key
-const apiKey = process.env.API_KEY || 'placeholder_key';
-if (!process.env.API_KEY) {
+// Initialize the client with the environment key (prefer GEMINI_API_KEY, fallback to API_KEY)
+const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY || 'placeholder_key';
+if (!process.env.GEMINI_API_KEY && !process.env.API_KEY) {
   console.warn("GEMINI_API_KEY is not set. AI features will not function correctly.");
 }
 const ai = new GoogleGenAI({ apiKey });
@@ -171,7 +171,7 @@ export const generateVideo = async (prompt: string, aspectRatio: '16:9' | '9:16'
     if (!videoUri) throw new Error("No video URI returned");
 
     // Fetch the actual video bytes using the API key
-    const videoResponse = await fetch(`${videoUri}&key=${process.env.API_KEY}`);
+    const videoResponse = await fetch(`${videoUri}&key=${apiKey}`);
     if (!videoResponse.ok) throw new Error("Failed to download video");
 
     const blob = await videoResponse.blob();

@@ -61,9 +61,18 @@ export async function initializeDatabase() {
   initPromise = (async () => {
     const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URL;
     if (connectionString) {
-      console.log('Initializing PostgreSQL connection...');
-      dbInstance = new PostgresAdapter(connectionString);
-    } else {
+      console.log('Attempting PostgreSQL connection...');
+      try {
+        dbInstance = new PostgresAdapter(connectionString);
+        // Run a trivial query to surface SSL/cert issues early
+        await dbInstance.exec('SELECT 1');
+      } catch (pgErr) {
+        console.warn('PostgreSQL init failed (falling back to SQLite):', pgErr?.message || pgErr);
+        dbInstance = undefined as any; // ensure we fall back to SQLite
+      }
+    }
+
+    if (!dbInstance) {
       console.log('Initializing SQLite connection...');
       try {
         // Use require for sqlite3 to ensure compatibility
