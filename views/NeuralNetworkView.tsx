@@ -198,7 +198,7 @@ const NeuralNetworkView: React.FC<{ setPage: (page: Page) => void }> = ({ setPag
                 <Cpu className="text-white" size={24} />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-black tracking-tight text-slate-900">CortexBuild</span>
+                <span className="text-2xl font-black tracking-tight text-slate-900">CortexBuild Pro</span>
                 <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-600 uppercase">AI Intelligence Platform</span>
               </div>
             </div>
@@ -309,7 +309,7 @@ const NeuralNetworkView: React.FC<{ setPage: (page: Page) => void }> = ({ setPag
       {/* --- FOOTER --- */}
       <footer className="mt-20 py-10 border-t border-slate-100 bg-white">
         <div className="max-w-[1440px] mx-auto px-6 sm:px-10 flex justify-between items-center text-slate-400 font-bold text-xs tracking-widest uppercase">
-          <div>CortexBuild Neural Architecture</div>
+          <div>CortexBuild Pro Neural Architecture</div>
           <div>© 2025 AI Intelligence Platform</div>
         </div>
       </footer>

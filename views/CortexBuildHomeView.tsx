@@ -45,7 +45,7 @@ const CortexBuildHomeView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
               </div>
               <div className="flex flex-col">
                 <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent transform hover:scale-105 transition-transform cursor-default">
-                  CortexBuild
+                  CortexBuild Pro
                 </span>
                 <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-600 uppercase">AI Intelligence Platform</span>
               </div>
@@ -337,7 +337,7 @@ const CortexBuildHomeView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
         <div className="max-w-[1440px] mx-auto px-6 sm:px-10 flex flex-col md:flex-row justify-between items-center gap-10">
           <div className="flex items-center gap-3 opacity-50">
             <Cpu className="text-slate-900" size={32} />
-            <span className="text-xl font-black tracking-tight text-slate-900 capitalize">CortexBuild</span>
+            <span className="text-xl font-black tracking-tight text-slate-900 capitalize">CortexBuild Pro</span>
           </div>
           <div className="text-slate-400 font-bold text-sm tracking-widest uppercase">
             © 2025 CortexBuild AI Intelligence. All Rights Reserved.

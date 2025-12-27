@@ -180,15 +180,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
           <div className="relative">
             <div className="absolute inset-0 bg-sky-400 rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
             <div className="w-11 h-11 bg-gradient-to-br from-sky-400 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-2xl relative z-10 border border-white/20 transform transition-transform group-hover:scale-110">
-              <LogoIcon size={24} strokeWidth={2.5} />
+              <Cpu size={24} strokeWidth={2.5} />
             </div>
           </div>
           <div className="flex flex-col">
             <span className="font-black text-xl text-white tracking-tighter leading-none">
-              BUILDPRO
+              CORTEXBUILD
             </span>
             <span className="text-[10px] font-black text-sky-400 uppercase tracking-[0.3em] mt-1 ml-0.5">
-              Enterprise
+              PRO
             </span>
           </div>
         </div>

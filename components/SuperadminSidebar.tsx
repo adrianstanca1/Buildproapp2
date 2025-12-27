@@ -111,7 +111,7 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
                             <Shield className="w-6 h-6" />
                         </div>
                         <div>
-                            <h1 className="text-xl font-bold">BuildPro</h1>
+                            <h1 className="text-xl font-bold">CortexBuild Pro</h1>
                             <p className="text-xs text-purple-200">Platform Admin</p>
                         </div>
                     </div>

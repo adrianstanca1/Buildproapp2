@@ -102,7 +102,7 @@ const ConnectivityView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
                 <Cpu className="text-white" size={24} />
               </div>
               <div className="flex flex-col">
-                <span className="text-2xl font-black tracking-tight text-slate-900">CortexBuild</span>
+                <span className="text-2xl font-black tracking-tight text-slate-900">CortexBuild Pro</span>
                 <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-600 uppercase">AI Intelligence Platform</span>
               </div>
             </div>
@@ -238,10 +238,10 @@ const ConnectivityView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <Cpu className="text-white" size={16} />
             </div>
-            <span className="text-lg font-black tracking-tight text-slate-900">CortexBuild</span>
+            <span className="text-lg font-black tracking-tight text-slate-900">CortexBuild Pro</span>
           </div>
           <div className="text-slate-400 font-bold text-[10px] tracking-[0.2em] uppercase">
-            © 2025 CortexBuild AI • Built for the Future of Construction
+            © 2025 CortexBuild Pro AI • Built for the Future of Construction
           </div>
         </div>
       </footer>
