@@ -26,15 +26,15 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             `INSERT INTO companies (id, name, plan, status, users, projects, mrr, joinedDate, createdAt, updatedAt, settings, subscription)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                companyId, 
-                name, 
-                plan, 
-                'Active', 
+                companyId,
+                name,
+                plan,
+                'Active',
                 1, // Initial owner
-                0, 
-                0, 
-                now, 
-                now, 
+                0,
+                0,
+                now,
+                now,
                 now,
                 JSON.stringify({
                     timezone: 'UTC',
@@ -63,7 +63,7 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
         // Create the owner user (if doesn't exist) or update if exists
         let ownerUserId = uuidv4();
         const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [ownerEmail]);
-        
+
         if (existingUser) {
             ownerUserId = existingUser.id;
             // Update existing user
@@ -148,8 +148,8 @@ export const createCompany = async (req: Request, res: Response, next: NextFunct
             logger.error('Failed to send welcome email', emailError);
         }
 
-        res.status(201).json({ 
-            message: 'Company created successfully', 
+        res.status(201).json({
+            message: 'Company created successfully',
             companyId,
             ownerUserId
         });
@@ -183,7 +183,7 @@ export const inviteCompanyAdmin = async (req: Request, res: Response, next: Next
 
         // Check if user already exists
         const existingUser = await db.get('SELECT id FROM users WHERE email = ?', [email]);
-        let userId = existingUser ? existingUser.id : uuidv4();
+        const userId = existingUser ? existingUser.id : uuidv4();
         const now = new Date().toISOString();
 
         if (existingUser) {
@@ -246,8 +246,8 @@ export const inviteCompanyAdmin = async (req: Request, res: Response, next: Next
             logger.error('Failed to send invitation email', emailError);
         }
 
-        res.status(200).json({ 
-            message: 'Company admin invited successfully', 
+        res.status(200).json({
+            message: 'Company admin invited successfully',
             userId,
             companyId
         });

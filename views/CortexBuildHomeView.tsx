@@ -201,7 +201,7 @@ const CortexBuildHomeView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
               </div>
               <h3 className="text-4xl font-black">Our Mission</h3>
               <p className="text-lg font-medium text-white/80 leading-relaxed">
-                To empower construction SMBs with a unified, AI-powered platform that eliminates inefficiencies, reduces risks, and maximizes profitability. We're committed to delivering intelligent automation that learns from your business and continuously improves your operations.
+                To empower construction SMBs with a unified, AI-powered platform that eliminates inefficiencies, reduces risks, and maximizes profitability. We&apos;re committed to delivering intelligent automation that learns from your business and continuously improves your operations.
               </p>
             </div>
           </div>

@@ -594,8 +594,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Token expiration monitoring
   useEffect(() => {
-    let tokenCheckInterval: NodeJS.Timeout;
-
     const checkTokenExpiration = () => {
       if (token) {
         try {
@@ -616,12 +614,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     // Check token expiration every minute
-    tokenCheckInterval = setInterval(checkTokenExpiration, 60000);
+    const tokenCheckInterval = setInterval(checkTokenExpiration, 60000);
 
     return () => {
-      if (tokenCheckInterval) {
-        clearInterval(tokenCheckInterval);
-      }
+      clearInterval(tokenCheckInterval);
     };
   }, [token]);
 

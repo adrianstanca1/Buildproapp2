@@ -8,16 +8,16 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Step 1: Company info
   const [companyName, setCompanyName] = useState('');
   const [plan, setPlan] = useState('Starter');
-  
+
   // Step 2: Owner info
   const [ownerName, setOwnerName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
-  
+
   const validateStep1 = () => {
     if (!companyName.trim()) {
       setError('Company name is required');
@@ -26,7 +26,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
     setError(null);
     return true;
   };
-  
+
   const validateStep2 = () => {
     if (!ownerName.trim()) {
       setError('Owner name is required');
@@ -43,13 +43,13 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
     setError(null);
     return true;
   };
-  
+
   const handleCreateCompany = async () => {
     if (!validateStep2()) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       // Create the company and owner account
       const result = await db.createCompany({
@@ -58,10 +58,10 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
         ownerName,
         plan
       });
-      
+
       // Log the user in with the new account
       await login(ownerEmail, ownerPassword);
-      
+
       // Complete the onboarding
       onComplete();
     } catch (err) {
@@ -71,7 +71,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 p-4">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
@@ -84,22 +84,20 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
           <p className="text-indigo-200 text-center mt-1">
             Step {step} of 2
           </p>
-          
+
           <div className="flex items-center justify-center mt-6 space-x-2">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 1 ? 'bg-white text-indigo-600' : 'bg-indigo-500/30 text-indigo-200'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-white text-indigo-600' : 'bg-indigo-500/30 text-indigo-200'
+              }`}>
               {step > 1 ? <Check className="w-4 h-4" /> : '1'}
             </div>
             <div className="h-1 w-16 bg-indigo-500/50"></div>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              step >= 2 ? 'bg-white text-indigo-600' : 'bg-indigo-500/30 text-indigo-200'
-            }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-white text-indigo-600' : 'bg-indigo-500/30 text-indigo-200'
+              }`}>
               {step === 2 ? '2' : step > 2 ? <Check className="w-4 h-4" /> : '2'}
             </div>
           </div>
         </div>
-        
+
         {/* Form Content */}
         <div className="p-6">
           {error && (
@@ -108,16 +106,14 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
               <span className="text-sm">{error}</span>
             </div>
           )}
-          
+
           {step === 1 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-800">Company Information</h2>
-              <p className="text-gray-600 text-sm mb-4">
-                Tell us about your company. You'll be the owner with full administrative access.
-              </p>
-              
+              <p className="text-zinc-400 mb-8">Enter the details for the new company. The owner will be automatically assigned as the company&apos;s admin.</p>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
+                <label className="block text-sm font-medium text-zinc-400 mb-1">Owner&apos;s Email</label>
                 <input
                   type="text"
                   value={companyName}
@@ -126,7 +122,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
                   placeholder="Enter your company name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Plan</label>
                 <select
@@ -139,7 +135,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
                   <option value="Enterprise">Enterprise - $299/month</option>
                 </select>
               </div>
-              
+
               <button
                 onClick={() => {
                   if (validateStep1()) setStep(2);
@@ -150,14 +146,14 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
               </button>
             </div>
           )}
-          
+
           {step === 2 && (
             <div className="space-y-4">
               <h2 className="text-xl font-semibold text-gray-800">Owner Account</h2>
               <p className="text-gray-600 text-sm mb-4">
-                Create your owner account. You'll have full administrative access to your company.
+                Create your owner account. You&apos;ll have full administrative access to your company.
               </p>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                 <input
@@ -168,7 +164,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
                   placeholder="Enter your full name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
                 <input
@@ -179,7 +175,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
                   placeholder="Enter your email address"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
                 <input
@@ -190,7 +186,7 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
                   placeholder="Create a secure password"
                 />
               </div>
-              
+
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setStep(1)}
@@ -220,10 +216,10 @@ const CompanyCreationView: React.FC<{ onComplete: () => void }> = ({ onComplete 
           )}
         </div>
       </div>
-      
+
       <p className="mt-6 text-gray-600 text-sm text-center max-w-md">
-        By creating a company, you agree to our Terms of Service and Privacy Policy. 
-        You'll be the primary administrator with full access to manage users and settings.
+        By creating a company, you agree to our Terms of Service and Privacy Policy.
+        You&apos;ll be the primary administrator with full access to manage users and settings.
       </p>
     </div>
   );

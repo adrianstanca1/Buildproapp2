@@ -154,6 +154,7 @@ const AuthenticatedApp: React.FC = () => {
     // Only update state if it differs and it's a known public path mapping
     // This prevents overriding internal navigation state if we are just on "/"
     if (location.pathname !== '/' || newPage === Page.CORTEX_BUILD_HOME) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPageState(newPage);
     }
   }, [location.pathname]);

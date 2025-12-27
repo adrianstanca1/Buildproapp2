@@ -105,7 +105,7 @@ const CompanyManagementView: React.FC = () => {
             <div>
               <h1 className="text-2xl font-bold">Company Management</h1>
               <p className="text-sm text-zinc-600 dark:text-zinc-400">
-                Manage your company's users and permissions
+                Manage your company&apos;s users and permissions
               </p>
             </div>
           </div>
@@ -172,11 +172,10 @@ const CompanyManagementView: React.FC = () => {
                     <h3 className="font-medium">{member.name}</h3>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400">{member.email}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        member.status === 'active' 
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
-                      }`}>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${member.status === 'active'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                        }`}>
                         {member.status === 'active' ? (
                           <CheckCircle className="w-3 h-3 mr-1" />
                         ) : (
@@ -191,7 +190,7 @@ const CompanyManagementView: React.FC = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <select
                     value={member.role}
@@ -204,7 +203,7 @@ const CompanyManagementView: React.FC = () => {
                     <option value={UserRole.PROJECT_MANAGER}>Project Manager</option>
                     <option value={UserRole.COMPANY_ADMIN}>Company Admin</option>
                   </select>
-                  
+
                   {canManageUsers && member.id !== user?.id && (
                     <button
                       onClick={() => handleRemoveMember(member.id)}
@@ -217,14 +216,12 @@ const CompanyManagementView: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {filteredMembers.length === 0 && (
               <div className="flex flex-col items-center justify-center h-64 text-center">
                 <Users className="w-12 h-12 text-zinc-400 mb-4" />
                 <h3 className="text-lg font-medium text-zinc-900 dark:text-zinc-100 mb-2">No members found</h3>
-                <p className="text-zinc-600 dark:text-zinc-400">
-                  {searchTerm ? 'Try a different search term' : 'Invite your first team member to get started'}
-                </p>
+                <p className="text-zinc-400">Manage all tenant companies registered on the platform. Monitor usage, status, and ownership. Click on a company to view details or manage its configuration.</p>
               </div>
             )}
           </div>
@@ -244,7 +241,7 @@ const CompanyManagementView: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Full Name</label>
@@ -256,7 +253,7 @@ const CompanyManagementView: React.FC = () => {
                   placeholder="Enter full name"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Email Address</label>
                 <input
@@ -267,7 +264,7 @@ const CompanyManagementView: React.FC = () => {
                   placeholder="Enter email address"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium mb-1">Role</label>
                 <select
@@ -281,12 +278,12 @@ const CompanyManagementView: React.FC = () => {
                   <option value={UserRole.COMPANY_ADMIN}>Company Admin</option>
                 </select>
               </div>
-              
+
               {inviteError && (
                 <div className="text-red-500 text-sm">{inviteError}</div>
               )}
             </div>
-            
+
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowInviteModal(false)}
