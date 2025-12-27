@@ -1,8 +1,55 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const CortexBuildHomeView: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState('Home');
+
+  const menuItems = [
+    { id: 'Home', label: 'Home' },
+    { id: 'NeuralNetwork', label: 'The Neural Network' },
+    { id: 'PlatformFeatures', label: 'Platform Features' },
+    { id: 'Connectivity', label: 'Connectivity' },
+    { id: 'DeveloperPlatform', label: 'Developer Platform' },
+    { id: 'GetStarted', label: 'Get Started' }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Top Navigation */}
+      <nav className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 flex items-center">
+                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  CortexBuild
+                </span>
+              </div>
+            </div>
+            <div className="hidden md:block">
+              <div className="ml-10 flex items-center space-x-8">
+                {menuItems.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => setCurrentPage(item.id)}
+                    className={`${currentPage === item.id
+                      ? "text-blue-600 font-bold border-b-2 border-blue-600 pb-1"
+                      : "text-gray-700 hover:text-blue-600"
+                    } capitalize transition-colors duration-200`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center">
+              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200">
+                Get Started
+              </button>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
       <div className="hero-section py-20 px-4 text-center">
         <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
