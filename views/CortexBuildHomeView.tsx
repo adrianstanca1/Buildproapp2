@@ -94,7 +94,7 @@ const CortexBuildHomeView: React.FC = () => {
               <span className="emoji text-4xl mb-4 block">📈</span>
               <h3 className="text-xl font-bold mb-4 text-gray-800">PROACTIVE INSIGHTS</h3>
               <p className="text-gray-600">
-                Our AI agents don&#39;t just report data—they analyze it, predict issues, and recommend solutions before problems arise.
+                Our AI agents don't just report data—they analyze it, predict issues, and recommend solutions before problems arise.
               </p>
             </div>
             <div className="benefit-card bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">

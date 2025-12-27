@@ -115,7 +115,9 @@ const AuthenticatedApp: React.FC = () => {
   const [page, setPage] = useState<Page>(
     window.location.pathname.startsWith('/client-portal/')
       ? Page.CLIENT_PORTAL
-      : Page.LOGIN  // Default to login for all routes, but we'll handle root specially
+      : window.location.pathname === '/'
+        ? Page.CORTEX_BUILD_HOME  // Show home page as default for root URL
+        : Page.LOGIN
   );
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
@@ -191,11 +193,8 @@ const AuthenticatedApp: React.FC = () => {
     // If the user is not authenticated and tries to access a protected page, redirect to login
     // But if they're trying to access the root, we want to show the home page
     if (window.location.pathname === '/') {
-      // Set the page to home page for unauthenticated users accessing root
-      if (page !== Page.CORTEX_BUILD_HOME) {
-        setPage(Page.CORTEX_BUILD_HOME);
-        return null; // Return null to trigger re-render with correct page
-      }
+      // Show the home page for unauthenticated users accessing root
+      return <CortexBuildHomeView />;
     } else {
       return <LoginView setPage={setPage} />;
     }
