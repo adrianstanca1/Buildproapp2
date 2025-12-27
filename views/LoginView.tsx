@@ -55,8 +55,11 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
 
         <div className="relative z-10 flex flex-col h-full">
           <div
-            className="flex items-center gap-4 mb-20 animate-fade-in cursor-pointer"
-            onClick={() => window.location.href = '/'}
+            className="flex items-center gap-4 mb-20 animate-fade-in cursor-pointer relative z-50 hover:opacity-80 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = '/';
+            }}
           >
             <div className="bg-gradient-to-br from-indigo-600 to-violet-500 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 border border-white/20 group">
               <Cpu size={32} className="text-white transform group-hover:scale-110 transition-transform duration-300" />
@@ -112,8 +115,11 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
 
         <div className="max-w-md w-full mx-auto relative z-10">
           <div
-            className="lg:hidden mb-12 flex items-center gap-3 cursor-pointer"
-            onClick={() => window.location.href = '/'}
+            className="lg:hidden mb-12 flex items-center gap-3 cursor-pointer relative z-50 hover:opacity-80 transition-opacity"
+            onClick={(e) => {
+              e.stopPropagation();
+              window.location.href = '/';
+            }}
           >
             <div className="bg-indigo-600 p-2 rounded-xl"><Cpu size={20} className="text-white" /></div>
             <span className="text-2xl font-bold text-slate-900 tracking-tighter">CORTEX<span className="text-indigo-600">BUILD</span> PRO</span>
