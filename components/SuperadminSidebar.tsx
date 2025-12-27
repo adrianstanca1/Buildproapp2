@@ -106,7 +106,13 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
             >
                 {/* Header */}
                 <div className="p-6 border-b border-white/10">
-                    <div className="flex items-center gap-3">
+                    <div
+                        className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                        onClick={() => {
+                            setPage(Page.PLATFORM_DASHBOARD);
+                            if (onClose) onClose();
+                        }}
+                    >
                         <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                             <Shield className="w-6 h-6" />
                         </div>
