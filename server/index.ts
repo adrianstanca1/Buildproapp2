@@ -491,6 +491,53 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = [], permissi
 app.get('/api/roles', rbacController.getRoles);
 app.post('/api/roles', rbacController.createRole);
 app.put('/api/roles/:id/permissions', rbacController.updateRolePermissions);
+
+// --- User Profile Endpoint (with auth) ---
+app.get('/api/user/me', authenticateToken, async (req: any, res: any, next: any) => {
+    try {
+        const userId = req.userId;
+        const db = getDb();
+
+        // Get user from users table
+        const user = await db.get('SELECT * FROM users WHERE id = ?', [userId]);
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Get memberships for this user
+        const memberships = await db.all(`
+      SELECT m.*, c.name as companyName 
+      FROM memberships m 
+      JOIN companies c ON m.companyId = c.id 
+      WHERE m.userId = ?
+    `, [userId]);
+
+        // Get primary membership (first SUPERADMIN or first active membership)
+        const primaryMembership = memberships.find(m => m.role === 'SUPERADMIN') || memberships[0];
+
+        // Return user profile with role and permissions from primary membership
+        res.json({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            phone: user.phone || '',
+            role: primaryMembership?.role || 'OPERATIVE',
+            companyId: primaryMembership?.companyId || 'c1',
+            permissions: ['*'], // SUPERADMIN gets all permissions
+            memberships: memberships.map(m => ({
+                id: m.id,
+                userId: m.userId,
+                companyId: m.companyId,
+                role: m.role,
+                status: m.status
+            })),
+            projectIds: []
+        });
+    } catch (error) {
+        next(error);
+    }
+});
 app.get('/api/permissions', rbacController.getPermissions);
 app.get('/api/roles/:id/permissions', rbacController.getRolePermissions);
 
