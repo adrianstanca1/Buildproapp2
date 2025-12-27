@@ -162,7 +162,7 @@ const NeuralNetworkView: React.FC = () => {
                 <span className="emoji text-3xl mb-4 block">🎯</span>
                 <h4 className="text-xl font-bold mb-2 text-gray-800">PROACTIVE ALERTS</h4>
                 <p className="text-gray-600">
-                  Don't wait for problems to arise. Our agents predict issues and send alerts before they impact your business.
+                  Don&#39;t wait for problems to arise. Our agents predict issues and send alerts before they impact your business.
                 </p>
               </div>
             </div>
