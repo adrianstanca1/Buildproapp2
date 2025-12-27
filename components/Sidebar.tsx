@@ -94,12 +94,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
   };
 
   const menuGroups = [
-    {
+    ...(user ? [] : [{ // Only show login option if user is not authenticated
       title: 'Platform Access',
       items: [
         { id: Page.PUBLIC_LOGIN, label: 'Login', icon: LayoutDashboard, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE, UserRole.READ_ONLY, UserRole.CLIENT], permissions: ['auth.login'] },
       ]
-    },
+    }]),
     {
       title: 'Strategic Control',
       items: [

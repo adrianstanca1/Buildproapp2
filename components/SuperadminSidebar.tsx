@@ -24,9 +24,14 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
     isOpen,
     onClose,
 }) => {
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
 
     const platformMenu = [
+        ...(user ? [] : [{ // Only show login option if user is not authenticated
+            icon: LayoutDashboard,
+            label: 'Login',
+            page: Page.PUBLIC_LOGIN,
+        }]),
         {
             icon: LayoutDashboard,
             label: 'Platform Dashboard',
@@ -81,11 +86,6 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
             icon: Settings,
             label: 'Platform Settings',
             page: Page.GLOBAL_SETTINGS,
-        },
-        {
-            icon: LayoutDashboard,
-            label: 'Login',
-            page: Page.PUBLIC_LOGIN,
         },
     ];
 
