@@ -77,7 +77,13 @@ const DeveloperPlatformView: React.FC<{ setPage: (page: Page) => void }> = ({ se
       <nav className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 sticky top-0 z-[100]">
         <div className="max-w-[1440px] mx-auto px-6 sm:px-10">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center gap-3">
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => {
+                setPage(Page.CORTEX_BUILD_HOME);
+                window.scrollTo(0, 0);
+              }}
+            >
               <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
                 <Cpu className="text-white" size={24} />
               </div>

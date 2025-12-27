@@ -176,7 +176,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
 
       {/* Logo Area */}
       <div className="p-8 flex items-center justify-between sticky top-0 bg-zinc-950/80 backdrop-blur-3xl z-20 border-b border-white/5">
-        <div className="flex items-center gap-4 group cursor-pointer">
+        <div className="flex items-center gap-4 group cursor-pointer" onClick={() => { setPage(Page.DASHBOARD); if (onClose) onClose(); }}>
           <div className="relative">
             <div className="absolute inset-0 bg-sky-400 rounded-xl blur-lg opacity-0 group-hover:opacity-40 transition-opacity duration-500" />
             <div className="w-11 h-11 bg-gradient-to-br from-sky-400 to-indigo-600 rounded-xl flex items-center justify-center text-white shadow-2xl relative z-10 border border-white/20 transform transition-transform group-hover:scale-110">
