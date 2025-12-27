@@ -79,40 +79,85 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const mapSupabaseUser = async (authUser: any) => {
-    // Validate required claims for tenant and role
-    const rawRole = authUser.user_metadata?.role;
-    const rawCompanyId = authUser.user_metadata?.companyId;
+    try {
+      // First, get the Supabase session to use the access token for API calls
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
 
-    if (!rawRole) {
-      console.warn("User role not found in metadata, defaulting to OPERATIVE");
+      if (!accessToken) {
+        console.error("No access token available");
+        return;
+      }
+
+      // Fetch user profile from backend API which retrieves role from memberships table
+      const response = await fetch('/api/user/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        console.warn("Failed to fetch user profile from API, using metadata fallback");
+        // Fallback to user_metadata if API call fails
+        const rawRole = authUser.user_metadata?.role;
+        const rawCompanyId = authUser.user_metadata?.companyId;
+
+        const newUser: UserProfile = {
+          id: authUser.id,
+          name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+          email: authUser.email || '',
+          phone: authUser.phone || '',
+          role: (rawRole as UserRole) || UserRole.OPERATIVE,
+          permissions: authUser.user_metadata?.permissions || [],
+          memberships: authUser.user_metadata?.memberships || [],
+          avatarInitials: ((authUser.email || 'U')[0]).toUpperCase(),
+          companyId: rawCompanyId || 'c1',
+          projectIds: []
+        };
+
+        setUser(newUser);
+        setToken(accessToken);
+        return;
+      }
+
+      // Use the actual user data from database
+      const userData = await response.json();
+
+      const newUser: UserProfile = {
+        id: authUser.id,
+        name: userData.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+        email: authUser.email || '',
+        phone: userData.phone || authUser.phone || '',
+        role: userData.role || UserRole.OPERATIVE,
+        permissions: userData.permissions || [],
+        memberships: userData.memberships || [],
+        avatarInitials: ((authUser.email || 'U')[0]).toUpperCase(),
+        companyId: userData.companyId || 'platform-admin',
+        projectIds: userData.projectIds || []
+      };
+
+      console.log('✅ User profile loaded from database:', newUser.role, newUser.companyId);
+
+      setUser(newUser);
+      setToken(accessToken);
+    } catch (error) {
+      console.error("Error mapping Supabase user:", error);
+      // Fallback to basic user profile
+      const newUser: UserProfile = {
+        id: authUser.id,
+        name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
+        email: authUser.email || '',
+        phone: authUser.phone || '',
+        role: UserRole.OPERATIVE,
+        permissions: [],
+        memberships: [],
+        avatarInitials: ((authUser.email || 'U')[0]).toUpperCase(),
+        companyId: 'c1',
+        projectIds: []
+      };
+
+      setUser(newUser);
     }
-
-    if (!rawCompanyId) {
-      console.warn("User company ID not found in metadata, defaulting to 'c1'");
-    }
-
-    const newUser: UserProfile = {
-      id: authUser.id,
-      name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User',
-      email: authUser.email || '',
-      phone: authUser.phone || '',
-      role: (rawRole as UserRole) || UserRole.OPERATIVE,
-      permissions: authUser.user_metadata?.permissions || [],
-      memberships: authUser.user_metadata?.memberships || [],
-      avatarInitials: ((authUser.email || 'U')[0]).toUpperCase(),
-      companyId: rawCompanyId || 'c1',
-      projectIds: []
-    };
-
-    // Validate that user has proper tenant and role claims
-    if (!newUser.companyId || !newUser.role) {
-      console.error("Token missing required tenant or role claims");
-      // Potentially reject the token if critical claims are missing
-    }
-
-    setUser(newUser);
-    // Initial permission fetch
-    refreshPermissions(newUser.id);
   };
 
   const refreshPermissions = async (userId?: string) => {
