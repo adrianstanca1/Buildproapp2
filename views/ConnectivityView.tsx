@@ -1,285 +1,239 @@
 import React, { useState } from 'react';
 import { Page } from '@/types';
+import {
+  Cpu,
+  Lock,
+  ShieldCheck,
+  CheckCircle2,
+  Search,
+  Save,
+  Key,
+  Globe,
+  Zap,
+  LayoutGrid,
+  Database,
+  Briefcase,
+  Building2,
+  PlugZap,
+  Share2,
+  BookOpen
+} from 'lucide-react';
 
 const ConnectivityView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
   const [currentPage, setCurrentPage] = useState(Page.CONNECTIVITY);
 
   const menuItems = [
-    { id: 'Home', label: 'Home' },
-    { id: 'NeuralNetwork', label: 'The Neural Network' },
-    { id: 'PlatformFeatures', label: 'Platform Features' },
-    { id: 'Connectivity', label: 'Connectivity' },
-    { id: 'DeveloperPlatform', label: 'Developer Platform' },
-    { id: 'GetStarted', label: 'Get Started' }
+    { id: 'Home', label: 'Home', page: Page.CORTEX_BUILD_HOME },
+    { id: 'NeuralNetwork', label: 'The Neural Network', page: Page.NEURAL_NETWORK },
+    { id: 'PlatformFeatures', label: 'Platform Features', page: Page.PLATFORM_FEATURES },
+    { id: 'Connectivity', label: 'Connectivity', page: Page.CONNECTIVITY },
+    { id: 'DeveloperPlatform', label: 'Developer Platform', page: Page.DEVELOPER_PLATFORM },
+    { id: 'GetStarted', label: 'Get Started', page: Page.PUBLIC_LOGIN }
+  ];
+
+  const integrationCategories = [
+    {
+      title: 'Financial Integrations',
+      icon: <Building2 className="text-white" size={24} />,
+      iconBg: 'bg-emerald-500',
+      items: ['Open Banking APIs', 'Xero & QuickBooks', 'Payment Gateways', 'Tax Authorities (HMRC, IRS)']
+    },
+    {
+      title: 'Business Tools',
+      icon: <Briefcase className="text-white" size={24} />,
+      iconBg: 'bg-blue-600',
+      items: ['Microsoft 365', 'Google Workspace', 'Slack & Teams', 'Email Integration']
+    },
+    {
+      title: 'Construction Platforms',
+      icon: <LayoutGrid className="text-white" size={24} />,
+      iconBg: 'bg-orange-600',
+      items: ['BIM Software (Revit, AutoCAD)', 'Project Management Tools', 'Equipment Tracking', 'Supplier Networks']
+    },
+    {
+      title: 'AI & Analytics',
+      icon: <Database className="text-white" size={24} />,
+      iconBg: 'bg-violet-600',
+      items: ['Google Gemini API', 'Custom ML Models', 'Data Warehouses', 'BI Tools']
+    }
+  ];
+
+  const securityFeatures = [
+    {
+      title: 'End-to-End Encryption',
+      desc: 'All data encrypted at rest and in transit using industry-standard AES-256 encryption.',
+      icon: <Lock className="text-yellow-600" size={24} />
+    },
+    {
+      title: 'Multi-Factor Authentication',
+      desc: 'Secure access with MFA, SSO, and role-based access control (RBAC).',
+      icon: <ShieldCheck className="text-red-500" size={24} />
+    },
+    {
+      title: 'Compliance Certified',
+      desc: 'SOC 2 Type II, GDPR, ISO 27001 certified with regular security audits.',
+      icon: <CheckCircle2 className="text-emerald-500" size={24} />
+    },
+    {
+      title: '24/7 Monitoring',
+      desc: 'Continuous security monitoring with automated threat detection and response.',
+      icon: <Search className="text-slate-500" size={24} />
+    },
+    {
+      title: 'Automated Backups',
+      desc: 'Daily automated backups with point-in-time recovery and disaster recovery plans.',
+      icon: <Save className="text-slate-600" size={24} />
+    },
+    {
+      title: 'Data Privacy',
+      desc: 'Your data is yours. We never share or sell your information to third parties.',
+      icon: <Key className="text-amber-500" size={24} />
+    }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50">
-      {/* Top Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  CortexBuild
-                </span>
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 overflow-x-hidden">
+      {/* --- PREMIUM NAVBAR --- */}
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 sticky top-0 z-[100]">
+        <div className="max-w-[1440px] mx-auto px-6 sm:px-10">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                <Cpu className="text-white" size={24} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black tracking-tight text-slate-900">CortexBuild</span>
+                <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-600 uppercase">AI Intelligence Platform</span>
               </div>
             </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-center space-x-8">
-                {menuItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      const pageMap: Record<string, Page> = {
-                        'Home': Page.CORTEX_BUILD_HOME,
-                        'NeuralNetwork': Page.NEURAL_NETWORK,
-                        'PlatformFeatures': Page.PLATFORM_FEATURES,
-                        'Connectivity': Page.CONNECTIVITY,
-                        'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
-                        'GetStarted': Page.PUBLIC_LOGIN
-                      };
-                      
-                      const targetPage = pageMap[item.id] || Page.CONNECTIVITY;
-                      setPage(targetPage);
-                      setCurrentPage(targetPage);
-                    }}
-                    className={`${currentPage === (item.id === 'Home' ? Page.CORTEX_BUILD_HOME :
-                                  item.id === 'NeuralNetwork' ? Page.NEURAL_NETWORK :
-                                  item.id === 'PlatformFeatures' ? Page.PLATFORM_FEATURES :
-                                  item.id === 'Connectivity' ? Page.CONNECTIVITY :
-                                  item.id === 'DeveloperPlatform' ? Page.DEVELOPER_PLATFORM :
-                                  Page.CONNECTIVITY)
-                      ? "text-blue-600 font-bold border-b-2 border-blue-600 pb-1"
-                      : "text-gray-700 hover:text-blue-600"
-                    } capitalize transition-colors duration-200`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+
+            <div className="hidden lg:flex items-center gap-10">
+              {menuItems.slice(0, 5).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setPage(item.page);
+                    setCurrentPage(item.page);
+                  }}
+                  className={`text-sm font-semibold tracking-wide transition-all ${currentPage === item.page ? "text-indigo-600" : "text-slate-600 hover:text-indigo-600"
+                    }`}
+                >
+                  {item.label}
+                  {currentPage === item.page && <div className="h-0.5 bg-indigo-600 w-full mt-1" />}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200">
-                Get Started
-              </button>
-            </div>
+
+            <button className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-200">
+              Get Started
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Connectivity Header */}
-      <div className="connectivity-header text-center py-16">
-        <h2 className="text-4xl font-bold mb-6 text-gray-800">SEAMLESSLY CONNECTED, INFINITELY SCALABLE</h2>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          Enterprise-grade integrations that grow with your business, connecting every aspect of your construction operations.
-        </p>
-      </div>
+      <main className="max-w-[1440px] mx-auto px-6 sm:px-10 py-16">
+        {/* --- HEADER --- */}
+        <div className="text-center max-w-4xl mx-auto mb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <h1 className="text-5xl font-black tracking-tight text-slate-900 mb-6 [text-wrap:balance]">
+            Seamlessly Connected, <span className="text-indigo-600">Infinitely Scalable</span>
+          </h1>
+          <p className="text-lg text-slate-600 font-medium leading-relaxed">
+            Enterprise-grade integrations that grow with your business. Connect to your existing tools, ensure data security, and scale without limits.
+          </p>
+        </div>
 
-      {/* Integration Categories */}
-      <div className="integration-categories py-12">
-        <div className="categories-container max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="integration-category bg-white p-8 rounded-xl shadow-md">
-              <span className="emoji text-4xl mb-4 block text-center">🏦</span>
-              <h3 className="text-xl font-bold mb-4 text-center text-blue-600">FINANCIAL INTEGRATIONS</h3>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Open Banking APIs</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Xero & QuickBooks</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Payment Gateways</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Tax Authorities (HMRC, IRS)</span>
-                </li>
+        {/* --- INTEGRATIONS GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-24">
+          {integrationCategories.map((cat, i) => (
+            <div key={i} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 group">
+              <div className={`w-12 h-12 ${cat.iconBg} rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform`}>
+                {cat.icon}
+              </div>
+              <h3 className="text-lg font-black text-slate-900 mb-6">{cat.title}</h3>
+              <ul className="space-y-4">
+                {cat.items.map((item, j) => (
+                  <li key={j} className="flex items-center gap-3">
+                    <CheckCircle2 className="text-emerald-500" size={16} />
+                    <span className="text-sm font-semibold text-slate-600">{item}</span>
+                  </li>
+                ))}
               </ul>
             </div>
-            
-            <div className="integration-category bg-white p-8 rounded-xl shadow-md">
-              <span className="emoji text-4xl mb-4 block text-center">🏢</span>
-              <h3 className="text-xl font-bold mb-4 text-center text-green-600">BUSINESS TOOLS</h3>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Microsoft 365</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Google Workspace</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Slack & Teams</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Email Integration</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="integration-category bg-white p-8 rounded-xl shadow-md">
-              <span className="emoji text-4xl mb-4 block text-center">🏗️</span>
-              <h3 className="text-xl font-bold mb-4 text-center text-purple-600">CONSTRUCTION PLATFORMS</h3>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>BIM Software (Revit, AutoCAD)</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Project Management Tools</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Equipment Tracking</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Supplier Networks</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="integration-category bg-white p-8 rounded-xl shadow-md">
-              <span className="emoji text-4xl mb-4 block text-center">🤖</span>
-              <h3 className="text-xl font-bold mb-4 text-center text-indigo-600">AI & ANALYTICS</h3>
-              <ul className="space-y-2">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Google Gemini API</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Custom ML Models</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Data Warehouses</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>BI Tools</span>
-                </li>
-              </ul>
-            </div>
+          ))}
+        </div>
+
+        {/* --- SECURITY SECTION --- */}
+        <div className="bg-slate-50 rounded-[48px] p-12 lg:p-20 border border-slate-200/50 mb-24">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight">Enterprise-Grade Security & Compliance</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {securityFeatures.map((feat, i) => (
+              <div key={i} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col items-start">
+                <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-6">
+                  {feat.icon}
+                </div>
+                <h4 className="text-lg font-black text-slate-900 mb-3">{feat.title}</h4>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm">
+                  {feat.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20">
+            {[
+              { label: 'Uptime SLA', value: '99.9%', color: 'text-blue-600' },
+              { label: 'API Response Time', value: '<100ms', color: 'text-emerald-500' },
+              { label: 'Projects', value: 'Unlimited', color: 'text-violet-600' },
+              { label: 'Scale Storage', value: 'Petabyte', color: 'text-orange-600' }
+            ].map((stat, i) => (
+              <div key={i} className="bg-white p-8 rounded-[32px] text-center border border-slate-100 shadow-sm">
+                <div className={`text-3xl font-black ${stat.color} mb-2`}>{stat.value}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">{stat.label}</div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* Security Section */}
-      <div className="security-section py-16">
-        <div className="security-container max-w-6xl mx-auto">
-          <h3 className="text-3xl font-bold mb-12 text-center text-gray-800">ENTERPRISE-GRADE SECURITY & COMPLIANCE</h3>
-          <div className="security-features grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <div className="security-feature bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">🔒</span>
-              <h4 className="text-xl font-bold mb-2 text-center text-gray-800">END-TO-END ENCRYPTION</h4>
-              <p className="text-gray-600 text-center">
-                All data encrypted at rest and in transit using industry-standard AES-256 encryption protocols.
-              </p>
-            </div>
-            <div className="security-feature bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">🛡️</span>
-              <h4 className="text-xl font-bold mb-2 text-center text-gray-800">MULTI-FACTOR AUTHENTICATION</h4>
-              <p className="text-gray-600 text-center">
-                Secure access with MFA, SSO, and role-based access control to protect your sensitive information.
-              </p>
-            </div>
-            <div className="security-feature bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">✅</span>
-              <h4 className="text-xl font-bold mb-2 text-center text-gray-800">COMPLIANCE CERTIFIED</h4>
-              <p className="text-gray-600 text-center">
-                SOC 2 Type II, GDPR, ISO 27001 certified to meet the highest security and privacy standards.
-              </p>
-            </div>
-            <div className="security-feature bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">🔍</span>
-              <h4 className="text-xl font-bold mb-2 text-center text-gray-800">24/7 MONITORING</h4>
-              <p className="text-gray-600 text-center">
-                Continuous security monitoring with real-time threat detection and automated response systems.
-              </p>
-            </div>
-            <div className="security-feature bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">💾</span>
-              <h4 className="text-xl font-bold mb-2 text-center text-gray-800">AUTOMATED BACKUPS</h4>
-              <p className="text-gray-600 text-center">
-                Daily automated backups with geographically distributed storage for maximum data protection.
-              </p>
-            </div>
-            <div className="security-feature bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">🔐</span>
-              <h4 className="text-xl font-bold mb-2 text-center text-gray-800">DATA PRIVACY</h4>
-              <p className="text-gray-600 text-center">
-                Your data is yours. We never sell or share your information with third parties for marketing purposes.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Performance Metrics */}
-      <div className="performance-metrics py-12">
-        <div className="metrics-container max-w-4xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div className="metric bg-white p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-blue-600 mb-2">99.9%</h3>
-              <p className="text-gray-600">Uptime SLA</p>
-            </div>
-            <div className="metric bg-white p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-green-600 mb-2">&lt;100ms</h3>
-              <p className="text-gray-600">API Response Time</p>
-            </div>
-            <div className="metric bg-white p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-purple-600 mb-2">Unlimited</h3>
-              <p className="text-gray-600">Projects</p>
-            </div>
-            <div className="metric bg-white p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-orange-600 mb-2">Petabyte</h3>
-              <p className="text-gray-600">Scale Storage</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* API Tools */}
-      <div className="api-tools py-12">
-        <div className="tools-container max-w-4xl mx-auto text-center">
-          <h3 className="text-3xl font-bold mb-12 text-gray-800">API & DEVELOPER TOOLS</h3>
+        {/* --- API TOOLS --- */}
+        <div className="text-center max-w-4xl mx-auto mb-16">
+          <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight mb-12">API & Developer Tools</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="tool bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">🔌</span>
-              <h4 className="text-xl font-bold mb-2 text-gray-800">RESTFUL API</h4>
-              <p className="text-gray-600">
-                Complete REST API with comprehensive documentation, SDKs, and real-time data access.
-              </p>
-            </div>
-            <div className="tool bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">⚡</span>
-              <h4 className="text-xl font-bold mb-2 text-gray-800">WEBHOOKS</h4>
-              <p className="text-gray-600">
-                Real-time event notifications for critical system events and data changes.
-              </p>
-            </div>
-            <div className="tool bg-white p-6 rounded-xl shadow-md">
-              <span className="emoji text-3xl mb-4 block text-center">📚</span>
-              <h4 className="text-xl font-bold mb-2 text-gray-800">DEVELOPER PORTAL</h4>
-              <p className="text-gray-600">
-                Interactive API documentation, testing tools, and comprehensive developer resources.
-              </p>
-            </div>
+            {[
+              { title: 'RESTful API', desc: 'Complete REST API with comprehensive documentation and SDKs for popular languages.', icon: <PlugZap className="text-slate-700" /> },
+              { title: 'Webhooks', desc: 'Real-time event notifications to keep your systems in sync automatically.', icon: <Zap className="text-amber-500" /> },
+              { title: 'Developer Portal', desc: 'Interactive API documentation, code examples, and sandbox environment for testing.', icon: <BookOpen className="text-emerald-600" /> }
+            ].map((tool, i) => (
+              <div key={i} className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm hover:shadow-xl transition-all duration-500 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center mb-6">
+                  {tool.icon}
+                </div>
+                <h4 className="text-lg font-black text-slate-900 mb-3">{tool.title}</h4>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm">
+                  {tool.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* --- FOOTER --- */}
+      <footer className="py-12 border-t border-slate-200 bg-white">
+        <div className="max-w-[1440px] mx-auto px-10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <Cpu className="text-white" size={16} />
+            </div>
+            <span className="text-lg font-black tracking-tight text-slate-900">CortexBuild</span>
+          </div>
+          <div className="text-slate-400 font-bold text-[10px] tracking-[0.2em] uppercase">
+            © 2025 CortexBuild AI • Built for the Future of Construction
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

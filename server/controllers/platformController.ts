@@ -349,3 +349,49 @@ export const updateUserRole = async (req: Request, res: Response, next: NextFunc
         next(e);
     }
 };
+
+/**
+ * Get all system settings as an object
+ */
+export const getSystemSettings = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const db = getDb();
+        const settings = await db.all('SELECT key, value FROM system_settings');
+        const settingsObj = settings.reduce((acc: any, curr: any) => {
+            try {
+                acc[curr.key] = JSON.parse(curr.value);
+            } catch {
+                acc[curr.key] = curr.value;
+            }
+            return acc;
+        }, {});
+        res.json(settingsObj);
+    } catch (e) {
+        next(e);
+    }
+};
+
+/**
+ * Update a specific system setting
+ */
+export const updateSystemSetting = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const { key, value } = req.body;
+        if (!key) throw new AppError('Key is required', 400);
+
+        const db = getDb();
+        const strValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
+        const now = new Date().toISOString();
+        const updatedBy = (req as any).userName || 'admin';
+
+        await db.run(
+            `INSERT INTO system_settings (key, value, updatedAt, updatedBy) VALUES (?, ?, ?, ?)
+             ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt, updatedBy = excluded.updatedBy`,
+            [key, strValue, now, updatedBy]
+        );
+
+        res.json({ success: true, key, value });
+    } catch (e) {
+        next(e);
+    }
+};

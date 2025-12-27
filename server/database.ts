@@ -706,15 +706,6 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
-  // System Settings (Global Config)
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS system_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updatedAt TEXT NOT NULL,
-      updatedBy TEXT
-    )
-  `);
 
   // Support Tickets
   await db.exec(`
@@ -836,7 +827,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Comments table for collaboration
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
       companyId TEXT NOT NULL,
@@ -855,7 +846,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Activity feed table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS activity_feed (
       id TEXT PRIMARY KEY,
       companyId TEXT NOT NULL,
@@ -872,19 +863,19 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Notification preferences table
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS notification_preferences (
-      user_id TEXT PRIMARY KEY,
-      email_mentions BOOLEAN DEFAULT TRUE,
-      email_assignments BOOLEAN DEFAULT TRUE,
-      email_comments BOOLEAN DEFAULT TRUE,
-      email_digest_frequency TEXT DEFAULT 'daily',
-      push_enabled BOOLEAN DEFAULT FALSE
+      userId TEXT PRIMARY KEY,
+      emailMentions BOOLEAN DEFAULT TRUE,
+      emailAssignments BOOLEAN DEFAULT TRUE,
+      emailComments BOOLEAN DEFAULT TRUE,
+      emailDigestFrequency TEXT DEFAULT 'daily',
+      pushEnabled BOOLEAN DEFAULT FALSE
     )
   `);
 
   // Platform System Events (Phase 11)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS system_events (
       id TEXT PRIMARY KEY,
       type TEXT NOT NULL,
@@ -898,7 +889,7 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // External Integrations table (Phase 13)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS integrations (
       id TEXT PRIMARY KEY,
       companyId TEXT NOT NULL,
@@ -913,22 +904,22 @@ async function initializeSchema(db: IDatabase) {
   `);
 
   // Task assignments for resource allocation (Phase 9C)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS task_assignments (
       id TEXT PRIMARY KEY,
-      task_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      user_name TEXT,
+      taskId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      userName TEXT,
       role TEXT,
-      allocated_hours REAL,
-      actual_hours REAL DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE
+      allocatedHours REAL,
+      actualHours REAL DEFAULT 0,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (taskId) REFERENCES tasks(id) ON DELETE CASCADE
     )
   `);
 
   // Automations Table (Phase 14)
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS automations (
       id TEXT PRIMARY KEY,
       companyId TEXT NOT NULL,

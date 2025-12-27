@@ -1,248 +1,225 @@
 import React, { useState } from 'react';
 import { Page } from '@/types';
+import {
+  Cpu,
+  Construction,
+  Coins,
+  FileText,
+  ShieldCheck,
+  TrendingUp,
+  Bot,
+  RefreshCw,
+  Zap,
+  Target
+} from 'lucide-react';
 
 const PlatformFeaturesView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
   const [currentPage, setCurrentPage] = useState(Page.PLATFORM_FEATURES);
 
   const menuItems = [
-    { id: 'Home', label: 'Home' },
-    { id: 'NeuralNetwork', label: 'The Neural Network' },
-    { id: 'PlatformFeatures', label: 'Platform Features' },
-    { id: 'Connectivity', label: 'Connectivity' },
-    { id: 'DeveloperPlatform', label: 'Developer Platform' },
-    { id: 'GetStarted', label: 'Get Started' }
+    { id: 'Home', label: 'Home', page: Page.CORTEX_BUILD_HOME },
+    { id: 'NeuralNetwork', label: 'The Neural Network', page: Page.NEURAL_NETWORK },
+    { id: 'PlatformFeatures', label: 'Platform Features', page: Page.PLATFORM_FEATURES },
+    { id: 'Connectivity', label: 'Connectivity', page: Page.CONNECTIVITY },
+    { id: 'DeveloperPlatform', label: 'Developer Platform', page: Page.DEVELOPER_PLATFORM },
+    { id: 'GetStarted', label: 'Get Started', page: Page.PUBLIC_LOGIN }
+  ];
+
+  const agents = [
+    {
+      title: 'Project Intelligence',
+      subtitle: 'AI Project Manager',
+      desc: 'Monitors project health, predicts delays, optimizes schedules, and identifies risks before they become critical issues.',
+      icon: <Construction size={24} />,
+      iconBg: 'bg-blue-600',
+      tags: ['Schedule Optimization', 'Risk Detection', 'Resource Planning'],
+      tagColor: 'text-blue-600 bg-blue-50'
+    },
+    {
+      title: 'Financial Advisor',
+      subtitle: 'AI Accountant',
+      desc: 'Analyzes cash flow, forecasts budgets, detects anomalies, and provides real-time financial insights for better decision-making.',
+      icon: <Coins size={24} />,
+      iconBg: 'bg-emerald-500',
+      tags: ['Cash Flow Analysis', 'Budget Forecasting', 'Cost Optimization'],
+      tagColor: 'text-emerald-600 bg-emerald-50'
+    },
+    {
+      title: 'Document Intelligence',
+      subtitle: 'AI Document Analyst',
+      desc: 'Extracts data from contracts, drawings, and RFIs. Answers questions instantly by searching through your entire document library.',
+      icon: <FileText size={24} />,
+      iconBg: 'bg-violet-600',
+      tags: ['Smart Search', 'Data Extraction', 'Auto-Tagging'],
+      tagColor: 'text-violet-600 bg-violet-50'
+    },
+    {
+      title: 'Safety Monitor',
+      subtitle: 'AI Safety Officer',
+      desc: 'Uses computer vision and ML to detect safety violations, predict incidents, and ensure compliance with regulations.',
+      icon: <ShieldCheck size={24} />,
+      iconBg: 'bg-red-500',
+      tags: ['Hazard Detection', 'Compliance Checks', 'Incident Prevention'],
+      tagColor: 'text-red-600 bg-red-50'
+    },
+    {
+      title: 'Business Strategist',
+      subtitle: 'AI Business Advisor',
+      desc: 'Analyzes market trends, identifies opportunities, scores leads, and provides strategic recommendations for growth.',
+      icon: <TrendingUp size={24} />,
+      iconBg: 'bg-orange-600',
+      tags: ['Market Analysis', 'Lead Scoring', 'Growth Strategy'],
+      tagColor: 'text-orange-600 bg-orange-50'
+    },
+    {
+      title: 'Conversational Assistant',
+      subtitle: 'AI Chat Interface',
+      desc: 'Your natural language interface to the entire platform. Ask questions, get insights, and execute tasks through simple conversation.',
+      icon: <Bot size={24} />,
+      iconBg: 'bg-indigo-600',
+      tags: ['Natural Language', 'Voice Commands', '24/7 Support'],
+      tagColor: 'text-indigo-600 bg-indigo-50'
+    }
+  ];
+
+  const collaborationFeatures = [
+    {
+      title: 'Real-Time Sync',
+      desc: 'All agents share a unified knowledge base, ensuring consistent insights across your entire operation.',
+      icon: <RefreshCw className="text-blue-500" size={24} />
+    },
+    {
+      title: 'Instant Insights',
+      desc: 'Get answers in seconds, not hours. Our AI processes millions of data points to deliver actionable intelligence.',
+      icon: <Zap className="text-amber-500" size={24} />
+    },
+    {
+      title: 'Proactive Alerts',
+      desc: "Don't wait for problems. Our AI predicts issues and notifies you before they impact your projects.",
+      icon: <Target className="text-red-500" size={24} />
+    }
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Top Navigation */}
-      <nav className="bg-white/80 backdrop-blur-md border-b border-white/20 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="flex-shrink-0 flex items-center">
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  CortexBuild
-                </span>
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 overflow-x-hidden">
+      {/* --- PREMIUM NAVBAR --- */}
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-slate-200/50 sticky top-0 z-[100]">
+        <div className="max-w-[1440px] mx-auto px-6 sm:px-10">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200">
+                <Cpu className="text-white" size={24} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-2xl font-black tracking-tight text-slate-900">CortexBuild</span>
+                <span className="text-[10px] font-bold tracking-[0.2em] text-indigo-600 uppercase">AI Intelligence Platform</span>
               </div>
             </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-center space-x-8">
-                {menuItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => {
-                      const pageMap: Record<string, Page> = {
-                        'Home': Page.CORTEX_BUILD_HOME,
-                        'NeuralNetwork': Page.NEURAL_NETWORK,
-                        'PlatformFeatures': Page.PLATFORM_FEATURES,
-                        'Connectivity': Page.CONNECTIVITY,
-                        'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
-                        'GetStarted': Page.PUBLIC_LOGIN
-                      };
-                      
-                      const targetPage = pageMap[item.id] || Page.PLATFORM_FEATURES;
-                      setPage(targetPage);
-                      setCurrentPage(targetPage);
-                    }}
-                    className={`${currentPage === (item.id === 'Home' ? Page.CORTEX_BUILD_HOME :
-                                  item.id === 'NeuralNetwork' ? Page.NEURAL_NETWORK :
-                                  item.id === 'PlatformFeatures' ? Page.PLATFORM_FEATURES :
-                                  item.id === 'Connectivity' ? Page.CONNECTIVITY :
-                                  item.id === 'DeveloperPlatform' ? Page.DEVELOPER_PLATFORM :
-                                  Page.PLATFORM_FEATURES)
-                      ? "text-blue-600 font-bold border-b-2 border-blue-600 pb-1"
-                      : "text-gray-700 hover:text-blue-600"
-                    } capitalize transition-colors duration-200`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+
+            <div className="hidden lg:flex items-center gap-10">
+              {menuItems.slice(0, 5).map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setPage(item.page);
+                    setCurrentPage(item.page);
+                  }}
+                  className={`text-sm font-semibold tracking-wide transition-all ${currentPage === item.page ? "text-indigo-600" : "text-slate-600 hover:text-indigo-600"
+                    }`}
+                >
+                  {item.label}
+                  {currentPage === item.page && <div className="h-0.5 bg-indigo-600 w-full mt-1" />}
+                </button>
+              ))}
             </div>
-            <div className="flex items-center">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200">
-                Get Started
-              </button>
-            </div>
+
+            <button className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-200">
+              Get Started
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Features Introduction */}
-      <div className="features-intro py-16 px-4 text-center">
-        <h2 className="text-4xl font-bold mb-6 text-gray-800">A COMPREHENSIVE TOOLSET FOR MODERN CONSTRUCTION</h2>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-          CortexBuild integrates every facet of your business. Explore our core features below to understand how our platform can transform your operations.
-        </p>
-      </div>
+      <main className="max-w-[1440px] mx-auto px-6 sm:px-10 py-16">
+        {/* --- HEADER --- */}
+        <div className="text-center max-w-4xl mx-auto mb-20 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <h1 className="text-5xl font-black tracking-tight text-slate-900 mb-6 [text-wrap:balance]">
+            The AI Core: <span className="text-indigo-600">Your Digital Team of Experts</span>
+          </h1>
+          <p className="text-lg text-slate-600 font-medium leading-relaxed">
+            Powered by advanced AI models, our intelligent agents work 24/7 to optimize your construction business.
+            Each agent specializes in a specific domain, collaborating seamlessly to deliver insights and automation.
+          </p>
+        </div>
 
-      {/* Feature Stats */}
-      <div className="feature-stats py-12 px-4 bg-white">
-        <div className="stats-container max-w-4xl mx-auto text-center">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            <div className="stat bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-blue-600 mb-2">100+</h3>
-              <p className="text-gray-700 font-medium">Total Features</p>
+        {/* --- AGENTS GRID --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-24">
+          {agents.map((agent, i) => (
+            <div
+              key={i}
+              className="bg-white p-8 rounded-[40px] border border-slate-100 shadow-sm hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group"
+            >
+              <div className="flex items-center gap-4 mb-6">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg ${agent.iconBg} group-hover:scale-110 transition-transform`}>
+                  {agent.icon}
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">{agent.title}</h3>
+                  <p className={`text-xs font-bold uppercase tracking-widest ${agent.iconBg.replace('bg-', 'text-')}`}>{agent.subtitle}</p>
+                </div>
+              </div>
+
+              <p className="text-slate-500 font-medium leading-relaxed mb-8">
+                {agent.desc}
+              </p>
+
+              <div className="flex flex-wrap gap-2">
+                {agent.tags.map((tag, j) => (
+                  <span key={j} className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tight ${agent.tagColor}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
             </div>
-            <div className="stat bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-green-600 mb-2">85+</h3>
-              <p className="text-gray-700 font-medium">Active</p>
-            </div>
-            <div className="stat bg-gradient-to-br from-yellow-50 to-yellow-100 p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-yellow-600 mb-2">10+</h3>
-              <p className="text-gray-700 font-medium">In Progress</p>
-            </div>
-            <div className="stat bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-md">
-              <h3 className="text-3xl font-bold text-purple-600 mb-2">5+</h3>
-              <p className="text-gray-700 font-medium">Planned</p>
-            </div>
+          ))}
+        </div>
+
+        {/* --- COLLABORATION SECTION --- */}
+        <div className="bg-[#f1f5f9] rounded-[48px] p-12 lg:p-16 border border-slate-200/50">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-black text-slate-900 mb-4 uppercase tracking-tight">How Our AI Agents Collaborate</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {collaborationFeatures.map((feat, i) => (
+              <div key={i} className="bg-white p-8 rounded-[32px] border border-slate-200/50 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col items-start">
+                <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-6">
+                  {feat.icon}
+                </div>
+                <h4 className="text-lg font-black text-slate-900 mb-3">{feat.title}</h4>
+                <p className="text-slate-500 font-medium leading-relaxed text-sm">
+                  {feat.desc}
+                </p>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Features Grid */}
-      <div className="features-grid py-16 px-4">
-        <div className="features-container max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="feature-category bg-white p-8 rounded-xl shadow-md text-center">
-              <span className="emoji text-4xl mb-4 block">🌐</span>
-              <h3 className="text-xl font-bold mb-2 text-gray-800">ALL FEATURES</h3>
-              <p className="text-gray-600 mb-4">Complete Platform</p>
-              <button className="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold py-2 px-4 rounded-lg transition duration-300">
-                View all 100+ platform features
-              </button>
+      {/* --- FOOTER --- */}
+      <footer className="py-12 border-t border-slate-200 bg-white mt-12">
+        <div className="max-w-[1440px] mx-auto px-10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
+              <Cpu className="text-white" size={16} />
             </div>
-            
-            <div className="feature-category bg-white p-8 rounded-xl shadow-md text-center">
-              <span className="emoji text-4xl mb-4 block">🏗️</span>
-              <h3 className="text-xl font-bold mb-2 text-gray-800">PROJECT OPS</h3>
-              <p className="text-gray-600 mb-4">Construction Management</p>
-              <ul className="space-y-2 text-left">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Daily logs</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>RFIs</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>punch lists</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>drawings</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="feature-category bg-white p-8 rounded-xl shadow-md text-center">
-              <span className="emoji text-4xl mb-4 block">💰</span>
-              <h3 className="text-xl font-bold mb-2 text-gray-800">FINANCIAL MGT</h3>
-              <p className="text-gray-600 mb-4">Accounting & Finance</p>
-              <ul className="space-y-2 text-left">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Invoicing</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>budgets</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>payments</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>financial reports</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="feature-category bg-white p-8 rounded-xl shadow-md text-center">
-              <span className="emoji text-4xl mb-4 block">📈</span>
-              <h3 className="text-xl font-bold mb-2 text-gray-800">BUSINESS DEV</h3>
-              <p className="text-gray-600 mb-4">Growth & Strategy</p>
-              <ul className="space-y-2 text-left">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>Lead management</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>proposals</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-2">✓</span>
-                  <span>business analytics</span>
-                </li>
-              </ul>
-            </div>
+            <span className="text-lg font-black tracking-tight text-slate-900">CortexBuild</span>
+          </div>
+          <div className="text-slate-400 font-bold text-[10px] tracking-[0.2em] uppercase">
+            © 2025 CortexBuild AI • Built for the Future of Construction
           </div>
         </div>
-      </div>
-
-      {/* Additional Features */}
-      <div className="additional-features py-16 px-4 bg-gray-50">
-        <div className="features-container max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="construction-tools bg-gradient-to-br from-blue-50 to-indigo-50 p-8 rounded-xl shadow-md">
-              <h3 className="text-2xl font-bold mb-6 text-blue-800">CONSTRUCTION TOOLS</h3>
-              <ul className="space-y-3">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Project Management</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Scheduling & Planning</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Resource Allocation</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Quality Control</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Safety Management</span>
-                </li>
-              </ul>
-            </div>
-            
-            <div className="business-intelligence bg-gradient-to-br from-green-50 to-emerald-50 p-8 rounded-xl shadow-md">
-              <h3 className="text-2xl font-bold mb-6 text-green-800">BUSINESS INTELLIGENCE</h3>
-              <ul className="space-y-3">
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Financial Analytics</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Performance Metrics</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Market Insights</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Competitive Analysis</span>
-                </li>
-                <li className="flex items-center">
-                  <span className="text-green-500 mr-3 text-xl">✓</span>
-                  <span className="text-gray-700">Strategic Planning</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
+      </footer>
     </div>
   );
 };

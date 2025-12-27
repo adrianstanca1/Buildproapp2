@@ -8,21 +8,68 @@ import crypto from 'crypto';
 import helmet from 'helmet';
 import { resolve, dirname, join } from 'path';
 import { fileURLToPath } from 'url';
-import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimit.js';
+import { v4 as uuidv4 } from 'uuid';
+import { createServer } from 'http';
+import { ApolloServer } from 'apollo-server-express';
+
+// Internal
+import { logger } from './utils/logger.js';
+import { AppError } from './utils/AppError.js';
 import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
-import { v4 as uuidv4 } from 'uuid';
+import { setupWebSocketServer } from './socket.js';
+import { UserRole } from '../types.js';
+
+// Middleware
+import { apiLimiter, authLimiter, uploadLimiter } from './middleware/rateLimit.js';
 import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
+import { authenticateToken } from './middleware/authMiddleware.js';
+import { contextMiddleware } from './middleware/contextMiddleware.js';
+import { maintenanceMiddleware } from './middleware/maintenanceMiddleware.js';
+import errorHandler from './middleware/errorMiddleware.js';
+
+// Services
 import { getTenantAnalytics, logUsage, checkTenantLimits, getTenantUsage } from './services/tenantService.js';
-import { logger } from './utils/logger.js'; // This line might be wrong based on previous edit?
-import { AppError } from './utils/AppError.js';
-import { UserRole } from '../types.js'; // Importing UserRole to fix Enum type errors
-import { ApolloServer } from 'apollo-server-express';
+import * as activityService from './services/activityService.js';
+
+// Controllers
+import * as companyController from './controllers/companyController.js';
+import * as platformController from './controllers/platformController.js';
+import * as userManagementController from './controllers/userManagementController.js';
+import * as dailyLogController from './controllers/dailyLogController.js';
+import * as rfiController from './controllers/rfiController.js';
+import * as safetyController from './controllers/safetyController.js';
+import * as taskController from './controllers/taskController.js';
+import * as commentController from './controllers/commentController.js';
+import * as rbacController from './controllers/rbacController.js';
+import * as automationController from './controllers/automationController.js';
+import * as predictiveController from './controllers/predictiveController.js';
+import * as ocrController from './controllers/ocrController.js';
+import * as analyticsController from './controllers/analyticsController.js';
+import * as integrationController from './controllers/integrationController.js';
+import * as tenantTeamController from './controllers/tenantTeamController.js';
+import { getVendors, createVendor, updateVendor } from './controllers/vendorController.js';
+import { getCostCodes, createCostCode, updateCostCode } from './controllers/costCodeController.js';
+
+// Routes
+import authRoutes from './routes/authRoutes.js';
+import companyRoutes from './routes/companyRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import platformRoutes from './routes/platformRoutes.js';
+import supportRoutes from './routes/supportRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import userManagementRoutes from './routes/userManagementRoutes.js';
+import clientPortalRoutes from './routes/clientPortalRoutes.js';
+import pushRoutes from './routes/pushRoutes.js';
+import aiRoutes from './routes/ai.js';
+import storageRoutes from './routes/storage.js';
+
+// GraphQL
 import { typeDefs } from './graphql/schema.js';
 import { resolvers } from './graphql/resolvers.js';
 
 const app = express();
-const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default, previously 3002
+const port = process.env.PORT || 8080; // Cloud Run expects 8080 by default
 
 // Security middleware
 const SUPABASE_HOST = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '';
@@ -50,12 +97,10 @@ app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// Middleware to ensure DB is initialized before handling requests (removed)
-
 // Serve local uploads with optional HMAC signature verification
 const verifySignedUpload = (req: any, res: any, next: any) => {
     const signingSecret = process.env.FILE_SIGNING_SECRET;
-    if (!signingSecret) return next(); // Allow unsigned access in dev/local
+    if (!signingSecret) return next();
 
     const { expires, sig } = req.query;
     if (!expires || !sig) {
@@ -67,8 +112,7 @@ const verifySignedUpload = (req: any, res: any, next: any) => {
         return res.status(403).json({ error: 'Signed URL expired' });
     }
 
-    // Path looks like /uploads/tenants/{tenantId}/...
-    const relativePath = req.path.replace(/^\/+/, ''); // remove leading slash
+    const relativePath = req.path.replace(/^\/+/, '');
     const parts = relativePath.split('/');
     const tenantId = parts.length >= 2 && parts[0] === 'tenants' ? parts[1] : 'unknown';
     const payload = `${tenantId}:${relativePath}:${expiresAt}`;
@@ -83,22 +127,6 @@ const verifySignedUpload = (req: any, res: any, next: any) => {
 
 app.use('/uploads', verifySignedUpload, express.static(resolve('uploads')));
 
-
-// --- Middleware ---
-const tenantMiddleware = (req: any, res: any, next: any) => {
-    const tenantId = req.headers['x-company-id'];
-    const userId = req.headers['x-user-id']; // For audit logging
-    const userName = req.headers['x-user-name'];
-
-    if (tenantId) {
-        req.tenantId = tenantId;
-    }
-
-    req.userId = userId || 'anonymous';
-    req.userName = userName || 'Guest';
-    next();
-};
-
 // Helper for audit logging
 const logAction = async (req: any, action: string, resource: string, resourceId: string, changes: any = null, status: string = 'success') => {
     try {
@@ -110,8 +138,8 @@ const logAction = async (req: any, action: string, resource: string, resourceId:
             [
                 id,
                 req.tenantId || 'system',
-                req.userId,
-                req.userName,
+                req.userId || 'anonymous',
+                req.userName || 'Guest',
                 action,
                 resource,
                 resourceId,
@@ -127,113 +155,32 @@ const logAction = async (req: any, action: string, resource: string, resourceId:
     }
 };
 
-
-import { authenticateToken } from './middleware/authMiddleware.js';
-import { contextMiddleware } from './middleware/contextMiddleware.js';
-import { maintenanceMiddleware } from './middleware/maintenanceMiddleware.js';
-
-// app.use(tenantMiddleware); // Legacy
-app.use('/api', authenticateToken, contextMiddleware, maintenanceMiddleware); // Protect, contextualize, and enforce maintenance
-
-import aiRoutes from './routes/ai.js';
-// Auth, Companies, Projects, ClientPortal are already imported/used below or above. 
-
+// --- Routes Configuration ---
+app.use('/api', authenticateToken, contextMiddleware, maintenanceMiddleware);
+app.use('/api', authRoutes);
 app.use('/api/ai', aiRoutes);
-
-import storageRoutes from './routes/storage.js';
 app.use('/api/storage', storageRoutes);
-
-
-// --- Companies Routes ---
-import * as companyController from './controllers/companyController.js';
-import companyRoutes from './routes/companyRoutes.js';
-
-// Individual company routes for company management
-app.get('/api/companies', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.getCompanies);
-app.post('/api/companies', requireRole([UserRole.SUPERADMIN]), companyController.createCompany);
-
-app.put('/api/companies/:id', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), companyController.updateCompany);
-app.delete('/api/companies/:id', requireRole([UserRole.SUPERADMIN]), companyController.deleteCompany);
-// Self-management for Company Admins
-app.put('/api/my-company', requireRole([UserRole.COMPANY_ADMIN]), companyController.updateMyCompany);
-
-// Mount company member management routes (nested under /api/companies)
-app.use('/api/companies', companyRoutes);
-
-// --- System Settings Routes ---
-import * as systemController from './controllers/systemController.js';
-import * as dailyLogController from './controllers/dailyLogController.js';
-import * as rfiController from './controllers/rfiController.js';
-import * as safetyController from './controllers/safetyController.js';
-import { getVendors, createVendor, updateVendor } from './controllers/vendorController.js';
-import { getCostCodes, createCostCode, updateCostCode } from './controllers/costCodeController.js';
-app.get('/api/system-settings', platformController.getSystemConfig);
-app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemConfig);
-
-// --- Platform / SuperAdmin Routes ---
-import * as platformController from './controllers/platformController.js';
-import * as userManagementController from './controllers/userManagementController.js';
-import platformRoutes from './routes/platformRoutes.js';
-import supportRoutes from './routes/supportRoutes.js';
-import notificationRoutes from './routes/notificationRoutes.js';
-
+app.use('/api/projects', projectRoutes);
 app.use('/api/platform', platformRoutes);
 app.use('/api/platform/support', supportRoutes);
 app.use('/api/platform/notifications', notificationRoutes);
-
-import pushRoutes from './routes/pushRoutes.js';
-import userManagementRoutes from './routes/userManagementRoutes.js';
 app.use('/api/users', userManagementRoutes);
 app.use('/api/notifications', pushRoutes);
+app.use('/api/client-portal', clientPortalRoutes);
+app.use('/api/companies', companyRoutes);
 
-const superAdminOnly = requireRole([UserRole.SUPERADMIN]);
+// --- System Config Routes ---
+app.get('/api/system-settings', platformController.getSystemSettings);
+app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemSetting);
+app.get('/api/system-config', platformController.getSystemConfig);
+app.post('/api/system-config', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemConfig);
 
-// Note: stats, health, and activity are handled by platformRoutes
-// Mounted at /api/platform/stats, /api/platform/health, etc.
-
-// --- Tenant Team Management Routes ---
-import * as tenantTeamController from './controllers/tenantTeamController.js';
-// Only Company Admins (and Super Admins) can manage their team
+// --- Platform / Admin Statistics ---
 const companyAdminAuth = requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]);
 
 app.post('/api/my-team/invite', companyAdminAuth, tenantTeamController.inviteMember);
 app.put('/api/my-team/:id/role', companyAdminAuth, tenantTeamController.updateMemberRole);
 app.delete('/api/my-team/:id', companyAdminAuth, tenantTeamController.removeMember);
-
-// --- Tenant Analytics Routes ---
-
-app.get('/api/tenants/:id/usage', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), async (req: any, res: any) => {
-    try {
-        const { id } = req.params;
-        const usage = await getTenantUsage(id);
-        res.json(usage);
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-app.get('/api/audit_logs', async (req: any, res: any) => {
-    try {
-        const db = getDb();
-        const tenantId = req.query.tenantId || req.tenantId;
-
-        if (!tenantId) return res.status(400).json({ error: 'tenantId is required' });
-
-        const logs = await db.all('SELECT * FROM audit_logs WHERE companyId = ? ORDER BY timestamp DESC LIMIT 100', [tenantId]);
-        const parsed = logs.map(l => ({
-            ...l,
-            changes: l.changes ? JSON.parse(l.changes) : null
-        }));
-
-        res.json(parsed);
-    } catch (e) {
-        res.status(500).json({ error: (e as Error).message });
-    }
-});
-
-// --- Auth & Role Routes ---
-import authRoutes from './routes/authRoutes.js';
-app.use('/api', authRoutes);
 
 // --- Enhanced Tenant Analytics ---
 app.get('/api/tenants/:id/analytics', async (req: any, res: any) => {
@@ -268,11 +215,9 @@ app.post('/api/usage-logs', async (req: any, res: any) => {
 });
 
 // --- Projects Routes ---
-import projectRoutes from './routes/projectRoutes.js';
 app.use('/api/projects', projectRoutes);
 
 // --- Tasks Routes ---
-import * as taskController from './controllers/taskController.js';
 
 app.get('/api/tasks', requirePermission('tasks', 'read'), taskController.getTasks);
 app.get('/api/tasks/:id', requirePermission('tasks', 'read'), taskController.getTask);
@@ -316,7 +261,6 @@ app.get('/api/documents/:id/signed-url', authenticateToken, requirePermission('d
 });
 
 // --- Client Portal Routes ---
-import clientPortalRoutes from './routes/clientPortalRoutes.js';
 app.use('/api/client-portal', clientPortalRoutes);
 
 // --- Construction Management Routes ---
@@ -341,7 +285,6 @@ app.post('/api/safety-hazards', requirePermission('safety', 'create'), safetyCon
 app.put('/api/safety-hazards/:id', requirePermission('safety', 'update'), safetyController.updateSafetyHazard);
 
 // --- Comments Routes ---
-import * as commentController from './controllers/commentController.js';
 
 app.get('/api/comments', authenticateToken, contextMiddleware, commentController.getComments);
 app.post('/api/comments', authenticateToken, contextMiddleware, apiLimiter as any, commentController.createComment);
@@ -349,13 +292,11 @@ app.put('/api/comments/:id', authenticateToken, contextMiddleware, commentContro
 app.delete('/api/comments/:id', authenticateToken, contextMiddleware, commentController.deleteComment);
 
 // --- Activity Feed Routes ---
-import * as activityService from './services/activityService.js';
 
 app.get('/api/activity', authenticateToken, contextMiddleware, activityService.getActivityFeed);
 app.get('/api/activity/:entityType/:entityId', authenticateToken, contextMiddleware, activityService.getEntityActivity);
 
 // --- Analytics Routes ---
-import * as analyticsController from './controllers/analyticsController.js';
 
 app.get('/api/analytics/kpis', authenticateToken, contextMiddleware, analyticsController.getExecutiveKPIs);
 app.get('/api/analytics/project-progress', authenticateToken, contextMiddleware, analyticsController.getProjectProgress);
@@ -366,14 +307,12 @@ app.get('/api/analytics/project-health/:projectId', authenticateToken, contextMi
 app.get('/api/analytics/custom-report', authenticateToken, contextMiddleware, analyticsController.getCustomReport);
 
 // --- Integrations Routes ---
-import * as integrationController from './controllers/integrationController.js';
 
 app.get('/api/integrations/:type', authenticateToken, contextMiddleware, integrationController.getStatus);
 app.post('/api/integrations/connect', authenticateToken, contextMiddleware, integrationController.connect);
 app.post('/api/integrations/sync', authenticateToken, contextMiddleware, integrationController.sync);
 
 // --- Automations Routes (Phase 14) ---
-import * as automationController from './controllers/automationController.js';
 
 app.get('/api/automations', authenticateToken, contextMiddleware, automationController.getAutomations);
 app.post('/api/automations', authenticateToken, contextMiddleware, automationController.createAutomation);
@@ -381,12 +320,10 @@ app.put('/api/automations/:id', authenticateToken, contextMiddleware, automation
 app.delete('/api/automations/:id', authenticateToken, contextMiddleware, automationController.deleteAutomation);
 
 // --- Predictive Intelligence Routes (Phase 14) ---
-import * as predictiveController from './controllers/predictiveController.js';
 
 app.get('/api/predictive/analysis/:projectId', authenticateToken, contextMiddleware, predictiveController.getProjectAnalysis);
 
 // --- OCR Routes (Phase 14) ---
-import * as ocrController from './controllers/ocrController.js';
 
 app.post('/api/ocr/extract', authenticateToken, contextMiddleware, ocrController.extractData);
 
@@ -547,7 +484,6 @@ const createCrudRoutes = (tableName: string, jsonFields: string[] = [], permissi
 };
 
 // RBAC Routes
-import * as rbacController from './controllers/rbacController.js';
 app.get('/api/roles', rbacController.getRoles);
 app.post('/api/roles', rbacController.createRole);
 app.put('/api/roles/:id/permissions', rbacController.updateRolePermissions);
@@ -595,8 +531,6 @@ app.get('*', (req, res) => {
 });
 
 // Initialize and Start
-import { createServer } from 'http';
-import { setupWebSocketServer } from './socket.js';
 
 logger.info('DEBUG: Creating HTTP Server...');
 const httpServer = createServer(app);
@@ -680,7 +614,6 @@ const serverPromise = startServer();
 export { serverPromise };
 
 // Global Error Handler (must be last)
-import errorHandler from './middleware/errorMiddleware.js';
 app.use(errorHandler);
 
 // Handle Uncaught Exceptions & Rejections
