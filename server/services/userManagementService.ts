@@ -52,17 +52,17 @@ export class UserManagementService {
       conditions.push('u.companyId = ?');
       params.push(tenantId);
     }
-    
+
     if (filters.status) {
       conditions.push('u.status = ?');
       params.push(filters.status);
     }
-    
+
     if (filters.role) {
       conditions.push('u.role = ?');
       params.push(filters.role);
     }
-    
+
     if (filters.search) {
       conditions.push('(u.name LIKE ? OR u.email LIKE ? OR c.name LIKE ?)');
       const searchTerm = `%${filters.search}%`;
@@ -114,7 +114,7 @@ export class UserManagementService {
     }
 
     const userId = uuidv4();
-    
+
     // Insert user
     await db.run(
       `INSERT INTO users (id, email, name, password, role, companyId, status, isActive, createdAt, updatedAt)
@@ -139,7 +139,7 @@ export class UserManagementService {
         userId,
         companyId: userData.companyId,
         role: userData.role,
-        permissions: userData.permissions ? JSON.stringify(userData.permissions) : undefined
+        permissions: userData.permissions
       }, actorId || userId);
     }
 
@@ -154,7 +154,7 @@ export class UserManagementService {
     }
 
     logger.info(`User created: ${userId} by ${actorId || 'system'}`);
-    
+
     return await this.getUserById(userId);
   }
 
@@ -203,7 +203,7 @@ export class UserManagementService {
     }
 
     logger.info(`User updated: ${userId} by ${actorId || 'system'}`);
-    
+
     return await this.getUserById(userId);
   }
 
@@ -276,13 +276,13 @@ export class UserManagementService {
       if (existingMembership) {
         throw new AppError('User is already a member of this company', 409);
       }
-      
+
       await membershipService.addMember({
         userId: existingUser.id,
         companyId,
         role
       }, inviterId);
-      
+
       logger.info(`Existing user added to company: ${existingUser.id} to ${companyId}`);
       return;
     }
@@ -307,7 +307,7 @@ export class UserManagementService {
       const company = await db.get('SELECT name FROM companies WHERE id = ?', [companyId]);
       const companyName = company?.name || 'the company';
       const inviteLink = `${process.env.APP_URL || 'http://localhost:3000'}/accept-invite?userId=${userId}&companyId=${companyId}`;
-      
+
       await emailService.sendInvitation(email, role, companyName, inviteLink);
     } catch (emailError) {
       logger.error('Failed to send invitation email', emailError);
@@ -324,7 +324,7 @@ export class UserManagementService {
     logger.info(`User invited: ${email} to ${companyId} by ${inviterId}`);
   }
 
-  async bulkInviteUsers(invitations: Array<{email: string, role: UserRole}>, companyId: string, inviterId: string): Promise<void> {
+  async bulkInviteUsers(invitations: Array<{ email: string, role: UserRole }>, companyId: string, inviterId: string): Promise<void> {
     for (const invitation of invitations) {
       try {
         await this.inviteUser(invitation.email, invitation.role, companyId, inviterId);
@@ -339,7 +339,7 @@ export class UserManagementService {
     // In a real implementation, this would send a password reset email
     // For now, we'll just log the action
     logger.info(`Password reset requested for user: ${userId} by ${actorId || 'system'}`);
-    
+
     // Log audit event
     if (actorId) {
       await this.logAuditEvent(actorId, 'RESET_USER_PASSWORD', 'users', userId, {});
@@ -348,36 +348,36 @@ export class UserManagementService {
 
   async getUserStats(tenantId?: string) {
     const db = getDb();
-    
+
     let baseQuery = 'SELECT COUNT(*) as count FROM users';
     const params: any[] = [];
-    
+
     if (tenantId) {
       baseQuery += ' WHERE companyId = ?';
       params.push(tenantId);
     }
-    
+
     const totalUsers = await db.get(baseQuery, params);
-    
+
     // Get breakdown by status
     let statusQuery = 'SELECT status, COUNT(*) as count FROM users';
     if (tenantId) {
       statusQuery += ' WHERE companyId = ?';
     }
     statusQuery += ' GROUP BY status';
-    
+
     const statusBreakdown = await db.all(
       statusQuery,
       tenantId ? [...params] : []
     );
-    
+
     // Get breakdown by role
     let roleQuery = 'SELECT role, COUNT(*) as count FROM users';
     if (tenantId) {
       roleQuery += ' WHERE companyId = ?';
     }
     roleQuery += ' GROUP BY role';
-    
+
     const roleBreakdown = await db.all(
       roleQuery,
       tenantId ? [...params] : []
@@ -394,7 +394,7 @@ export class UserManagementService {
     const db = getDb();
     const logId = uuidv4();
     const now = new Date().toISOString();
-    
+
     try {
       await db.run(
         `INSERT INTO audit_logs (id, userId, userName, action, resource, resourceId, changes, status, timestamp)

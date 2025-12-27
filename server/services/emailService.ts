@@ -76,6 +76,42 @@ class EmailService {
 
         return this.sendEmail({ to, subject, text, html });
     }
+
+    async sendPasswordResetEmail(to: string, name: string, resetToken: string) {
+        const subject = 'Reset your BuildPro password';
+        const resetLink = `${process.env.APP_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+        const text = `
+            Hello ${name},
+
+            We received a request to reset your password for your BuildPro account.
+            
+            Click the link below to reset your password:
+            ${resetLink}
+
+            This link will expire in 24 hours.
+
+            If you did not request a password reset, please ignore this email.
+        `;
+
+        const html = `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>Password Reset Request</h2>
+                <p>Hello ${name},</p>
+                <p>We received a request to reset your password for your BuildPro account.</p>
+                <br/>
+                <a href="${resetLink}" style="background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Reset Password</a>
+                <br/><br/>
+                <p>If the button doesn't work, copy and paste this link:</p>
+                <p>${resetLink}</p>
+                <p>This link will expire in 24 hours.</p>
+                <br/>
+                <p>If you did not request a password reset, please ignore this email.</p>
+            </div>
+        `;
+
+        return this.sendEmail({ to, subject, text, html });
+    }
 }
 
 export const emailService = new EmailService();

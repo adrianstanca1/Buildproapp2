@@ -63,11 +63,11 @@ const PlatformMembersView: React.FC = () => {
 
         setIsSubmitting(true);
         try {
-            await db.createUser(formData.companyId, {
+            await db.createUser({
                 name: formData.name,
                 email: formData.email,
                 role: formData.role
-            });
+            }, formData.companyId);
             addToast(`User ${formData.name} created successfully`, 'success');
             setShowAddModal(false);
             setFormData({ name: '', email: '', role: UserRole.OPERATIVE, companyId: '' });

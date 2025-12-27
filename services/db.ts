@@ -517,16 +517,17 @@ class DatabaseService {
 
 
 
-  async getAllPlatformUsers(): Promise<any[]> {
+  async getAllPlatformUsers(companyId?: string): Promise<any[]> {
     try {
-      const res = await fetch(`${API_URL}/platform/users`, { headers: await this.getHeaders() });
+      const endpoint = companyId ? `platform/users?companyId=${companyId}` : 'platform/users';
+      const res = await fetch(`${API_URL}/${endpoint}`, { headers: await this.getHeaders() });
       if (!res.ok) return [];
       return await res.json();
     } catch { return []; }
   }
 
   async updateUserStatus(id: string, status: string): Promise<void> {
-    await fetch(`${API_URL} / platform / users / ${id}/status`, {
+    await fetch(`${API_URL}/platform/users/${id}/status`, {
       method: 'PUT',
       headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ status })
@@ -534,7 +535,7 @@ class DatabaseService {
   }
 
   async updatePlatformUserRole(id: string, role: string): Promise<void> {
-    await fetch(`${API_URL} / platform / users / ${id}/role`, {
+    await fetch(`${API_URL}/platform/users/${id}/role`, {
       method: 'PUT',
       headers: await this.getHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ role })
@@ -805,13 +806,20 @@ class DatabaseService {
     await this.post('platform/broadcast/targeted', { filter, message });
   }
 
-  // --- User Provisioning (Phase 7) ---
-  async createUser(companyId: string, userData: any): Promise<any> {
+  async createUser(userData: any, companyId: string): Promise<any> {
     if (this.useMock) {
       console.log('User created:', { companyId, userData });
       return { id: `u-${Math.random().toString(36).substr(2, 9)}`, ...userData, companyId };
     }
     return this.post(`platform/companies/${companyId}/users`, userData);
+  }
+
+  async bulkInviteUsers(invitations: any[], companyId: string, role: string): Promise<void> {
+    if (this.useMock) {
+      console.log('Bulk Inviting Users:', { invitations, companyId, role });
+      return;
+    }
+    await this.post(`platform/companies/${companyId}/bulk-invite`, { invitations, role });
   }
 
   async updateUser(userId: string, data: any): Promise<void> {

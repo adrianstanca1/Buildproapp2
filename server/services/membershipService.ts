@@ -93,25 +93,6 @@ export class MembershipService extends BaseTenantService {
             values
         );
 
-        // We don't always have the actor ID here in the service method signature easily without changing it widely.
-        // For now, we'll log 'system' or we might need to update the DTO to include `updatedBy`.
-        // However, looking at the call sites, this is usually called by a controller which has context.
-        // Ideally we should pass userId. For now, let's assume system or audit in controller.
-        // Wait, BaseTenantService auditAction expects userId.
-        // I should update the method signature to accept userId or handle it gracefully.
-        // Given the constraints, I will use 'system' if not available, but ideally the controller calls this.
-        // Actually, this method signatures in `MembershipService` don't take `userId` (actor).
-        // I will stick to logging it but I might put 'system' for userId if not passed,
-        // BUT `auditAction` requires userId.
-        // Let's rely on the fact that existing calls might need update or I'll use a placeholder.
-        // BETTER APPROACH: Update the method signature to take `actorId` later, but for now allow null/placeholder?
-        // No, `auditAction` takes `userId`.
-        // Let's look at `projectService`... it takes `userId` as first arg.
-        // `MembershipService` methods don't.
-        // To be safe and minimal refactor: I will add `actorId` as an optional last argument.
-
-        // Actually, let's keep it simple. If I can't easily get the actor, I will use 'system'.
-
         await this.auditAction('updateMembership', actorId || 'system', membership.companyId, 'memberships', membershipId, updates);
 
         logger.info(`Membership updated: ${membershipId}`);
@@ -201,6 +182,23 @@ export class MembershipService extends BaseTenantService {
     async hasActiveMembership(userId: string, companyId: string): Promise<boolean> {
         const membership = await this.getMembership(userId, companyId);
         return membership !== null && membership.status === 'active';
+    }
+
+    /**
+     * Update a user's membership in a specific company
+     */
+    async updateMembershipByUserAndCompany(
+        userId: string,
+        companyId: string,
+        updates: UpdateMembershipDto,
+        actorId: string = 'system'
+    ): Promise<Membership> {
+        const membership = await this.getMembership(userId, companyId);
+        if (!membership) {
+            throw new AppError('Membership not found', 404);
+        }
+
+        return this.updateMembership(membership.id, updates, actorId);
     }
 
     /**

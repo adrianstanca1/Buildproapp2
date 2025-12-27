@@ -1,6 +1,6 @@
 import { getDb } from "../database.js";
-import { getDb } from '../database.js';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import { logger } from '../utils/logger.js';
 import { AppError } from '../utils/AppError.js';
 import { UserRole } from '../types/rbac.js';
@@ -78,7 +78,7 @@ export class AuthService {
         companyId: user.companyId
       },
       process.env.JWT_SECRET || 'fallback_secret_for_dev',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '24h') as any }
     );
 
     // Update last login
@@ -150,7 +150,7 @@ export class AuthService {
         companyId
       },
       process.env.JWT_SECRET || 'fallback_secret_for_dev',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '24h') as any }
     );
 
     logger.info(`User registered: ${userId}`);
@@ -178,7 +178,7 @@ export class AuthService {
     }
 
     // Create password reset token
-    const resetToken = require('crypto').randomBytes(32).toString('hex');
+    const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpiry = new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(); // 24 hours
 
     // Store reset token
@@ -284,7 +284,7 @@ export class AuthService {
         companyId: user.companyId
       },
       process.env.JWT_SECRET || 'fallback_secret_for_dev',
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
+      { expiresIn: (process.env.JWT_EXPIRES_IN || '24h') as any }
     );
 
     logger.info(`Token refreshed for user: ${userId}`);

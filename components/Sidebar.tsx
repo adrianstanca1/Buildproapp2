@@ -89,6 +89,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
     [Page.PLATFORM_FEATURES]: ["cortex.features"],
     [Page.CONNECTIVITY]: ["cortex.connectivity"],
     [Page.DEVELOPER_PLATFORM]: ["cortex.developer"],
+    [Page.USER_MANAGEMENT]: ['users.view'],
     [Page.PUBLIC_LOGIN]: ["auth.login"]
   };
 
