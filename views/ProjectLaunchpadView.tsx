@@ -90,7 +90,7 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
     const [chatInput, setChatInput] = useState('');
     const [isChatProcessing, setIsChatProcessing] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([
-        { id: 'welcome', role: 'ai', text: "Hello! I'm your AI Architect using Gemini 3 Pro. I can help you define the project scope, estimate budgets from site plans, and generate detailed timelines. Upload a document or describe your project to begin." }
+        { id: 'welcome', role: 'ai', text: "Hello! I'm your AI Architect using Gemini 1.5 Pro. I can help you define the project scope, estimate budgets from site plans, and generate detailed timelines. Upload a document or describe your project to begin." }
     ]);
     const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -306,7 +306,7 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
             };
 
             const prompt = `
-            You are an expert Construction AI Architect powered by Gemini 3 Pro.
+            You are an expert Construction AI Architect powered by Gemini 1.5 Pro.
             You are assisting a Project Manager in defining a new construction project.
 
             CURRENT PROJECT STATE:
@@ -519,7 +519,7 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
                             <div className="flex items-center gap-2 text-[10px] font-medium text-zinc-400 uppercase tracking-wider">
                                 <span>AI Architect</span>
                                 <span className="w-1 h-1 bg-zinc-300 rounded-full" />
-                                <span className="text-purple-600 font-bold flex items-center gap-1"><Sparkles size={10} /> Gemini 3.0 Pro</span>
+                                <span className="text-purple-600 font-bold flex items-center gap-1"><Sparkles size={10} /> Gemini 1.5 Pro</span>
                             </div>
                         </div>
                     </div>
@@ -805,7 +805,7 @@ const ProjectLaunchpadView: React.FC<ProjectLaunchpadProps> = ({ onClose, onView
                                         <div className="p-1.5 bg-purple-100 rounded-lg"><BrainCircuit size={18} className="text-purple-600" /></div>
                                         <div>
                                             <div className="text-sm font-bold text-zinc-800">AI Architect</div>
-                                            <div className="text-[10px] text-zinc-400">Gemini 3.0 Pro • Reasoning Active</div>
+                                            <div className="text-[10px] text-zinc-400">Gemini 1.5 Pro • Reasoning Active</div>
                                         </div>
                                     </div>
                                 </div>

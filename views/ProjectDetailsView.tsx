@@ -350,7 +350,7 @@ const ProjectGallery = ({ projectId, onUpload }: { projectId: string, onUpload: 
                                 </div>
                                 {isAnalyzing && (
                                     <div className="mt-4 flex items-center justify-center gap-2 text-xs text-purple-600 font-medium animate-pulse">
-                                        <Loader2 size={14} className="animate-spin" /> Analyzing with Gemini 3 Pro...
+                                        <Loader2 size={14} className="animate-spin" /> Analyzing with Gemini 1.5 Pro...
                                     </div>
                                 )}
                             </div>
@@ -701,7 +701,7 @@ const ProjectOverview = ({ project, tasks, onUpdate, openModal }: { project: Pro
                         <div>
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
                                 AI Architect Console
-                                <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">Gemini 3.0 Pro</span>
+                                <span className="bg-white/20 text-white text-[10px] px-2 py-0.5 rounded-full font-medium">Gemini 1.5 Pro</span>
                             </h3>
                             <p className="text-blue-100 text-sm">Interactive project analysis, risk assessment, and strategy.</p>
                         </div>

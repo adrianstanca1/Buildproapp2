@@ -284,21 +284,21 @@ const ChatView: React.FC<ChatViewProps> = ({ setPage }) => {
 
       // Determine Config based on Mode
       const config: ChatConfig = {
-        model: 'gemini-3-pro-preview' // Default
+        model: 'gemini-1.5-pro' // Default
       };
 
       if (mode === 'THINKING') {
-        config.model = 'gemini-3-pro-preview';
-        config.thinkingBudget = 32768; // Max for Pro
+        config.model = 'gemini-1.5-pro';
+        // config.thinkingBudget = 32768; // Removed as not supported in standard 1.5 Pro yet
         config.systemInstruction = "You are an expert construction analyst and strategist. Use deep reasoning to analyze complex problems, verify assumptions, and provide comprehensive solutions. Use markdown for formatting lists, code, and emphasis.";
       } else if (mode === 'SEARCH') {
-        config.model = 'gemini-2.5-flash';
+        config.model = 'gemini-2.0-flash-exp';
         config.tools = [{ googleSearch: {} }];
       } else if (mode === 'MAPS') {
-        config.model = 'gemini-2.5-flash';
+        config.model = 'gemini-2.0-flash-exp';
         config.tools = [{ googleMaps: {} }];
       } else if (mode === 'LITE') {
-        config.model = 'gemini-2.5-flash-lite';
+        config.model = 'gemini-1.5-flash';
       } else if (mode === 'LOGISTICS') {
         config.model = 'gemini-2.0-flash-exp';
         config.systemInstruction = `You are the BuildPro Logistics Specialist. You help manage supply chains, track shipments, and predict stockouts. 
@@ -411,7 +411,7 @@ const ChatView: React.FC<ChatViewProps> = ({ setPage }) => {
           <div>
             <h2 className="text-sm font-bold text-zinc-900">{mode === 'LOGISTICS' ? 'Logistics Specialist' : mode === 'FIELD' ? 'Field Intelligence' : 'Gemini Assistant'}</h2>
             <div className="text-xs text-zinc-500">
-              {mode === 'THINKING' ? 'Gemini 3.0 Pro (Deep Reasoning)' : mode === 'SEARCH' ? 'Gemini 2.5 Flash (Search)' : mode === 'MAPS' ? 'Gemini 2.5 Flash (Maps)' : mode === 'LITE' ? 'Gemini 2.5 Flash Lite' : mode === 'LOGISTICS' ? 'Specialized Supply Chain AI' : mode === 'FIELD' ? 'Voice-to-Action Site Mode' : 'Gemini 3.0 Pro'}
+              {mode === 'THINKING' ? 'Gemini 1.5 Pro (Deep Reasoning)' : mode === 'SEARCH' ? 'Gemini 2.0 Flash (Search)' : mode === 'MAPS' ? 'Gemini 2.0 Flash (Maps)' : mode === 'LITE' ? 'Gemini 1.5 Flash' : mode === 'LOGISTICS' ? 'Specialized Supply Chain AI' : mode === 'FIELD' ? 'Voice-to-Action Site Mode' : 'Gemini 1.5 Pro'}
             </div>
           </div>
         </div>

@@ -452,7 +452,7 @@ const LiveView: React.FC<LiveViewProps> = ({ setPage }) => {
                             </div>
                             <h2 className="text-2xl font-bold text-white mb-2">Live Field Assistant</h2>
                             <p className="text-zinc-400 text-sm mb-8 leading-relaxed">
-                                Connect to Gemini 2.5 for real-time multimodal analysis. Requires microphone & camera access.
+                                Connect to Gemini 2.0 for real-time multimodal analysis. Requires microphone & camera access.
                             </p>
                             <button
                                 onClick={startSession}

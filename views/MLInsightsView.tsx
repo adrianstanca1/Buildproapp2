@@ -31,7 +31,7 @@ const MLInsightsView: React.FC = () => {
     const [isSimulating, setIsSimulating] = useState(false);
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [inferenceLog, setInferenceLog] = useState<string[]>([
-        "Model initialized: Gemini 3 Pro",
+        "Model initialized: Gemini 1.5 Pro",
         "Awaiting portfolio data input...",
     ]);
 
@@ -64,7 +64,7 @@ const MLInsightsView: React.FC = () => {
 
             const overdueTasks = tasks.filter(t => t.status !== 'Done' && new Date(t.dueDate) < new Date()).length;
 
-            setInferenceLog(prev => [...prev, "Sending telemetry to Gemini 3 Pro...", "Initializing Reasoning Engine...", "Thinking..."]);
+            setInferenceLog(prev => [...prev, "Sending telemetry to Gemini 1.5 Pro...", "Initializing Reasoning Engine...", "Thinking..."]);
 
             const prompt = `
             Analyze this construction portfolio:
@@ -184,7 +184,7 @@ const MLInsightsView: React.FC = () => {
                     <h1 className="text-2xl font-bold text-zinc-900 mb-1 flex items-center gap-3">
                         <Brain className="text-[#0f5c82]" /> Machine Learning Center
                     </h1>
-                    <p className="text-zinc-500">Real-time predictive analytics powered by Gemini 3 Pro Reasoning.</p>
+                    <p className="text-zinc-500">Real-time predictive analytics powered by Gemini 1.5 Pro Reasoning.</p>
                 </div>
                 <button
                     onClick={runSimulation}
