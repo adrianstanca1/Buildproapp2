@@ -233,7 +233,7 @@ const AuthenticatedApp: React.FC = () => {
     // But if they're trying to access the root, we want to show the home page
     if (window.location.pathname === '/') {
       // Show the home page for unauthenticated users accessing root
-      return <CortexBuildHomeView />;
+      return <CortexBuildHomeView setPage={setPage} />;
     } else {
       return <LoginView setPage={setPage} />;
     }
