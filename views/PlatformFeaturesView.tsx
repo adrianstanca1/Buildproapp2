@@ -40,7 +40,7 @@ const PlatformFeaturesView: React.FC<{ setPage: (page: Page) => void }> = ({ set
                         'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
                         'GetStarted': Page.PUBLIC_LOGIN
                       };
-
+                      
                       const targetPage = pageMap[item.id] || Page.PLATFORM_FEATURES;
                       setPage(targetPage);
                       setCurrentPage(targetPage);

@@ -40,7 +40,7 @@ const ConnectivityView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage
                         'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
                         'GetStarted': Page.PUBLIC_LOGIN
                       };
-
+                      
                       const targetPage = pageMap[item.id] || Page.CONNECTIVITY;
                       setPage(targetPage);
                       setCurrentPage(targetPage);

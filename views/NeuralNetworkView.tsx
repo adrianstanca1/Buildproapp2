@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Page } from '@/types';
 
 const NeuralNetworkView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
   const [currentPage, setCurrentPage] = useState(Page.NEURAL_NETWORK);
@@ -39,7 +40,7 @@ const NeuralNetworkView: React.FC<{ setPage: (page: Page) => void }> = ({ setPag
                         'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
                         'GetStarted': Page.PUBLIC_LOGIN
                       };
-
+                      
                       const targetPage = pageMap[item.id] || Page.NEURAL_NETWORK;
                       setPage(targetPage);
                       setCurrentPage(targetPage);
