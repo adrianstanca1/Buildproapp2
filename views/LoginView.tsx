@@ -59,7 +59,7 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
               <Cpu size={32} className="text-white transform group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="flex flex-col">
-              <span className="text-4xl font-extrabold tracking-tighter text-white">CORTEX<span className="text-indigo-500">BUILD</span></span>
+              <span className="text-4xl font-extrabold tracking-tighter text-white">CORTEX<span className="text-indigo-500">BUILD</span> PRO</span>
               <span className="text-[10px] font-bold tracking-[0.3em] text-indigo-400/80 uppercase -mt-1 ml-1">AI Intelligence Platform</span>
             </div>
           </div>
@@ -110,7 +110,7 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
         <div className="max-w-md w-full mx-auto relative z-10">
           <div className="lg:hidden mb-12 flex items-center gap-3">
             <div className="bg-indigo-600 p-2 rounded-xl"><Cpu size={20} className="text-white" /></div>
-            <span className="text-2xl font-bold text-white tracking-tighter">CORTEX<span className="text-indigo-500">BUILD</span></span>
+            <span className="text-2xl font-bold text-white tracking-tighter">CORTEX<span className="text-indigo-500">BUILD</span> PRO</span>
           </div>
 
           <div className="mb-12">
