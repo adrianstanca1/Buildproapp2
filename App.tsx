@@ -97,6 +97,7 @@ const SuperAdminCommandCenter = lazyWithReload(() => import('@/views/platform/Su
 const AutomationsView = lazyWithReload(() => import('@/views/AutomationsView'));
 const PredictiveAnalysisView = lazyWithReload(() => import('@/views/PredictiveAnalysisView'));
 const SmartDocumentCenter = lazyWithReload(() => import('@/views/SmartDocumentCenter'));
+const UserManagementView = lazyWithReload(() => import("@/views/UserManagementView"));
 
 
 
@@ -331,6 +332,8 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.AUTOMATIONS && <AutomationsView />}
               {page === Page.PREDICTIVE_ANALYSIS && <PredictiveAnalysisView />}
               {page === Page.SMART_DOCS && <SmartDocumentCenter />}
+              {page === Page.USER_MANAGEMENT && <UserManagementView />}
+
             </Suspense>
           </ErrorBoundary>
         </main>
