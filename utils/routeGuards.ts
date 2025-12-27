@@ -53,8 +53,18 @@ const PAGE_ROLES: Record<string, UserRole[]> = {
   'PREDICTIVE_ANALYSIS': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER],
   'SMART_DOCS': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER],
 
+  // CortexBuild Pages - General user pages
+  'CORTEX_BUILD_HOME': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE],
+  'NEURAL_NETWORK': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE],
+  'PLATFORM_FEATURES': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE],
+  'CONNECTIVITY': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE],
+  'DEVELOPER_PLATFORM': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE],
+
   // Read-only user pages
   'CLIENT_PORTAL': [UserRole.READ_ONLY, UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE],
+
+  // Public Login Page
+  'PUBLIC_LOGIN': [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE, UserRole.READ_ONLY, UserRole.CLIENT],
 };
 
 // Function to check if a user role can access a specific page

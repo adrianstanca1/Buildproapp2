@@ -82,6 +82,11 @@ const SuperadminSidebar: React.FC<SuperadminSidebarProps> = ({
             label: 'Platform Settings',
             page: Page.GLOBAL_SETTINGS,
         },
+        {
+            icon: LayoutDashboard,
+            label: 'Login',
+            page: Page.PUBLIC_LOGIN,
+        },
     ];
 
     return (

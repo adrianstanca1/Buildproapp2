@@ -83,10 +83,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
     [Page.ML_INSIGHTS]: ["ml.insights"],
     [Page.MARKETPLACE]: ["marketplace.view"],
     [Page.MY_DESKTOP]: ["desktop.view"],
-    [Page.PROJECT_LAUNCHPAD]: ["projects.launchpad"]
+    [Page.PROJECT_LAUNCHPAD]: ["projects.launchpad"],
+    [Page.CORTEX_BUILD_HOME]: ["cortex.home"],
+    [Page.NEURAL_NETWORK]: ["cortex.neural"],
+    [Page.PLATFORM_FEATURES]: ["cortex.features"],
+    [Page.CONNECTIVITY]: ["cortex.connectivity"],
+    [Page.DEVELOPER_PLATFORM]: ["cortex.developer"],
+    [Page.PUBLIC_LOGIN]: ["auth.login"]
   };
 
   const menuGroups = [
+    {
+      title: 'Platform Access',
+      items: [
+        { id: Page.PUBLIC_LOGIN, label: 'Login', icon: LayoutDashboard, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN, UserRole.PROJECT_MANAGER, UserRole.SUPERVISOR, UserRole.OPERATIVE, UserRole.READ_ONLY, UserRole.CLIENT], permissions: ['auth.login'] },
+      ]
+    },
     {
       title: 'Strategic Control',
       items: [
@@ -127,7 +139,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setPage, isOpen = false,
         { id: Page.TENANT_MANAGEMENT, label: 'Node Admin', icon: Building2, roles: [UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN], permissions: ['tenant.manage'] },
         { id: Page.DEV_SANDBOX, label: 'Alpha Lab', icon: Code, roles: [UserRole.SUPERADMIN], permissions: ['dev.sandbox'] },
       ]
-    }
+    },
+    // CortexBuild Platform pages are available globally and not shown in sidebar for authenticated users
   ];
 
   const [deferredPrompt, setDeferredPrompt] = React.useState<any>(null);

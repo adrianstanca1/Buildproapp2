@@ -99,6 +99,16 @@ const PredictiveAnalysisView = lazyWithReload(() => import('@/views/PredictiveAn
 const SmartDocumentCenter = lazyWithReload(() => import('@/views/SmartDocumentCenter'));
 const UserManagementView = lazyWithReload(() => import("@/views/UserManagementView"));
 
+// CortexBuild Pages
+const CortexBuildHomeView = lazyWithReload(() => import('@/views/CortexBuildHomeView'));
+const NeuralNetworkView = lazyWithReload(() => import('@/views/NeuralNetworkView'));
+const PlatformFeaturesView = lazyWithReload(() => import('@/views/PlatformFeaturesView'));
+const ConnectivityView = lazyWithReload(() => import('@/views/ConnectivityView'));
+const DeveloperPlatformView = lazyWithReload(() => import('@/views/DeveloperPlatformView'));
+
+// Public Login Page
+const PublicLoginView = lazyWithReload(() => import('@/views/PublicLoginView'));
+
 
 
 const AuthenticatedApp: React.FC = () => {
@@ -162,11 +172,19 @@ const AuthenticatedApp: React.FC = () => {
     setPage(Page.PROJECT_DETAILS);
   };
 
-  // Check for public routes (Client Portal)
+  // Check for public routes (Client Portal and CortexBuild pages)
   const isPublicRoute = window.location.pathname.startsWith('/client-portal/');
+  const isCortexPageRoute = [
+    Page.CORTEX_BUILD_HOME,
+    Page.NEURAL_NETWORK,
+    Page.PLATFORM_FEATURES,
+    Page.CONNECTIVITY,
+    Page.DEVELOPER_PLATFORM
+  ].includes(page);
+  const isPublicLoginPage = page === Page.PUBLIC_LOGIN;
 
-  // If not authenticated, show Login unless it's a public route
-  if (!user && !isPublicRoute) {
+  // If not authenticated and not on a public route, CortexBuild page, or Public Login page, show Login
+  if (!user && !isPublicRoute && !isCortexPageRoute && !isPublicLoginPage) {
     if (page === Page.REGISTER) {
       return <RegisterView setPage={setPage} />;
     }
@@ -180,25 +198,55 @@ const AuthenticatedApp: React.FC = () => {
   }
 
   // --- STRICT ROUTE GUARD ---
-  const isPageAllowed = (targetPage: Page, userRole: UserRole): boolean => {
-    // Use the centralized route guard utility
-    return canAccessPage(userRole, targetPage);
-  };
+  // Only apply route guard if user is authenticated OR if trying to access non-public pages
+  if (user) {
+    const isPageAllowed = (targetPage: Page, userRole: UserRole): boolean => {
+      // Use the centralized route guard utility
+      return canAccessPage(userRole, targetPage);
+    };
 
-  if (!isPageAllowed(page, user.role)) {
-    // Redirect to a safe default based on role
-    const safePage = user.role === UserRole.SUPERADMIN ? Page.PLATFORM_DASHBOARD :
-      user.role === UserRole.READ_ONLY ? Page.CLIENT_PORTAL :
-        Page.DASHBOARD;
+    if (!isPageAllowed(page, user.role)) {
+      // Redirect to a safe default based on role
+      const safePage = user.role === UserRole.SUPERADMIN ? Page.PLATFORM_DASHBOARD :
+        user.role === UserRole.READ_ONLY ? Page.CLIENT_PORTAL :
+          Page.DASHBOARD;
 
-    // Prevent infinite loop if safePage is also denied (unlikely but possible in misconfig)
-    if (page !== safePage) {
-      console.warn(`[Guard] Access denied to ${page} for role ${user.role}. Redirecting to ${safePage}`);
-      setPage(safePage);
-      return null;
+      // Prevent infinite loop if safePage is also denied (unlikely but possible in misconfig)
+      if (page !== safePage) {
+        console.warn(`[Guard] Access denied to ${page} for role ${user.role}. Redirecting to ${safePage}`);
+        setPage(safePage);
+        return null;
+      }
     }
   }
 
+  // If user is not authenticated and viewing CortexBuild pages, show them without sidebar/layout
+  if (!user && isCortexPageRoute) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+          {page === Page.CORTEX_BUILD_HOME && <CortexBuildHomeView />}
+          {page === Page.NEURAL_NETWORK && <NeuralNetworkView />}
+          {page === Page.PLATFORM_FEATURES && <PlatformFeaturesView />}
+          {page === Page.CONNECTIVITY && <ConnectivityView />}
+          {page === Page.DEVELOPER_PLATFORM && <DeveloperPlatformView />}
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  // If user is not authenticated but viewing Public Login page, show the Public Login view
+  if (!user && isPublicLoginPage) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+          <PublicLoginView setPage={setPage} />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
+
+  // Authenticated user or non-CortexBuild pages
   return (
     <div className="flex h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 overflow-hidden relative">
       {/* Command Palette */}
@@ -334,6 +382,15 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.SMART_DOCS && <SmartDocumentCenter />}
               {page === Page.USER_MANAGEMENT && <UserManagementView />}
 
+              {/* CortexBuild Pages (for authenticated users) */}
+              {page === Page.CORTEX_BUILD_HOME && <CortexBuildHomeView />}
+              {page === Page.NEURAL_NETWORK && <NeuralNetworkView />}
+              {page === Page.PLATFORM_FEATURES && <PlatformFeaturesView />}
+              {page === Page.CONNECTIVITY && <ConnectivityView />}
+              {page === Page.DEVELOPER_PLATFORM && <DeveloperPlatformView />}
+
+              {/* Public Login Page */}
+              {page === Page.PUBLIC_LOGIN && <PublicLoginView setPage={setPage} />}
             </Suspense>
           </ErrorBoundary>
         </main>
