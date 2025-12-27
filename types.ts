@@ -106,7 +106,8 @@ export enum Page {
   DEVELOPER_PLATFORM = 'DEVELOPER_PLATFORM',
 
   // Public Login Page
-  PUBLIC_LOGIN = 'PUBLIC_LOGIN'
+  PUBLIC_LOGIN = 'PUBLIC_LOGIN',
+  SETUP = 'SETUP',
 }
 
 export enum UserRole {

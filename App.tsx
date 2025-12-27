@@ -34,6 +34,7 @@ const lazyWithReload = (fn: () => Promise<any>) => React.lazy(() => {
 // Lazily loaded view components
 const LoginView = lazyWithReload(() => import('@/views/LoginView'));
 const RegisterView = lazyWithReload(() => import('@/views/RegisterView'));
+const SetupView = lazyWithReload(() => import('@/views/SetupView'));
 const ProfileView = lazyWithReload(() => import('@/views/ProfileView'));
 
 const AIToolsView = lazyWithReload(() => import('@/views/AIToolsView'));
@@ -124,6 +125,7 @@ const AuthenticatedApp: React.FC = () => {
       case '/developer': return Page.DEVELOPER_PLATFORM;
       case '/login': return Page.LOGIN;
       case '/public-login': return Page.PUBLIC_LOGIN;
+      case '/setup': return Page.SETUP;
       case '/': return Page.CORTEX_BUILD_HOME;
       default: return Page.LOGIN; // Default fallback (will be handled by auth check)
     }
@@ -143,6 +145,7 @@ const AuthenticatedApp: React.FC = () => {
       case Page.CONNECTIVITY: navigate('/connectivity'); break;
       case Page.DEVELOPER_PLATFORM: navigate('/developer'); break;
       case Page.PUBLIC_LOGIN: navigate('/public-login'); break;
+      case Page.SETUP: navigate('/setup'); break;
       // For internal app pages, we might want to keep URL clean or add /app prefix later
       // For now, don't change URL for internal app pages to avoid breaking anything
     }
@@ -439,6 +442,7 @@ const AuthenticatedApp: React.FC = () => {
 
               {/* Public Login Page */}
               {page === Page.PUBLIC_LOGIN && <PublicLoginView setPage={setPage} />}
+              {page === Page.SETUP && <SetupView />}
             </Suspense>
           </ErrorBoundary>
         </main>
