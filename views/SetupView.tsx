@@ -20,7 +20,34 @@ const SetupView: React.FC = () => {
             const serviceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpwYnV2dXhwZmVtbGRza25lcmV3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1NjExNDMxNywiZXhwIjoyMDcxNjkwMzE3fQ.gY8kq22SiOxULPdpdhf-sz-C7V9hC2ZtPy5003UYsik';
             const supabaseUrl = 'https://zpbuvuxpfemldsknerew.supabase.co';
 
-            // Create company
+            // Step 1: Create user record in users table
+            setMessage('Creating user record...');
+            const userResponse = await fetch(`${supabaseUrl}/rest/v1/users`, {
+                method: 'POST',
+                headers: {
+                    'apikey': serviceKey,
+                    'Authorization': `Bearer ${serviceKey}`,
+                    'Content-Type': 'application/json',
+                    'Prefer': 'resolution=merge-duplicates'
+                },
+                body: JSON.stringify({
+                    id: user.id,
+                    name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Admin User',
+                    email: user.email,
+                    status: 'active',
+                    role: 'SUPERADMIN',
+                    createdat: new Date().toISOString()
+                })
+            });
+
+            if (!userResponse.ok) {
+                const error = await userResponse.json();
+                console.warn('User creation response:', error);
+                // Continue even if user already exists
+            }
+
+            // Step 2: Create company
+            setMessage('Creating platform company...');
             await fetch(`${supabaseUrl}/rest/v1/companies`, {
                 method: 'POST',
                 headers: {
@@ -32,11 +59,16 @@ const SetupView: React.FC = () => {
                 body: JSON.stringify({
                     id: 'platform-admin',
                     name: 'Platform Administration',
+                    plan: 'Enterprise',
+                    status: 'Active',
+                    maxusers: 999,
+                    maxprojects: 999,
                     createdat: new Date().toISOString()
                 })
             });
 
-            // Create membership
+            // Step 3: Create membership
+            setMessage('Granting SUPERADMIN permissions...');
             const response = await fetch(`${supabaseUrl}/rest/v1/memberships`, {
                 method: 'POST',
                 headers: {
@@ -85,12 +117,12 @@ const SetupView: React.FC = () => {
                     onClick={handleSetup}
                     disabled={status === 'loading' || status === 'success'}
                     className={`w-full py-6 rounded-2xl font-bold text-xl transition-all transform hover:scale-105 active:scale-95 ${status === 'success'
-                            ? 'bg-green-600 text-white cursor-not-allowed'
-                            : status === 'error'
-                                ? 'bg-red-600 text-white hover:bg-red-700'
-                                : status === 'loading'
-                                    ? 'bg-indigo-400 text-white cursor-wait'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-500/50'
+                        ? 'bg-green-600 text-white cursor-not-allowed'
+                        : status === 'error'
+                            ? 'bg-red-600 text-white hover:bg-red-700'
+                            : status === 'loading'
+                                ? 'bg-indigo-400 text-white cursor-wait'
+                                : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-xl shadow-indigo-500/50'
                         }`}
                 >
                     {status === 'loading' && '⏳ Setting up...'}
@@ -101,10 +133,10 @@ const SetupView: React.FC = () => {
 
                 {message && (
                     <div className={`mt-8 p-6 rounded-xl text-center font-semibold ${status === 'success'
-                            ? 'bg-green-500/20 text-green-100 border border-green-500/30'
-                            : status === 'error'
-                                ? 'bg-red-500/20 text-red-100 border border-red-500/30'
-                                : 'bg-indigo-500/20 text-indigo-100 border border-indigo-500/30'
+                        ? 'bg-green-500/20 text-green-100 border border-green-500/30'
+                        : status === 'error'
+                            ? 'bg-red-500/20 text-red-100 border border-red-500/30'
+                            : 'bg-indigo-500/20 text-indigo-100 border border-indigo-500/30'
                         }`}>
                         {message}
                     </div>
