@@ -55,19 +55,20 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
 
         <div className="relative z-10 flex flex-col h-full">
           <div className="flex items-center gap-4 mb-20 animate-fade-in">
-            <div className="bg-gradient-to-br from-sky-400 to-blue-600 p-3 rounded-2xl shadow-lg shadow-sky-500/20 border border-white/10 group">
-              <HardHat size={32} className="text-white transform group-hover:rotate-12 transition-transform duration-300" />
+            <div className="bg-gradient-to-br from-indigo-600 to-violet-500 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 border border-white/10 group">
+              <Cpu size={32} className="text-white transform group-hover:scale-110 transition-transform duration-300" />
             </div>
             <div className="flex flex-col">
-              <span className="text-4xl font-extrabold tracking-tighter text-white">BUILD<span className="text-sky-400">PRO</span></span>
-              <span className="text-[10px] font-bold tracking-[0.3em] text-sky-400/80 uppercase -mt-1 ml-1">Construction 4.0</span>
+              <span className="text-4xl font-extrabold tracking-tighter text-white">CORTEX<span className="text-indigo-500">BUILD</span></span>
+              <span className="text-[10px] font-bold tracking-[0.3em] text-indigo-400/80 uppercase -mt-1 ml-1">AI Intelligence Platform</span>
             </div>
           </div>
 
           <div className="max-w-xl space-y-8">
             <h2 className="text-6xl font-bold leading-[1.1] text-white tracking-tight animate-slide-up">
-              Build the future with <span className="bg-clip-text text-transparent bg-gradient-to-r from-sky-400 to-blue-300">Intelligent</span> automation.
+              Build the future with <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-300">Intelligent</span> automation.
             </h2>
+
 
             <p className="text-xl text-zinc-400 leading-relaxed font-light animate-fade-in delay-200">
               The only platform that fuses field execution with Gemini AI to predict risks before they happen.
@@ -108,8 +109,8 @@ const LoginView: React.FC<LoginViewProps> = ({ setPage }) => {
 
         <div className="max-w-md w-full mx-auto relative z-10">
           <div className="lg:hidden mb-12 flex items-center gap-3">
-            <div className="bg-sky-500 p-2 rounded-xl"><HardHat size={20} className="text-white" /></div>
-            <span className="text-2xl font-bold text-white tracking-tighter">BUILD<span className="text-sky-400">PRO</span></span>
+            <div className="bg-indigo-600 p-2 rounded-xl"><Cpu size={20} className="text-white" /></div>
+            <span className="text-2xl font-bold text-white tracking-tighter">CORTEX<span className="text-indigo-500">BUILD</span></span>
           </div>
 
           <div className="mb-12">
