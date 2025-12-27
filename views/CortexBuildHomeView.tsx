@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Page } from '@/types';
 
-const CortexBuildHomeView: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState('Home');
+const CortexBuildHomeView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
+  const [currentPage, setCurrentPage] = useState(Page.CORTEX_BUILD_HOME);
 
   const menuItems = [
     { id: 'Home', label: 'Home' },
@@ -27,11 +28,36 @@ const CortexBuildHomeView: React.FC = () => {
             </div>
             <div className="hidden md:block">
               <div className="ml-10 flex items-center space-x-8">
-                {menuItems.map((item) => (
+                {[
+                  { id: 'Home', label: 'Home' },
+                  { id: 'NeuralNetwork', label: 'The Neural Network' },
+                  { id: 'PlatformFeatures', label: 'Platform Features' },
+                  { id: 'Connectivity', label: 'Connectivity' },
+                  { id: 'DeveloperPlatform', label: 'Developer Platform' },
+                  { id: 'GetStarted', label: 'Get Started' }
+                ].map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => setCurrentPage(item.id)}
-                    className={`${currentPage === item.id
+                    onClick={() => {
+                      const pageMap: Record<string, Page> = {
+                        'Home': Page.CORTEX_BUILD_HOME,
+                        'NeuralNetwork': Page.NEURAL_NETWORK,
+                        'PlatformFeatures': Page.PLATFORM_FEATURES,
+                        'Connectivity': Page.CONNECTIVITY,
+                        'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
+                        'GetStarted': Page.PUBLIC_LOGIN
+                      };
+
+                      const targetPage = pageMap[item.id] || Page.CORTEX_BUILD_HOME;
+                      setPage(targetPage);
+                      setCurrentPage(targetPage);
+                    }}
+                    className={`${currentPage === (item.id === 'Home' ? Page.CORTEX_BUILD_HOME :
+                                  item.id === 'NeuralNetwork' ? Page.NEURAL_NETWORK :
+                                  item.id === 'PlatformFeatures' ? Page.PLATFORM_FEATURES :
+                                  item.id === 'Connectivity' ? Page.CONNECTIVITY :
+                                  item.id === 'DeveloperPlatform' ? Page.DEVELOPER_PLATFORM :
+                                  Page.CORTEX_BUILD_HOME)
                       ? "text-blue-600 font-bold border-b-2 border-blue-600 pb-1"
                       : "text-gray-700 hover:text-blue-600"
                     } capitalize transition-colors duration-200`}

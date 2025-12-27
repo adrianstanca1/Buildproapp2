@@ -392,11 +392,11 @@ const AuthenticatedApp: React.FC = () => {
               {page === Page.USER_MANAGEMENT && <UserManagementView />}
 
               {/* CortexBuild Pages (for authenticated users) */}
-              {page === Page.CORTEX_BUILD_HOME && <CortexBuildHomeView />}
-              {page === Page.NEURAL_NETWORK && <NeuralNetworkView />}
-              {page === Page.PLATFORM_FEATURES && <PlatformFeaturesView />}
-              {page === Page.CONNECTIVITY && <ConnectivityView />}
-              {page === Page.DEVELOPER_PLATFORM && <DeveloperPlatformView />}
+              {page === Page.CORTEX_BUILD_HOME && <CortexBuildHomeView setPage={setPage} />}
+              {page === Page.NEURAL_NETWORK && <NeuralNetworkView setPage={setPage} />}
+              {page === Page.PLATFORM_FEATURES && <PlatformFeaturesView setPage={setPage} />}
+              {page === Page.CONNECTIVITY && <ConnectivityView setPage={setPage} />}
+              {page === Page.DEVELOPER_PLATFORM && <DeveloperPlatformView setPage={setPage} />}
 
               {/* Public Login Page */}
               {page === Page.PUBLIC_LOGIN && <PublicLoginView setPage={setPage} />}

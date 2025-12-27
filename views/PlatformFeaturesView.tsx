@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
+import { Page } from '@/types';
 
-const PlatformFeaturesView: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState('PlatformFeatures');
+const PlatformFeaturesView: React.FC<{ setPage: (page: Page) => void }> = ({ setPage }) => {
+  const [currentPage, setCurrentPage] = useState(Page.PLATFORM_FEATURES);
 
   const menuItems = [
     { id: 'Home', label: 'Home' },
@@ -30,8 +31,26 @@ const PlatformFeaturesView: React.FC = () => {
                 {menuItems.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => setCurrentPage(item.id)}
-                    className={`${currentPage === item.id
+                    onClick={() => {
+                      const pageMap: Record<string, Page> = {
+                        'Home': Page.CORTEX_BUILD_HOME,
+                        'NeuralNetwork': Page.NEURAL_NETWORK,
+                        'PlatformFeatures': Page.PLATFORM_FEATURES,
+                        'Connectivity': Page.CONNECTIVITY,
+                        'DeveloperPlatform': Page.DEVELOPER_PLATFORM,
+                        'GetStarted': Page.PUBLIC_LOGIN
+                      };
+
+                      const targetPage = pageMap[item.id] || Page.PLATFORM_FEATURES;
+                      setPage(targetPage);
+                      setCurrentPage(targetPage);
+                    }}
+                    className={`${currentPage === (item.id === 'Home' ? Page.CORTEX_BUILD_HOME :
+                                  item.id === 'NeuralNetwork' ? Page.NEURAL_NETWORK :
+                                  item.id === 'PlatformFeatures' ? Page.PLATFORM_FEATURES :
+                                  item.id === 'Connectivity' ? Page.CONNECTIVITY :
+                                  item.id === 'DeveloperPlatform' ? Page.DEVELOPER_PLATFORM :
+                                  Page.PLATFORM_FEATURES)
                       ? "text-blue-600 font-bold border-b-2 border-blue-600 pb-1"
                       : "text-gray-700 hover:text-blue-600"
                     } capitalize transition-colors duration-200`}
