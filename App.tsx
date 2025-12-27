@@ -1,6 +1,6 @@
 import { Megaphone, X, ShieldAlert } from 'lucide-react';
 import React, { useState, useEffect, lazy, Suspense } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '@/components/Sidebar';
 import SuperadminSidebar from '@/components/SuperadminSidebar';
 import TopBar from '@/components/TopBar';
@@ -112,13 +112,51 @@ const PublicLoginView = lazyWithReload(() => import('@/views/PublicLoginView'));
 
 
 const AuthenticatedApp: React.FC = () => {
-  const [page, setPage] = useState<Page>(
-    window.location.pathname.startsWith('/client-portal/')
-      ? Page.CLIENT_PORTAL
-      : window.location.pathname === '/'
-        ? Page.CORTEX_BUILD_HOME  // Show home page as default for root URL
-        : Page.LOGIN
-  );
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const getPageFromPath = (path: string): Page => {
+    if (path.startsWith('/client-portal/')) return Page.CLIENT_PORTAL;
+    switch (path) {
+      case '/neural-network': return Page.NEURAL_NETWORK;
+      case '/platform-features': return Page.PLATFORM_FEATURES;
+      case '/connectivity': return Page.CONNECTIVITY;
+      case '/developer': return Page.DEVELOPER_PLATFORM;
+      case '/login': return Page.LOGIN;
+      case '/public-login': return Page.PUBLIC_LOGIN;
+      case '/': return Page.CORTEX_BUILD_HOME;
+      default: return Page.LOGIN; // Default fallback (will be handled by auth check)
+    }
+  };
+
+  const [page, setPageState] = useState<Page>(() => getPageFromPath(window.location.pathname));
+
+  // Custom setPage that also updates URL for public pages
+  const setPage = (newPage: Page) => {
+    setPageState(newPage);
+
+    // Update URL for public pages
+    switch (newPage) {
+      case Page.CORTEX_BUILD_HOME: navigate('/'); break;
+      case Page.NEURAL_NETWORK: navigate('/neural-network'); break;
+      case Page.PLATFORM_FEATURES: navigate('/platform-features'); break;
+      case Page.CONNECTIVITY: navigate('/connectivity'); break;
+      case Page.DEVELOPER_PLATFORM: navigate('/developer'); break;
+      case Page.PUBLIC_LOGIN: navigate('/public-login'); break;
+      // For internal app pages, we might want to keep URL clean or add /app prefix later
+      // For now, don't change URL for internal app pages to avoid breaking anything
+    }
+  };
+
+  // Sync back/forward button
+  useEffect(() => {
+    const newPage = getPageFromPath(location.pathname);
+    // Only update state if it differs and it's a known public path mapping
+    // This prevents overriding internal navigation state if we are just on "/"
+    if (location.pathname !== '/' || newPage === Page.CORTEX_BUILD_HOME) {
+      setPageState(newPage);
+    }
+  }, [location.pathname]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); // Mobile Sidebar State
   const [showCommandPalette, setShowCommandPalette] = useState(false);
@@ -234,11 +272,11 @@ const AuthenticatedApp: React.FC = () => {
     return (
       <ErrorBoundary>
         <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
-          {page === Page.CORTEX_BUILD_HOME && <CortexBuildHomeView />}
-          {page === Page.NEURAL_NETWORK && <NeuralNetworkView />}
-          {page === Page.PLATFORM_FEATURES && <PlatformFeaturesView />}
-          {page === Page.CONNECTIVITY && <ConnectivityView />}
-          {page === Page.DEVELOPER_PLATFORM && <DeveloperPlatformView />}
+          {page === Page.CORTEX_BUILD_HOME && <CortexBuildHomeView setPage={setPage} />}
+          {page === Page.NEURAL_NETWORK && <NeuralNetworkView setPage={setPage} />}
+          {page === Page.PLATFORM_FEATURES && <PlatformFeaturesView setPage={setPage} />}
+          {page === Page.CONNECTIVITY && <ConnectivityView setPage={setPage} />}
+          {page === Page.DEVELOPER_PLATFORM && <DeveloperPlatformView setPage={setPage} />}
         </Suspense>
       </ErrorBoundary>
     );
@@ -420,7 +458,9 @@ const App: React.FC = () => {
                   <ProjectProvider>
                     <WebSocketProvider>
                       <Suspense fallback={<div className="flex items-center justify-center h-screen bg-gray-50 dark:bg-zinc-900 dark:text-white">Loading BuildPro...</div>}>
-                        <AuthenticatedApp />
+                        <Router>
+                          <AuthenticatedApp />
+                        </Router>
                       </Suspense>
                     </WebSocketProvider>
                   </ProjectProvider>
