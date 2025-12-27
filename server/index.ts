@@ -527,6 +527,10 @@ app.all('/api/*', (req, res, next) => {
 // The "catchall" handler: for any request that doesn't
 // match one above, send back React's index.html file.
 app.get('*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
     res.sendFile(join(__dirname, '../dist/index.html'));
 });
 
@@ -601,10 +605,7 @@ logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`)
     const required = ['SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY'];
     const missing = required.filter(k => !process.env[k]);
     if (missing.length > 0) {
-        logger.error(`Missing required environment variables: ${missing.join(', ')}. ` +
-            'These are required for server-side Supabase operations. Exiting.');
-        // Give logs a moment to flush
-        setTimeout(() => process.exit(1), 100);
+        logger.warn(`WARNING: Missing environment variables: ${missing.join(', ')}. Server features requiring Supabase admin access may fail.`);
     }
 })();
 
