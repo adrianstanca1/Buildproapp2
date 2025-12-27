@@ -82,7 +82,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://unpkg.com"],
             scriptSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:", "blob:", "https://*.tile.openstreetmap.org", "https://unpkg.com"],
-            connectSrc: SUPABASE_HOST ? ["'self'", "ws:", "wss:", SUPABASE_HOST, SUPABASE_WS] : ["'self'", "ws:", "wss:"],
+            connectSrc: SUPABASE_HOST ? ["'self'", "ws:", "wss:", "https:", SUPABASE_HOST, SUPABASE_WS, "https://fonts.googleapis.com", "https://fonts.gstatic.com"] : ["'self'", "ws:", "wss:", "https:", "https://fonts.googleapis.com", "https://fonts.gstatic.com"],
             fontSrc: ["'self'", "data:", "https://fonts.gstatic.com"],
         }
     },
