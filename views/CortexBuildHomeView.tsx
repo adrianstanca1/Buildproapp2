@@ -108,11 +108,17 @@ const CortexBuildHomeView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
             </div>
 
             <div className="flex flex-col sm:flex-row gap-5 pt-4">
-              <button className="bg-slate-900 group overflow-hidden text-white px-10 py-5 rounded-3xl font-black text-lg shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 transform hover:-translate-y-1 transition-all active:scale-95">
+              <button
+                onClick={() => setPage(Page.PUBLIC_LOGIN)}
+                className="bg-slate-900 group overflow-hidden text-white px-10 py-5 rounded-3xl font-black text-lg shadow-2xl shadow-slate-200 flex items-center justify-center gap-3 transform hover:-translate-y-1 transition-all active:scale-95"
+              >
                 Start Free Trial
                 <ArrowRight className="group-hover:translate-x-1.5 transition-transform" />
               </button>
-              <button className="bg-white text-slate-900 border-2 border-slate-100 px-10 py-5 rounded-3xl font-black text-lg shadow-xl shadow-slate-100 flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-95">
+              <button
+                onClick={() => setPage(Page.LOGIN)}
+                className="bg-white text-slate-900 border-2 border-slate-100 px-10 py-5 rounded-3xl font-black text-lg shadow-xl shadow-slate-100 flex items-center justify-center gap-3 hover:bg-slate-50 transition-all active:scale-95"
+              >
                 Watch Demo
               </button>
             </div>
@@ -315,7 +321,10 @@ const CortexBuildHomeView: React.FC<{ setPage: (page: Page) => void }> = ({ setP
               <p className="text-xl text-white/80 font-semibold max-w-2xl mx-auto">
                 Join our developer community and start creating intelligent modules that will shape the future of construction technology.
               </p>
-              <button className="bg-white text-indigo-600 px-16 py-7 rounded-[32px] font-black text-2xl shadow-3xl shadow-indigo-900/40 hover:scale-105 transition-all active:scale-95">
+              <button
+                onClick={() => setPage(Page.PUBLIC_LOGIN)}
+                className="bg-white text-indigo-600 px-16 py-7 rounded-[32px] font-black text-2xl shadow-3xl shadow-indigo-900/40 hover:scale-105 transition-all active:scale-95"
+              >
                 Join Community
               </button>
             </div>

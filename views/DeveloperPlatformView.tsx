@@ -104,7 +104,10 @@ const DeveloperPlatformView: React.FC<{ setPage: (page: Page) => void }> = ({ se
               ))}
             </div>
 
-            <button className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-200">
+            <button
+              onClick={() => setPage(Page.PUBLIC_LOGIN)}
+              className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-200"
+            >
               Get Started
             </button>
           </div>
@@ -231,7 +234,10 @@ export class SmartScheduler {
               </div>
             </div>
 
-            <button className="w-full mt-8 bg-white text-indigo-600 py-4 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg">
+            <button
+              onClick={() => setPage(Page.MARKETPLACE)}
+              className="w-full mt-8 bg-white text-indigo-600 py-4 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg"
+            >
               Visit Marketplace
             </button>
           </div>
@@ -244,10 +250,16 @@ export class SmartScheduler {
             Join our growing community of developers transforming the construction industry.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
-            <button className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-indigo-200 transition duration-300">
+            <button
+              onClick={() => setPage(Page.PUBLIC_LOGIN)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-2xl shadow-xl shadow-indigo-200 transition duration-300"
+            >
               Get API Access
             </button>
-            <button className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-4 px-10 rounded-2xl shadow-sm transition duration-300">
+            <button
+              onClick={() => setPage(Page.PUBLIC_LOGIN)}
+              className="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-4 px-10 rounded-2xl shadow-sm transition duration-300"
+            >
               View Documentation
             </button>
           </div>

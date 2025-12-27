@@ -220,7 +220,10 @@ const NeuralNetworkView: React.FC<{ setPage: (page: Page) => void }> = ({ setPag
               ))}
             </div>
 
-            <button className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-200">
+            <button
+              onClick={() => setPage(Page.PUBLIC_LOGIN)}
+              className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold text-sm shadow-xl shadow-indigo-200"
+            >
               Get Started
             </button>
           </div>
