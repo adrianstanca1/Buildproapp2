@@ -48,6 +48,7 @@ import * as ocrController from './controllers/ocrController.js';
 import * as analyticsController from './controllers/analyticsController.js';
 import * as integrationController from './controllers/integrationController.js';
 import * as tenantTeamController from './controllers/tenantTeamController.js';
+import * as setupController from './controllers/setupController.js';
 import { getVendors, createVendor, updateVendor } from './controllers/vendorController.js';
 import { getCostCodes, createCostCode, updateCostCode } from './controllers/costCodeController.js';
 
@@ -174,6 +175,9 @@ app.get('/api/system-settings', platformController.getSystemSettings);
 app.post('/api/system-settings', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemSetting);
 app.get('/api/system-config', platformController.getSystemConfig);
 app.post('/api/system-config', requireRole([UserRole.SUPERADMIN]), platformController.updateSystemConfig);
+
+// --- ONE-TIME SETUP ENDPOINT (Remove after first use) ---
+app.post('/api/setup-superadmin', setupController.setupSuperadmin);
 
 // --- Platform / Admin Statistics ---
 const companyAdminAuth = requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]);
