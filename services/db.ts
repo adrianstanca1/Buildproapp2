@@ -1037,6 +1037,29 @@ class DatabaseService {
   async deleteComment(id: string) {
     await this.delete('comments', id);
   }
+
+  // --- Notifications ---
+  async getNotifications(): Promise<any[]> {
+    const res = await fetch(`${API_URL}/notifications`, {
+      headers: await this.getHeaders()
+    });
+    if (!res.ok) return [];
+    return await res.json();
+  }
+
+  async markNoteAsRead(id: string): Promise<void> {
+    await fetch(`${API_URL}/notifications/${id}/read`, {
+      method: 'PUT',
+      headers: await this.getHeaders()
+    });
+  }
+
+  async markAllNotesAsRead(): Promise<void> {
+    await fetch(`${API_URL}/notifications/mark-all-read`, {
+      method: 'POST',
+      headers: await this.getHeaders()
+    });
+  }
 }
 
 export const db = new DatabaseService();

@@ -172,44 +172,13 @@ async function initializeSchema(db: IDatabase) {
     )
   `);
 
-  // Companies Schema Migrations (Safe Add)
-  const companyColumns = [
-    'status TEXT DEFAULT \'Active\'',
-    'plan TEXT DEFAULT \'Starter\'',
-    'subscription TEXT DEFAULT \'{}\'',
-    'features TEXT DEFAULT \'[]\'',
-    'settings TEXT DEFAULT \'{}\'',
-    'users INTEGER DEFAULT 0',
-    'projects INTEGER DEFAULT 0',
-    'mrr REAL DEFAULT 0',
-    'joinedDate TEXT',
-    'description TEXT',
-    'website TEXT',
-    'email TEXT',
-    'phone TEXT',
-    'city TEXT',
-    'state TEXT',
-    'zipCode TEXT',
-    'country TEXT',
-    'updatedAt TEXT'
-  ];
-
-  // No need for loop-based ALTERs if we define them in CREATE TABLE
-  // But keeping it for backward compatibility and to handle existing databases
-  for (const col of companyColumns) {
-    try {
-      await db.exec(`ALTER TABLE companies ADD COLUMN ${col}`);
-    } catch (e) {
-      /* Column may already exist */
-    }
-  }
-
-  // System Settings (Early for maintenance check)
+  // System Settings (Consolidated)
   await db.exec(`
     CREATE TABLE IF NOT EXISTS system_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
-      updatedAt TEXT NOT NULL
+      updatedAt TEXT NOT NULL,
+      updatedBy TEXT
     )
   `);
 
@@ -791,8 +760,8 @@ async function initializeSchema(db: IDatabase) {
       phone TEXT,
       rating REAL,
       status TEXT,
-      company_id TEXT,
-      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+      companyId TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -800,14 +769,14 @@ async function initializeSchema(db: IDatabase) {
   await db.exec(`
     CREATE TABLE IF NOT EXISTS cost_codes (
       id TEXT PRIMARY KEY,
-      project_id TEXT,
-      company_id TEXT,
+      projectId TEXT,
+      companyId TEXT,
       code TEXT,
       description TEXT,
       budget REAL,
       spent REAL DEFAULT 0,
-      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+      FOREIGN KEY (projectId) REFERENCES projects(id) ON DELETE CASCADE,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -870,18 +839,18 @@ async function initializeSchema(db: IDatabase) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY,
-      company_id TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
-      entity_id TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      user_name TEXT,
-      parent_id TEXT,
+      companyId TEXT NOT NULL,
+      entityType TEXT NOT NULL,
+      entityId TEXT NOT NULL,
+      userId TEXT NOT NULL,
+      userName TEXT,
+      parentId TEXT,
       content TEXT NOT NULL,
       mentions TEXT,
       attachments TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT,
-      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -889,16 +858,16 @@ async function initializeSchema(db: IDatabase) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS activity_feed (
       id TEXT PRIMARY KEY,
-      company_id TEXT NOT NULL,
-      project_id TEXT,
-      user_id TEXT NOT NULL,
-      user_name TEXT,
+      companyId TEXT NOT NULL,
+      projectId TEXT,
+      userId TEXT NOT NULL,
+      userName TEXT,
       action TEXT NOT NULL,
-      entity_type TEXT NOT NULL,
-      entity_id TEXT NOT NULL,
+      entityType TEXT NOT NULL,
+      entityId TEXT NOT NULL,
       metadata TEXT,
-      created_at TEXT NOT NULL,
-      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+      createdAt TEXT NOT NULL,
+      FOREIGN KEY (companyId) REFERENCES companies(id) ON DELETE CASCADE
     )
   `);
 
@@ -923,8 +892,8 @@ async function initializeSchema(db: IDatabase) {
       message TEXT NOT NULL,
       source TEXT NOT NULL,
       metadata TEXT,
-      is_read BOOLEAN DEFAULT FALSE,
-      created_at TEXT NOT NULL
+      isRead BOOLEAN DEFAULT FALSE,
+      createdAt TEXT NOT NULL
     )
   `);
 

@@ -1,5 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const getEnv = (key: string) => {
   if (typeof process !== 'undefined' && process.env && process.env[key]) return process.env[key];

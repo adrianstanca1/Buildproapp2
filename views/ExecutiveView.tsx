@@ -1,8 +1,7 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { TrendingUp, Shield, PoundSterling, Activity, PieChart, ArrowUpRight, ArrowDownRight, Target } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
-import { useMemo } from 'react';
 
 const ExecutiveView: React.FC = () => {
   const { projects } = useProjects();

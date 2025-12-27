@@ -1,9 +1,8 @@
 import { getDb } from '../database.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
-import type { UserRole, Permission } from '../types/rbac.js';
+import { isSuperadmin, type UserRole, type Permission } from '../types/rbac.js';
 import { membershipService } from './membershipService.js';
-import { isSuperadmin } from '../types/rbac.js';
 
 /**
  * PermissionService

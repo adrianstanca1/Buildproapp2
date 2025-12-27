@@ -2,8 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { permissionService } from '../services/permissionService.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
-import type { UserRole } from '../types/rbac.js';
-import { hasRolePrivilege } from '../types/rbac.js';
+import { hasRolePrivilege, type UserRole } from '../types/rbac.js';
 
 // Extend Request type to include tenantId
 declare global {

@@ -4,29 +4,13 @@ import { getDb } from '../database.js';
 
 export const getVendors = async (req: Request, res: Response) => {
     try {
-        const filters: any = {};
-        if (req.query.companyId) filters.company_id = req.query.companyId;
-
         const db = getDb();
         const vendors = await db.all(`
       SELECT * FROM vendors
-      WHERE company_id = ? OR company_id IS NULL
+      WHERE companyId = ? OR companyId IS NULL
     `, [req.user?.companyId || 'c1']);
 
-        // Map snake_case to camelCase
-        const mapped = vendors.map((v: any) => ({
-            id: v.id,
-            name: v.name,
-            category: v.category,
-            contact: v.contact,
-            email: v.email,
-            phone: v.phone,
-            rating: v.rating,
-            status: v.status,
-            companyId: v.company_id
-        }));
-
-        res.json(mapped);
+        res.json(vendors);
     } catch (error) {
         console.error('Error fetching vendors:', error);
         res.status(500).json({ error: 'Failed to fetch vendors' });
@@ -35,15 +19,15 @@ export const getVendors = async (req: Request, res: Response) => {
 
 export const createVendor = async (req: Request, res: Response) => {
     try {
-        const { name, category, contact, email, phone, rating, status, companyId } = req.body;
-        const id = req.body.id || `v-${Date.now()}`;
+        const { id: bodyId, name, category, contact, email, phone, rating, status, companyId } = req.body;
+        const id = bodyId || `v-${Date.now()}`;
 
         // Default to user's company if not provided
         const userCompanyId = companyId || req.user?.companyId || 'c1';
 
         const db = getDb();
         await db.run(`
-      INSERT INTO vendors (id, name, category, contact, email, phone, rating, status, company_id)
+      INSERT INTO vendors (id, name, category, contact, email, phone, rating, status, companyId)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [id, name, category, contact, email, phone, rating, status, userCompanyId]);
 
@@ -62,15 +46,8 @@ export const updateVendor = async (req: Request, res: Response) => {
         const updates = req.body;
 
         // Build dynamic update query
-        const fields = Object.keys(updates).filter(key => key !== 'id' && key !== 'companyId');
+        const fields = Object.keys(updates).filter(key => key !== 'id');
         if (fields.length === 0) return res.json({ success: true });
-
-        // Rename camelCase to snake_case for specific fields if needed
-        if (updates.companyId) {
-            fields.push('company_id');
-            updates.company_id = updates.companyId;
-            // Remove 'companyId' from fields if present (it was filtered out above but logic check)
-        }
 
         const setClause = fields.map(field => `${field} = ?`).join(', ');
         const values = fields.map(field => updates[field]);

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, Bell, WifiOff, AlertOctagon, X, Siren, Send, Wifi, Loader2, Menu, Moon, Sun } from 'lucide-react';
-import { Page } from '@/types';
+import { Page, UserRole } from '@/types';
 import { offlineQueue } from '../services/offlineQueue';
 import { useToast } from '../contexts/ToastContext';
 import { TenantSelector } from './TenantSelector';
@@ -14,7 +14,6 @@ import { useAuth } from '../contexts/AuthContext';
 import NotificationBell from './NotificationBell';
 import PlatformNotificationBell from './PlatformNotificationBell';
 import GlobalSearch from './GlobalSearch';
-import { UserRole } from '@/types';
 
 interface TopBarProps {
   setPage: (page: Page) => void;

@@ -27,8 +27,8 @@ export const logActivity = async (
 
         await db.run(`
       INSERT INTO activity_feed (
-        id, company_id, project_id, user_id, user_name,
-        action, entity_type, entity_id, metadata, created_at
+        id, companyId, projectId, userId, userName,
+        action, entityType, entityId, metadata, createdAt
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
             id,
@@ -58,21 +58,21 @@ export const getActivityFeed = async (req: Request, res: Response) => {
 
         let query = `
       SELECT * FROM activity_feed
-      WHERE company_id = ?
+      WHERE companyId = ?
     `;
         const params: any[] = [companyId];
 
         if (projectId) {
-            query += ' AND project_id = ?';
+            query += ' AND projectId = ?';
             params.push(projectId as string);
         }
 
         if (entityType) {
-            query += ' AND entity_type = ?';
+            query += ' AND entityType = ?';
             params.push(entityType as string);
         }
 
-        query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+        query += ' ORDER BY createdAt DESC LIMIT ? OFFSET ?';
         params.push(Number(limit), Number(offset));
 
         const activities = await db.all(query, params);
@@ -100,8 +100,8 @@ export const getEntityActivity = async (req: Request, res: Response) => {
 
         const activities = await db.all(`
       SELECT * FROM activity_feed
-      WHERE company_id = ? AND entity_type = ? AND entity_id = ?
-      ORDER BY created_at DESC
+      WHERE companyId = ? AND entityType = ? AND entityId = ?
+      ORDER BY createdAt DESC
       LIMIT 100
     `, [companyId, entityType, entityId]);
 

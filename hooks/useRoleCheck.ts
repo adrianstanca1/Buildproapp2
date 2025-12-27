@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRole, ROLE_HIERARCHY } from '@/types';
-
-// Re-export UserRole for use in other components
-export { UserRole } from '@/types';
+export { UserRole };
 
 /**
  * Role check hook

@@ -20,8 +20,8 @@ export const getComments = async (req: Request, res: Response) => {
 
         const comments = await db.all(`
       SELECT * FROM comments
-      WHERE company_id = ? AND entity_type = ? AND entity_id = ?
-      ORDER BY created_at ASC
+      WHERE companyId = ? AND entityType = ? AND entityId = ?
+      ORDER BY createdAt ASC
     `, [companyId, entityType, entityId]);
 
         // Parse JSON fields
@@ -53,8 +53,8 @@ export const createComment = async (req: Request, res: Response) => {
 
         await db.run(`
       INSERT INTO comments (
-        id, company_id, entity_type, entity_id, user_id, user_name,
-        parent_id, content, mentions, attachments, created_at
+        id, companyId, entityType, entityId, userId, userName,
+        parentId, content, mentions, attachments, createdAt
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
             id,
@@ -107,7 +107,7 @@ export const updateComment = async (req: Request, res: Response) => {
 
         // Verify the comment belongs to the user
         const existingComment = await db.get(`
-      SELECT * FROM comments WHERE id = ? AND company_id = ? AND user_id = ?
+      SELECT * FROM comments WHERE id = ? AND companyId = ? AND userId = ?
     `, [id, companyId, userId]);
 
         if (!existingComment) {
@@ -116,7 +116,7 @@ export const updateComment = async (req: Request, res: Response) => {
 
         await db.run(`
       UPDATE comments
-      SET content = ?, updated_at = ?
+      SET content = ?, updatedAt = ?
       WHERE id = ?
     `, [content, new Date().toISOString(), id]);
 
@@ -139,7 +139,7 @@ export const deleteComment = async (req: Request, res: Response) => {
 
         // Verify the comment belongs to the user
         const existingComment = await db.get(`
-      SELECT * FROM comments WHERE id = ? AND company_id = ? AND user_id = ?
+      SELECT * FROM comments WHERE id = ? AND companyId = ? AND userId = ?
     `, [id, companyId, userId]);
 
         if (!existingComment) {

@@ -15,10 +15,10 @@ export const getWebhooks = async (req: Request, res: Response) => {
         const companyId = req.tenantId;
 
         const webhooks = await db.all(`
-      SELECT id, name, url, events, active, last_triggered
+      SELECT id, name, url, events, active, lastTriggered
       FROM webhooks
-      WHERE company_id = ?
-      ORDER BY created_at DESC
+      WHERE companyId = ?
+      ORDER BY createdAt DESC
     `, [companyId]);
 
         res.json(webhooks.map((w: any) => ({
@@ -41,7 +41,7 @@ export const createWebhook = async (req: Request, res: Response) => {
         const secret = crypto.randomBytes(32).toString('hex');
 
         await db.run(`
-      INSERT INTO webhooks (id, company_id, name, url, events, secret, active, created_at)
+      INSERT INTO webhooks (id, companyId, name, url, events, secret, active, createdAt)
       VALUES (?, ?, ?, ?, ?, ?, 1, ?)
     `, [
             id,
@@ -66,7 +66,7 @@ export const deleteWebhook = async (req: Request, res: Response) => {
         const companyId = req.tenantId;
         const { id } = req.params;
 
-        await db.run('DELETE FROM webhooks WHERE id = ? AND company_id = ?', [id, companyId]);
+        await db.run('DELETE FROM webhooks WHERE id = ? AND companyId = ?', [id, companyId]);
         res.json({ message: 'Webhook deleted' });
     } catch (error: any) {
         res.status(500).json({ error: error.message });

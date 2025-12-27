@@ -3,10 +3,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { getDb } from '../database.js';
 import { AppError } from '../utils/AppError.js';
 import { logger } from '../utils/logger.js';
-import type { TenantContext, UserRole } from '../types/rbac.js';
+import { isSuperadmin, type TenantContext, type UserRole } from '../types/rbac.js';
 import { membershipService } from './membershipService.js';
 import { permissionService } from './permissionService.js';
-import { isSuperadmin } from '../types/rbac.js';
 
 // ============================================================================
 // EXISTING TYPES (Preserved)

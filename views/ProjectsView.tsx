@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
     Search, Plus, Filter, Calendar, Users, MapPin,
     CheckSquare, Activity, Image as ImageIcon, ArrowRight, MoreVertical,
-    LayoutGrid, List as ListIcon, Briefcase, Clock, Building, AlertTriangle, X, Trash2, Sparkles, TrendingUp, BrainCircuit
+    LayoutGrid, List as ListIcon, Briefcase, Clock, Building, AlertTriangle, X, Trash2, Sparkles, TrendingUp, BrainCircuit, AlertCircle
 } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { useProjects } from '@/contexts/ProjectContext';
@@ -10,7 +10,6 @@ import { Project, Page } from '@/types';
 import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useWebSocket } from '@/contexts/WebSocketContext';
-import { AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AddProjectModal } from '@/components/AddProjectModal';
 import { Can } from '@/components/Can';

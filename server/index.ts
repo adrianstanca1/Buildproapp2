@@ -13,7 +13,7 @@ import { initializeDatabase, getDb, ensureDbInitialized } from './database.js';
 import { seedDatabase } from './seed.js';
 import { v4 as uuidv4 } from 'uuid';
 import { requireRole, requirePermission } from './middleware/rbacMiddleware.js';
-import { getTenantAnalytics, logUsage, checkTenantLimits } from './services/tenantService.js';
+import { getTenantAnalytics, logUsage, checkTenantLimits, getTenantUsage } from './services/tenantService.js';
 import { logger } from './utils/logger.js'; // This line might be wrong based on previous edit?
 import { AppError } from './utils/AppError.js';
 import { UserRole } from '../types.js'; // Importing UserRole to fix Enum type errors
@@ -201,7 +201,6 @@ app.put('/api/my-team/:id/role', companyAdminAuth, tenantTeamController.updateMe
 app.delete('/api/my-team/:id', companyAdminAuth, tenantTeamController.removeMember);
 
 // --- Tenant Analytics Routes ---
-import { getTenantUsage } from './services/tenantService.js';
 
 app.get('/api/tenants/:id/usage', requireRole([UserRole.SUPERADMIN, UserRole.COMPANY_ADMIN]), async (req: any, res: any) => {
     try {
@@ -659,7 +658,7 @@ const startServer = async () => {
     logger.info(`DEBUG: Reached end of startServer. Env VERCEL: ${process.env.VERCEL}`);
 };
 
-// ... (previous code)
+
 
 logger.info(`DEBUG: Reached end of index.ts. Env VERCEL: ${process.env.VERCEL}`);
 

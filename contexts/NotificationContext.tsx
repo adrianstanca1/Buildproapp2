@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { useToast } from './ToastContext';
+import { db } from '@/services/db';
 
 export interface Notification {
     id: string;
@@ -29,13 +30,20 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [socket, setSocket] = useState<WebSocket | null>(null);
 
-    // Initial fetch (mock for now, real implementation would fetch from API)
+    // Initial fetch
     useEffect(() => {
-        if (user) {
-            // TODO: Fetch existing notifications from backend API
-            // For now, start empty
-        }
-    }, [user]);
+        const fetchNotifications = async () => {
+            if (user && token) {
+                try {
+                    const data = await db.getNotifications();
+                    setNotifications(data);
+                } catch (error) {
+                    console.error('Failed to fetch notifications:', error);
+                }
+            }
+        };
+        fetchNotifications();
+    }, [user, token]);
 
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -110,13 +118,22 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         };
     }, [user, token]);
 
-    const markAsRead = (id: string) => {
+    const markAsRead = async (id: string) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-        // TODO: Call API to mark as read
+        try {
+            await db.markNoteAsRead(id);
+        } catch (error) {
+            console.error('Failed to mark notification as read:', error);
+        }
     };
 
-    const markAllAsRead = () => {
+    const markAllAsRead = async () => {
         setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        try {
+            await db.markAllNotesAsRead();
+        } catch (error) {
+            console.error('Failed to mark all notifications as read:', error);
+        }
     };
 
     const addNotification = (n: Omit<Notification, 'id' | 'isRead' | 'createdAt'>) => {

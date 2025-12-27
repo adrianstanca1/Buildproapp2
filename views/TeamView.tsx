@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import {
     Plus, Users, LayoutGrid, List as ListIcon, Search, Filter,
     Phone, Mail, MapPin, Award, Star, Briefcase, X,
-    FileText, Loader2, Tag, Sparkles, Copy, UserCheck, Upload, Trash2, Eye, Globe
+    FileText, Loader2, Tag, Sparkles, Copy, UserCheck, Upload, Trash2, Eye, Globe, AlertCircle
 } from 'lucide-react';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,7 +11,7 @@ import { useTenant } from '@/contexts/TenantContext';
 import { TeamMember, Certification, UserRole } from '@/types';
 import { runRawPrompt } from '@/services/geminiService';
 import { useToast } from '@/contexts/ToastContext';
-import { AlertCircle } from 'lucide-react';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 import InviteMemberModal from '@/components/InviteMemberModal';
 import EditMemberModal from '@/components/EditMemberModal';
 import { Can } from '@/components/Can';
@@ -101,9 +101,6 @@ const UserCard: React.FC<{ member: TeamMember; onClick: () => void; showCompany:
     );
 };
 
-import { useWebSocket } from '@/contexts/WebSocketContext';
-
-// ... existing imports ...
 
 const TeamView: React.FC<TeamViewProps> = ({ projectId }) => {
     const { isLoading } = useProjects();

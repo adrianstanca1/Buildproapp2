@@ -1,13 +1,12 @@
 
 import React, { useState, useRef } from 'react';
-import { Package, Search, Filter, AlertTriangle, ArrowDown, Plus, History, X, ScanBarcode, Camera, Loader2, QrCode, MapPin, Image as ImageIcon } from 'lucide-react';
+import { Package, Search, Filter, AlertTriangle, ArrowDown, Plus, History, X, ScanBarcode, Camera, Loader2, QrCode, MapPin, Image as ImageIcon, Sparkles, TrendingDown, Target, ShieldCheck } from 'lucide-react';
 import { InventoryItem, PurchaseOrder } from '@/types';
 import { useProjects } from '@/contexts/ProjectContext';
 import { useTenant } from '@/contexts/TenantContext';
 import { useToast } from '@/contexts/ToastContext';
 import FileUploadZone from '@/components/FileUploadZone';
 import { runRawPrompt, parseAIJSON } from '@/services/geminiService';
-import { Sparkles, TrendingDown, Target, ShieldCheck } from 'lucide-react';
 
 const InventoryView: React.FC = () => {
     const { addToast } = useToast();

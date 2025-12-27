@@ -10,30 +10,20 @@ export const getCostCodes = async (req: Request, res: Response) => {
         const params: any[] = [];
 
         if (projectId) {
-            query += ` AND project_id = ?`;
+            query += ` AND projectId = ?`;
             params.push(projectId);
         }
 
         // Filter by company? Usually cost codes are project specific but belong to a company scope
         if (req.user?.companyId) {
-            query += ` AND company_id = ?`;
+            query += ` AND companyId = ?`;
             params.push(req.user.companyId);
         }
 
         const db = getDb();
         const codes = await db.all(query, params);
 
-        const mapped = codes.map((c: any) => ({
-            id: c.id,
-            projectId: c.project_id,
-            companyId: c.company_id,
-            code: c.code,
-            description: c.description,
-            budget: c.budget,
-            spent: c.spent
-        }));
-
-        res.json(mapped);
+        res.json(codes);
     } catch (error) {
         console.error('Error fetching cost codes:', error);
         res.status(500).json({ error: 'Failed to fetch cost codes' });
@@ -48,7 +38,7 @@ export const createCostCode = async (req: Request, res: Response) => {
 
         const db = getDb();
         await db.run(`
-      INSERT INTO cost_codes (id, project_id, company_id, code, description, budget, spent)
+      INSERT INTO cost_codes (id, projectId, companyId, code, description, budget, spent)
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [id, projectId, companyId, code, description, budget, spent || 0]);
 
@@ -66,12 +56,11 @@ export const updateCostCode = async (req: Request, res: Response) => {
         const { id } = req.params;
         const updates = req.body;
 
-        const fields = Object.keys(updates).filter(key => key !== 'id' && key !== 'projectId' && key !== 'companyId');
+        const fields = Object.keys(updates).filter(key => key !== 'id');
         const values = [];
         const setParts = [];
 
         for (const key of fields) {
-            if (key === 'projectId') continue; // Don't move cost codes between projects easily
             setParts.push(`${key} = ?`);
             values.push(updates[key]);
         }

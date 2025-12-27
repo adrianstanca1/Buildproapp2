@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { pushService } from '../services/PushService.js';
 import { authenticateToken } from '../middleware/authMiddleware.js';
+import * as notificationController from '../controllers/notificationController.js';
 
 const router = Router();
 
@@ -38,5 +39,10 @@ router.post('/send', authenticateToken, async (req: any, res) => {
         res.status(500).json({ error: 'Failed to send notification' });
     }
 });
+
+// In-App Notifications
+router.get('/', authenticateToken, notificationController.getUserNotifications);
+router.put('/:id/read', authenticateToken, notificationController.markNotificationAsRead);
+router.post('/mark-all-read', authenticateToken, notificationController.markAllNotificationsAsRead);
 
 export default router;
