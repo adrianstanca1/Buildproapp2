@@ -1,0 +1,5 @@
+node_modules/
+dist/
+dist-ssr/
+buildproapp2/
+server/buildpro_db.sqlite
